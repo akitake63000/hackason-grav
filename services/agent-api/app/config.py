@@ -1,6 +1,19 @@
 import os
 
+
+def _get_bool(key: str, default: str = "false") -> bool:
+    return os.getenv(key, default).lower() == "true"
+
+
 FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
 LOCAL_IMAGE_PATH = os.getenv("LOCAL_IMAGE_PATH", "")
-DEBUG_AUTH = os.getenv("DEBUG_AUTH", "false").lower() == "true"
+DEBUG_AUTH = _get_bool("DEBUG_AUTH", "false")
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "")
+GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
+GOOGLE_GENAI_USE_VERTEXAI = _get_bool("GOOGLE_GENAI_USE_VERTEXAI", "false")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_ENABLED = _get_bool("GEMINI_ENABLED", "true")

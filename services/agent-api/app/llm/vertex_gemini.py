@@ -1,4 +1,3 @@
-import os
 import re
 import json
 from typing import Any
@@ -6,11 +5,15 @@ from typing import Any
 from google import genai
 from google.genai.types import HttpOptions
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-GEMINI_ENABLED = os.getenv("GEMINI_ENABLED", "true").lower() == "true"
-GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "")
-GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
-USE_VERTEXAI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "false").lower() == "true"
+from ..config import (
+    GEMINI_ENABLED,
+    GEMINI_MODEL,
+    GOOGLE_CLOUD_LOCATION,
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_GENAI_USE_VERTEXAI,
+)
+
+USE_VERTEXAI = GOOGLE_GENAI_USE_VERTEXAI
 
 _client: genai.Client | None = None
 

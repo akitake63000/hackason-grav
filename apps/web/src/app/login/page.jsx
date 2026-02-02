@@ -1,7 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Leaf } from 'lucide-react'
-import Button from '../../components/Button'
+import Button from '@/components/Button'
+import { setMockAuthed } from '@/lib/auth'
 
 const styles = {
   container: {
@@ -207,11 +210,12 @@ const GoogleLogo = () => (
 )
 
 function Login() {
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const handleGoogleLogin = () => {
     // Mock login - navigate to profile setup
-    navigate('/onboarding')
+    setMockAuthed(true)
+    router.push('/profile')
   }
 
   return (

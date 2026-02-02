@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
+import Index from './screens/Index'
 
 // Common Screens
 import Login from './screens/common/Login'
@@ -34,10 +35,11 @@ function App() {
   return (
     <Routes>
       {/* Public Routes (no layout) */}
+      <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
 
       {/* Authenticated Routes (with layout) */}
-      <Route path="/profile" element={<AuthenticatedLayout><Profile /></AuthenticatedLayout>} />
+      <Route path="/onboarding" element={<AuthenticatedLayout><Profile /></AuthenticatedLayout>} />
       <Route path="/home" element={<AuthenticatedLayout><Home /></AuthenticatedLayout>} />
       <Route path="/settings" element={<AuthenticatedLayout><Settings /></AuthenticatedLayout>} />
 
@@ -60,8 +62,7 @@ function App() {
       <Route path="/feature3/nearby-stores" element={<AuthenticatedLayout><NearbyStores /></AuthenticatedLayout>} />
 
       {/* Default redirect to home */}
-      <Route path="/" element={<Navigate to="/home" replace />} />
-      <Route path="*" element={<Navigate to="/home" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

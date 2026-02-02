@@ -1,11 +1,15 @@
+'use client'
+
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   User, Bell, Shield, Trash2, LogOut,
   ChevronRight, HelpCircle, FileText
 } from 'lucide-react'
-import Button from '../../components/Button'
+import Button from '@/components/Button'
+import Layout from '@/components/Layout'
+import { setMockAuthed } from '@/lib/auth'
 
 const styles = {
   container: {
@@ -131,7 +135,7 @@ const settingsSections = [
         description: '性別・年齢・お悩みの変更',
         iconBg: 'linear-gradient(135deg, #1a3d2e 0%, #347a5c 100%)',
         type: 'link',
-        path: '/onboarding',
+        path: '/profile',
       },
     ],
   },
@@ -220,7 +224,7 @@ function Toggle({ value, onChange }) {
 }
 
 function Settings() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [toggleStates, setToggleStates] = useState({
     push: true,
   })
@@ -231,25 +235,28 @@ function Settings() {
 
   const handleItemClick = (item) => {
     if (item.type === 'link' && item.path) {
-      navigate(item.path)
+      router.push(item.path)
     } else if (item.type === 'action' && item.id === 'delete') {
       // Show confirmation dialog
       if (window.confirm('本当にすべてのデータを削除しますか？この操作は取り消せません。')) {
         // Delete data and logout
-        navigate('/login')
+        setMockAuthed(false)
+        router.push('/login')
       }
     }
   }
 
   const handleLogout = () => {
     if (window.confirm('ログアウトしますか？')) {
-      navigate('/login')
+      setMockAuthed(false)
+      router.push('/login')
     }
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.scrollArea}>
+    <Layout>
+      <div style={styles.container}>
+        <div style={styles.scrollArea}>
         {settingsSections.map((section, sectionIndex) => (
           <motion.div
             key={section.title}
@@ -342,8 +349,9 @@ function Settings() {
           <p>薄毛対策AIエージェント</p>
           <p>バージョン 1.0.0</p>
         </motion.div>
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }
 
