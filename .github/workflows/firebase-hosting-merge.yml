@@ -18,6 +18,8 @@ jobs:
         run: npm ci --prefix apps/web
       - name: Install mock dependencies
         run: npm ci --prefix mock
+      - name: Ensure hosting output dir exists
+        run: mkdir -p apps/web/out
       - uses: FirebaseExtended/action-hosting-deploy@v0
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}

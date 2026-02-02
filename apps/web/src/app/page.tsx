@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, Camera, MessageCircle, Leaf, Sparkles } from "lucide-react";
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: "100vh",
     background: "linear-gradient(165deg, #d4f0e3 0%, #f8f6f2 35%, #ebe8e3 100%)",
