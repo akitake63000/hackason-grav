@@ -356,7 +356,6 @@ function Profile() {
           設定は後から変更できます
         </p>
       </motion.div>
-        </div>
       </div>
     </Layout>
   )
