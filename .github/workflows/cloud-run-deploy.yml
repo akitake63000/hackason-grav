@@ -1,0 +1,56 @@
+name: Cloud Run Deploy (agent-api)
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION }}
+  CLOUD_RUN_SERVICE: ${{ secrets.CLOUD_RUN_SERVICE }}
+  FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+  GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+  GEMINI_ENABLED: ${{ secrets.GEMINI_ENABLED }}
+  ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+  ALLOW_UNAUTHENTICATED: ${{ secrets.ALLOW_UNAUTHENTICATED }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        shell: bash
+        run: |
+          if [ -z "${GCP_PROJECT_ID}" ] || [ -z "${GCP_REGION}" ] || [ -z "${CLOUD_RUN_SERVICE}" ]; then
+            echo "Missing required secrets: GCP_PROJECT_ID, GCP_REGION, CLOUD_RUN_SERVICE" >&2
+            exit 1
+          fi
+
+          FLAGS=""
+          if [ "${ALLOW_UNAUTHENTICATED}" = "true" ]; then
+            FLAGS="--allow-unauthenticated"
+          fi
+
+          gcloud run deploy "${CLOUD_RUN_SERVICE}" \
+            --source services/agent-api \
+            --region "${GCP_REGION}" \
+            --project "${GCP_PROJECT_ID}" \
+            --set-env-vars "FIREBASE_STORAGE_BUCKET=${FIREBASE_STORAGE_BUCKET},FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID},GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID},GOOGLE_CLOUD_LOCATION=${GCP_REGION},GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=${GEMINI_MODEL},GEMINI_ENABLED=${GEMINI_ENABLED},ALLOWED_ORIGINS=${ALLOWED_ORIGINS}" \
+            ${FLAGS}
