@@ -1,6 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import random
+import re
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -69,6 +70,11 @@ def _fallback_tip(season: str) -> str:
     tips = FALLBACK_TIPS.get(season, []) + GENERAL_TIPS
     return random.choice(tips)
 
+def _sanitize_tip(text: str) -> str:
+    cleaned = re.sub(r"[（(]?乱数[:：]\\s*\\d+[)）]?", "", text)
+    cleaned = re.sub(r"\\s{2,}", " ", cleaned)
+    return cleaned.strip()
+
 
 @router.get("/health")
 def health() -> dict:
@@ -94,13 +100,13 @@ def tip(_: str = Depends(get_current_uid)) -> TipResponse:
         f"現在は日本時間の{season}の{time_label}です。"
         "季節と時間帯に合う内容にしてください。"
         "医療的な断定や過度な効果保証は避けてください。"
-        f"必ず表現を変えるための乱数: {seed}。"
+        f"必ず表現を変えるための乱数: {seed}（出力には含めないでください）。"
         "出力は1文のみ。"
     )
 
     try:
         text = generate_text(prompt, model=model).strip()
-        tip_text = text.splitlines()[0].strip("「」\"' ")
+        tip_text = _sanitize_tip(text.splitlines()[0].strip("「」\"' "))
         if not tip_text:
             raise ValueError("empty tip")
         return TipResponse(tip=tip_text, source="gemini")
