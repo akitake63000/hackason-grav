@@ -9,7 +9,7 @@ export const apiFetch = async (
   const token = await getIdToken();
   const headers = new Headers(init.headers ?? {});
   if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+    headers.set("X-Firebase-Auth", token);
   }
   const url = input.startsWith("http") ? input : `${API_BASE}${input}`;
   return fetch(url, { ...init, headers });

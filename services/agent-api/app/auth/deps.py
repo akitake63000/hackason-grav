@@ -6,13 +6,21 @@ from ..config import DEBUG_AUTH
 from ..firebase import verify_id_token
 
 
-def get_current_uid(authorization: str | None = Header(default=None)) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
+def get_current_uid(
+    authorization: str | None = Header(default=None),
+    x_firebase_auth: str | None = Header(default=None),
+) -> str:
+    bearer = None
+    if x_firebase_auth:
+        bearer = x_firebase_auth
+    elif authorization and authorization.startswith("Bearer "):
+        bearer = authorization.split(" ", 1)[1]
+
+    if not bearer:
         raise HTTPException(status_code=401, detail="Missing bearer token")
 
-    token = authorization.split(" ", 1)[1]
     try:
-        decoded = verify_id_token(token)
+        decoded = verify_id_token(bearer)
     except Exception as exc:  # noqa: BLE001
         logging.exception("Failed to verify Firebase ID token")
         detail = f"Invalid token: {exc}" if DEBUG_AUTH else "Invalid token"
