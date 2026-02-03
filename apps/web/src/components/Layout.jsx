@@ -235,6 +235,17 @@ function Layout({ children }) {
       })
   }, [loading, user, pathname, router])
 
+  // Auto-expand current section
+  useEffect(() => {
+    const currentItem = navItems.find(item =>
+      pathname.startsWith(`/${item.id}`) ||
+      (item.subItems && item.subItems.some(sub => sub.path === pathname))
+    )
+    if (currentItem?.subItems) {
+      setExpandedNav(currentItem.id)
+    }
+  }, [pathname])
+
   if (loading) {
     return (
       <div style={styles.loading}>
@@ -246,17 +257,6 @@ function Layout({ children }) {
   if (!user) {
     return null
   }
-
-  // Auto-expand current section
-  useEffect(() => {
-    const currentItem = navItems.find(item =>
-      pathname.startsWith(`/${item.id}`) ||
-      (item.subItems && item.subItems.some(sub => sub.path === pathname))
-    )
-    if (currentItem?.subItems) {
-      setExpandedNav(currentItem.id)
-    }
-  }, [pathname])
 
   const isActive = (item) => {
     if (item.path === pathname) return true

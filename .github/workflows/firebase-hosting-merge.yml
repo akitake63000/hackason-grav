@@ -16,8 +16,6 @@ jobs:
           node-version: "20"
       - name: Install web dependencies
         run: npm ci --prefix apps/web
-      - name: Install mock dependencies
-        run: npm ci --prefix mock
       - name: Ensure hosting output dir exists
         run: mkdir -p apps/web/out
       - uses: FirebaseExtended/action-hosting-deploy@v0

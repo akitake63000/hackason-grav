@@ -16,14 +16,6 @@
           "serviceId": "agent-api",
           "region": "asia-northeast1"
         }
-      },
-      {
-        "source": "/mock",
-        "destination": "/mock/index.html"
-      },
-      {
-        "source": "/mock/**",
-        "destination": "/mock/index.html"
       }
     ]
   },

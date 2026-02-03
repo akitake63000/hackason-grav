@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
-
-const bodyFont = Manrope({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
-
-const displayFont = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "HairGuard Agent",
@@ -24,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${bodyFont.variable} ${displayFont.variable}`}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

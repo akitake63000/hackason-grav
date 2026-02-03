@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@100..900&family=Manrope:wght@200..800&display=swap");
+
 :root {
   --bg: #f6f1e7;
   --bg-alt: #efe5d3;
@@ -8,6 +10,8 @@
   --accent-strong: #1f3528;
   --accent-soft: #f2e7d4;
   --border: #e1d4bf;
+  --font-body: "Manrope", "Noto Sans JP", sans-serif;
+  --font-display: "Fraunces", "Cormorant Garamond", serif;
 }
 
 html,
