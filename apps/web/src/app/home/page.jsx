@@ -1,10 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, MessageCircle, Leaf, ChevronRight, Sparkles } from 'lucide-react'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
+import { useAuth } from '@/lib/auth'
+import { getUserProfile } from '@/lib/profile'
+import { apiFetch } from '@/lib/api'
 
 const styles = {
   container: {
@@ -191,10 +195,62 @@ const features = [
 
 function Home() {
   const router = useRouter()
+  const { user } = useAuth()
+  const [userName, setUserName] = useState('あなた')
+  const [streakDays, setStreakDays] = useState(0)
+  const [tip, setTip] = useState('今日のヒントを準備中です')
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 5) return 'こんばんは'
+    if (hour < 12) return 'おはようございます'
+    if (hour < 18) return 'こんにちは'
+    return 'こんばんは'
+  }, [])
+  const streakMessage = useMemo(() => {
+    if (streakDays <= 0) return '今日から一緒に始めましょう'
+    if (streakDays < 3) return 'いいスタートです。少しずつ続けましょう'
+    if (streakDays < 7) return 'いいペースです。無理なく続けましょう'
+    if (streakDays < 14) return '素晴らしい！継続は力なりです'
+    if (streakDays < 30) return '継続できています。あと少しで習慣化！'
+    return '習慣化達成！この調子で続けましょう'
+  }, [streakDays])
 
-  // Mock user data
-  const userName = '田中さん'
-  const streakDays = 7
+  useEffect(() => {
+    if (!user) return
+    const fallbackName = user.displayName ?? 'あなた'
+    setUserName(`${fallbackName}さん`)
+
+    getUserProfile(user.uid)
+      .then((profile) => {
+        if (!profile) return
+        if (profile.displayName) {
+          setUserName(`${profile.displayName}さん`)
+        }
+        if (typeof profile.streakDays === 'number') {
+          setStreakDays(profile.streakDays)
+        }
+      })
+      .catch(() => {
+        setUserName(fallbackName)
+      })
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    apiFetch('/api/v1/lifestyle/tip')
+      .then(async (res) => {
+        if (!res.ok) throw new Error('failed to load tip')
+        return res.json()
+      })
+      .then((data) => {
+        if (data?.tip) {
+          setTip(data.tip)
+        }
+      })
+      .catch(() => {
+        setTip('頭皮マッサージは血行促進に効果的です。指の腹で優しく揉みほぐしましょう。')
+      })
+  }, [user])
 
   return (
     <Layout>
@@ -208,7 +264,7 @@ function Home() {
           transition={{ delay: 0.1 }}
         >
           <h1 style={styles.greetingText}>
-            おはようございます、
+            {greeting}、
             <br />
             <span style={styles.highlight}>{userName}</span>
           </h1>
@@ -233,7 +289,7 @@ function Home() {
             <span style={styles.statusUnit}>日連続</span>
           </div>
           <p style={styles.statusSubtext}>
-            素晴らしい！継続は力なりです
+            {streakMessage}
           </p>
         </motion.div>
 
@@ -317,8 +373,7 @@ function Home() {
                   color: '#635d54',
                   lineHeight: 1.5,
                 }}>
-                  頭皮マッサージは血行促進に効果的です。
-                  シャンプー時に指の腹で優しく揉みほぐしましょう。
+                  {tip}
                 </p>
               </div>
             </div>

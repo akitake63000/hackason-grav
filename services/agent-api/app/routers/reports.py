@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
+from ..config import GEMINI_MODEL_HEAVY
 from ..services.gemini_chat import GEMINI_MODEL, gemini_enabled, generate_text, safe_json_load
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
@@ -35,7 +36,8 @@ def _to_datetime(value) -> Optional[datetime]:
 def _generate_report_with_llm(
     series: list[tuple[datetime, float]], period_days: int
 ) -> Optional[ReportGenerateResponse]:
-    if not gemini_enabled():
+    model = GEMINI_MODEL_HEAVY or GEMINI_MODEL
+    if not gemini_enabled(model):
         return None
 
     payload = [
@@ -58,7 +60,7 @@ def _generate_report_with_llm(
     )
 
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, model=model)
         data = safe_json_load(text)
     except Exception:  # noqa: BLE001
         return None
@@ -124,7 +126,7 @@ def generate_report(
         highlights = llm_report.highlights
         next_actions = llm_report.nextActions
         raw_text = llm_report.rawText
-        model_label = f"gemini:{GEMINI_MODEL}"
+        model_label = f"gemini:{GEMINI_MODEL_HEAVY or GEMINI_MODEL}"
     else:
         if not series:
             highlights.append("期間内の測定データがありません。")

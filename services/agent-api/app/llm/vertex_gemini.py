@@ -37,9 +37,10 @@ def gemini_enabled() -> bool:
     return GEMINI_ENABLED and bool(GEMINI_MODEL)
 
 
-def generate_text(prompt: str) -> str:
+def generate_text(prompt: str, model: str | None = None) -> str:
     client = _get_client()
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    selected_model = model or GEMINI_MODEL
+    response = client.models.generate_content(model=selected_model, contents=prompt)
     return response.text or ""
 
 
