@@ -36,7 +36,7 @@ const deleteDocsInBatch = async (
 
 const deleteCollection = async (path: string[]) => {
   const db = getFirestoreDb();
-  const snapshot = await getDocs(collection(db, ...path));
+  const snapshot = await getDocs(collection(db, path.join("/")));
   if (!snapshot.empty) {
     await deleteDocsInBatch(snapshot.docs);
   }
