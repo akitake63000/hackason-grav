@@ -4,6 +4,8 @@ import {
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
+  browserSessionPersistence,
+  setPersistence,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -12,6 +14,19 @@ import { getFirebaseAuth, isFirebaseConfigured } from "./firebase";
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
+
+let persistenceReady: Promise<void> | null = null;
+
+const ensureSessionPersistence = async (): Promise<void> => {
+  const auth = getAuthSafe();
+  if (!auth) return;
+  if (!persistenceReady) {
+    persistenceReady = setPersistence(auth, browserSessionPersistence).catch((error) => {
+      console.warn("Failed to set session persistence.", error);
+    });
+  }
+  await persistenceReady;
+};
 
 const getAuthSafe = () => {
   if (!isFirebaseConfigured()) {
@@ -35,6 +50,7 @@ export const useAuth = (): { user: User | null; loading: boolean } => {
       setLoading(false);
       return undefined;
     }
+    ensureSessionPersistence().catch(() => undefined);
     return onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -49,6 +65,7 @@ export const signInWithGoogle = async (): Promise<User | null> => {
   if (!auth) {
     throw new Error("Firebase Auth is not configured.");
   }
+  await ensureSessionPersistence();
 
   try {
     const result = await signInWithPopup(auth, googleProvider);
