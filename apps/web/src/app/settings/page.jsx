@@ -146,7 +146,7 @@ const settingsSections = [
         id: 'push',
         icon: Bell,
         title: 'プッシュ通知',
-        description: 'リマインダー・お知らせ',
+        description: 'リマインダー・お知らせ（準備中）',
         iconBg: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
         type: 'toggle',
         defaultValue: true,
@@ -169,9 +169,10 @@ const settingsSections = [
         id: 'delete',
         icon: Trash2,
         title: 'データ削除',
-        description: 'すべてのデータを削除',
+        description: '削除内容を選択',
         iconBg: 'linear-gradient(135deg, #d47370 0%, #f0a5a3 100%)',
-        type: 'action',
+        type: 'link',
+        path: '/settings/delete',
         danger: true,
       },
     ],
@@ -236,14 +237,6 @@ function Settings() {
   const handleItemClick = (item) => {
     if (item.type === 'link' && item.path) {
       router.push(item.path)
-    } else if (item.type === 'action' && item.id === 'delete') {
-      // Show confirmation dialog
-      if (window.confirm('本当にすべてのデータを削除しますか？この操作は取り消せません。')) {
-        // Delete data and logout
-        signOutUser().finally(() => {
-          router.push('/login')
-        })
-      }
     }
   }
 

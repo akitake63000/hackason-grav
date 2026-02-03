@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check } from 'lucide-react'
@@ -9,6 +9,7 @@ import Layout from '@/components/Layout'
 import { getFirestoreDb } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth'
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { getUserProfile } from '@/lib/profile'
 
 const styles = {
   container: {
@@ -178,6 +179,23 @@ function Profile() {
   const [age, setAge] = useState('')
   const [selectedConcerns, setSelectedConcerns] = useState([])
   const [isAgeFocused, setIsAgeFocused] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
+    setIsLoading(true)
+    getUserProfile(user.uid)
+      .then((profile) => {
+        if (!profile) return
+        if (profile.gender) setGender(profile.gender)
+        if (profile.birthDate) setAge(profile.birthDate)
+        if (Array.isArray(profile.concernAreas)) setSelectedConcerns(profile.concernAreas)
+      })
+      .finally(() => setIsLoading(false))
+  }, [user])
 
   const toggleConcern = (id) => {
     setSelectedConcerns(prev =>
@@ -205,7 +223,7 @@ function Profile() {
     }
   }
 
-  const isValid = gender && age && selectedConcerns.length > 0
+  const isValid = gender && age && selectedConcerns.length > 0 && !isLoading
 
   return (
     <Layout>
