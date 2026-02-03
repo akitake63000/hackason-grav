@@ -7,26 +7,38 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read, write: if isOwner(uid);
-    }
 
-    match /photos/{uid}/items/{photoId} {
-      allow read, write: if isOwner(uid);
-    }
+      match /profile/{profileId} {
+        allow read, write: if isOwner(uid);
+      }
 
-    match /analysisResults/{uid}/items/{analysisId} {
-      allow read, write: if isOwner(uid);
-    }
+      match /photos/{photoId} {
+        allow read, write: if isOwner(uid);
+      }
 
-    match /reports/{uid}/items/{reportId} {
-      allow read, write: if isOwner(uid);
-    }
+      match /analysisResults/{analysisId} {
+        allow read, write: if isOwner(uid);
+      }
 
-    match /conversations/{uid}/threads/{threadId}/messages/{msgId} {
-      allow read, write: if isOwner(uid);
-    }
+      match /reports/{reportId} {
+        allow read, write: if isOwner(uid);
+      }
 
-    match /foodRequests/{uid}/items/{reqId} {
-      allow read, write: if isOwner(uid);
+      match /conversations/{threadId} {
+        allow read, write: if isOwner(uid);
+
+        match /messages/{msgId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+
+      match /tendencyScores/{scoreId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /foodRequests/{requestId} {
+        allow read, write: if isOwner(uid);
+      }
     }
   }
 }

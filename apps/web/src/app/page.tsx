@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, Camera, MessageCircle, Leaf, Sparkles } from "lucide-react";
+import { signInWithGoogle, useAuth } from "@/lib/auth";
+import { isFirebaseConfigured } from "@/lib/firebase";
 
 const styles: Record<string, CSSProperties> = {
   container: {
@@ -189,23 +191,34 @@ const features = [
 
 export default function Home() {
   const router = useRouter();
+  const { user, loading } = useAuth();
   const [status, setStatus] = useState<"idle" | "loading">("idle");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [error, setError] = useState("");
+  const firebaseReady = isFirebaseConfigured();
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
+    if (!loading && user) {
+      router.replace("/home");
+    }
+  }, [loading, user, router]);
 
   const handleLogin = () => {
     if (status === "loading") return;
+    setError("");
     setStatus("loading");
-    timerRef.current = setTimeout(() => {
-      router.push("/home");
-    }, 650);
+    signInWithGoogle()
+      .then((signedInUser) => {
+        if (signedInUser) {
+          router.push("/home");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("ログインに失敗しました。");
+      })
+      .finally(() => {
+        setStatus("idle");
+      });
   };
 
   return (
@@ -247,10 +260,10 @@ export default function Home() {
               type="button"
               style={{
                 ...styles.loginButton,
-                ...(status === "loading" ? styles.loginButtonDisabled : {}),
+                ...((status === "loading" || !firebaseReady) ? styles.loginButtonDisabled : {}),
               }}
               onClick={handleLogin}
-              disabled={status === "loading"}
+              disabled={status === "loading" || !firebaseReady}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -258,6 +271,16 @@ export default function Home() {
               {status === "loading" ? "ログイン中..." : "Googleでログイン"}
             </motion.button>
             <span style={styles.loginHint}>ログイン成功後はホームへ遷移</span>
+            {!firebaseReady && (
+              <span style={styles.loginHint}>
+                Firebase設定が未完了です
+              </span>
+            )}
+            {error && (
+              <span style={{ ...styles.loginHint, color: "#b85450" }}>
+                {error}
+              </span>
+            )}
           </div>
 
           <div style={styles.featureGrid}>

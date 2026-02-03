@@ -7,6 +7,7 @@ import {
   Menu, X, ChevronRight
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/auth'
 
 const navItems = [
   { id: 'home', icon: Home, label: 'ホーム', path: '/home' },
@@ -42,6 +43,16 @@ const styles = {
     display: 'flex',
     minHeight: '100vh',
     background: 'linear-gradient(165deg, #d4f0e3 0%, #f8f6f2 30%, #ebe8e3 100%)',
+  },
+  loading: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(165deg, #d4f0e3 0%, #f8f6f2 30%, #ebe8e3 100%)',
+    color: '#7f786d',
+    fontSize: '14px',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
   },
   // Sidebar (Desktop)
   sidebar: {
@@ -264,6 +275,7 @@ const styles = {
 function Layout({ children }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/'
+  const { user, loading } = useAuth()
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedNav, setExpandedNav] = useState(null)
@@ -276,6 +288,24 @@ function Layout({ children }) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login')
+    }
+  }, [loading, user, router])
+
+  if (loading) {
+    return (
+      <div style={styles.loading}>
+        認証を確認中...
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   // Auto-expand current section
   useEffect(() => {

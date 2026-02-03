@@ -1,10 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Leaf } from 'lucide-react'
-import Button from '@/components/Button'
-import { setMockAuthed } from '@/lib/auth'
+import { handleRedirectResult, signInWithGoogle, useAuth } from '@/lib/auth'
+import { isFirebaseConfigured } from '@/lib/firebase'
 
 const styles = {
   container: {
@@ -118,6 +119,10 @@ const styles = {
     transition: 'all 0.3s ease',
     boxShadow: '0 4px 12px rgba(26, 61, 46, 0.06)',
   },
+  googleButtonDisabled: {
+    cursor: 'not-allowed',
+    opacity: 0.6,
+  },
   googleIcon: {
     width: '20px',
     height: '20px',
@@ -127,6 +132,12 @@ const styles = {
     fontSize: '15px',
     fontWeight: '600',
     color: '#1a3d2e',
+  },
+  errorText: {
+    marginTop: '12px',
+    fontSize: '12px',
+    color: '#b85450',
+    textAlign: 'center',
   },
   divider: {
     display: 'flex',
@@ -211,11 +222,40 @@ const GoogleLogo = () => (
 
 function Login() {
   const router = useRouter()
+  const { user, loading } = useAuth()
+  const [status, setStatus] = useState('idle')
+  const [error, setError] = useState('')
+  const firebaseReady = isFirebaseConfigured()
 
-  const handleGoogleLogin = () => {
-    // Mock login - navigate to profile setup
-    setMockAuthed(true)
-    router.push('/profile')
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/home')
+    }
+  }, [loading, user, router])
+
+  useEffect(() => {
+    handleRedirectResult().then((redirectUser) => {
+      if (redirectUser) {
+        router.replace('/profile')
+      }
+    })
+  }, [router])
+
+  const handleGoogleLogin = async () => {
+    if (status === 'loading') return
+    setError('')
+    setStatus('loading')
+    try {
+      const signedInUser = await signInWithGoogle()
+      if (signedInUser) {
+        router.push('/profile')
+      }
+    } catch (err) {
+      setError('ログインに失敗しました。時間をおいて再度お試しください。')
+      console.error(err)
+    } finally {
+      setStatus('idle')
+    }
   }
 
   return (
@@ -302,8 +342,12 @@ function Login() {
 
         {/* Google Login Button */}
         <motion.button
-          style={styles.googleButton}
+          style={{
+            ...styles.googleButton,
+            ...((!firebaseReady || status === 'loading') ? styles.googleButtonDisabled : {}),
+          }}
           onClick={handleGoogleLogin}
+          disabled={!firebaseReady || status === 'loading'}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
@@ -314,8 +358,16 @@ function Login() {
           whileTap={{ scale: 0.98 }}
         >
           <GoogleLogo />
-          <span style={styles.googleText}>Googleでログイン</span>
+          <span style={styles.googleText}>
+            {status === 'loading' ? 'ログイン中...' : 'Googleでログイン'}
+          </span>
         </motion.button>
+        {!firebaseReady && (
+          <p style={styles.errorText}>
+            Firebase設定が未完了です。環境変数をご確認ください。
+          </p>
+        )}
+        {error && <p style={styles.errorText}>{error}</p>}
 
         {/* Features preview */}
         <motion.div

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import Button from '@/components/Button'
 import Layout from '@/components/Layout'
-import { setMockAuthed } from '@/lib/auth'
+import { signOutUser } from '@/lib/auth'
 
 const styles = {
   container: {
@@ -240,16 +240,18 @@ function Settings() {
       // Show confirmation dialog
       if (window.confirm('本当にすべてのデータを削除しますか？この操作は取り消せません。')) {
         // Delete data and logout
-        setMockAuthed(false)
-        router.push('/login')
+        signOutUser().finally(() => {
+          router.push('/login')
+        })
       }
     }
   }
 
   const handleLogout = () => {
     if (window.confirm('ログアウトしますか？')) {
-      setMockAuthed(false)
-      router.push('/login')
+      signOutUser().finally(() => {
+        router.push('/login')
+      })
     }
   }
 
