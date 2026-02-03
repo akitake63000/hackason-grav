@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Check } from 'lucide-react'
 import Button from '@/components/Button'
 import Layout from '@/components/Layout'
+import { getFirestoreDb } from '@/lib/firebase'
+import { useAuth } from '@/lib/auth'
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 
 const styles = {
   container: {
@@ -170,6 +173,7 @@ const concerns = [
 
 function Profile() {
   const router = useRouter()
+  const { user } = useAuth()
   const [gender, setGender] = useState(null)
   const [age, setAge] = useState('')
   const [selectedConcerns, setSelectedConcerns] = useState([])
@@ -183,9 +187,22 @@ function Profile() {
     )
   }
 
-  const handleSave = () => {
-    // Save profile and navigate to home
-    router.push('/home')
+  const handleSave = async () => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    try {
+      const db = getFirestoreDb()
+      await setDoc(doc(db, 'users', user.uid, 'profile', 'default'), {
+        gender,
+        birthDate: age,
+        concernAreas: selectedConcerns,
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
+    } finally {
+      router.push('/home')
+    }
   }
 
   const isValid = gender && age && selectedConcerns.length > 0

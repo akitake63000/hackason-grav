@@ -4,10 +4,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, Camera, MessageCircle, Leaf, Settings,
-  Menu, X, ChevronRight
+  X, ChevronRight
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
+import Header from '@/components/Header'
+import BottomNav from '@/components/BottomNav'
+import PhoneFrame from '@/components/PhoneFrame'
+import { hasUserProfile } from '@/lib/profile'
 
 const navItems = [
   { id: 'home', icon: Home, label: 'ホーム', path: '/home' },
@@ -159,84 +163,6 @@ const styles = {
     marginLeft: 0,
     paddingBottom: '80px',
   },
-  content: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '24px',
-  },
-  // Mobile header
-  mobileHeader: {
-    display: 'none',
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '60px',
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    borderBottom: '1px solid rgba(26, 61, 46, 0.08)',
-    zIndex: 90,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-  },
-  mobileHeaderVisible: {
-    display: 'flex',
-  },
-  menuButton: {
-    width: '40px',
-    height: '40px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    borderRadius: '10px',
-    color: '#1a3d2e',
-  },
-  // Mobile bottom nav
-  bottomNav: {
-    display: 'none',
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '70px',
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    borderTop: '1px solid rgba(26, 61, 46, 0.08)',
-    zIndex: 90,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    padding: '8px 0',
-  },
-  bottomNavVisible: {
-    display: 'flex',
-  },
-  bottomNavItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '4px',
-    padding: '8px 12px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    borderRadius: '12px',
-    transition: 'all 0.2s ease',
-  },
-  bottomNavLabel: {
-    fontSize: '10px',
-    fontWeight: '500',
-    color: '#7f786d',
-  },
-  bottomNavLabelActive: {
-    color: '#1a3d2e',
-    fontWeight: '600',
-  },
   // Overlay
   overlay: {
     position: 'fixed',
@@ -294,6 +220,20 @@ function Layout({ children }) {
       router.replace('/login')
     }
   }, [loading, user, router])
+
+  useEffect(() => {
+    if (loading || !user) return
+    if (pathname.startsWith('/onboarding')) return
+    hasUserProfile(user.uid)
+      .then((exists) => {
+        if (!exists) {
+          router.replace('/onboarding')
+        }
+      })
+      .catch(() => {
+        router.replace('/onboarding')
+      })
+  }, [loading, user, pathname, router])
 
   if (loading) {
     return (
@@ -446,20 +386,11 @@ function Layout({ children }) {
         )}
       </AnimatePresence>
 
-      {/* Mobile Header */}
-      <header style={{
-        ...styles.mobileHeader,
-        ...(isMobile ? styles.mobileHeaderVisible : {}),
-      }}>
-        <button
-          style={styles.menuButton}
-          onClick={() => setSidebarOpen(true)}
-        >
-          <Menu size={24} />
-        </button>
-        <div style={styles.logoText}>薄毛対策AI</div>
-        <div style={{ width: 40 }} />
-      </header>
+      <Header
+        isMobile={isMobile}
+        onMenuClick={() => setSidebarOpen(true)}
+        title="薄毛対策AI"
+      />
 
       {/* Main Content */}
       <main style={{
@@ -467,44 +398,17 @@ function Layout({ children }) {
         ...(isMobile ? styles.mainMobile : {}),
         paddingTop: isMobile ? '60px' : 0,
       }}>
-        <div style={styles.content}>
+        <PhoneFrame>
           {children}
-        </div>
+        </PhoneFrame>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav style={{
-        ...styles.bottomNav,
-        ...(isMobile ? styles.bottomNavVisible : {}),
-      }}>
-        {navItems.filter(item => item.id !== 'settings').map((item) => {
-          const Icon = item.icon
-          const active = isActive(item)
-
-          return (
-            <motion.button
-              key={item.id}
-              style={styles.bottomNavItem}
-              onClick={() => {
-                router.push(item.path)
-              }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Icon
-                size={22}
-                color={active ? '#1a3d2e' : '#9c958a'}
-                strokeWidth={active ? 2.5 : 2}
-              />
-              <span style={{
-                ...styles.bottomNavLabel,
-                ...(active ? styles.bottomNavLabelActive : {}),
-              }}>
-                {item.label}
-              </span>
-            </motion.button>
-          )
-        })}
-      </nav>
+      <BottomNav
+        isMobile={isMobile}
+        items={navItems}
+        isActive={isActive}
+        onNavigate={(path) => router.push(path)}
+      />
     </div>
   )
 }

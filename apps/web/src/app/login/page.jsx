@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { Leaf } from 'lucide-react'
 import { handleRedirectResult, signInWithGoogle, useAuth } from '@/lib/auth'
 import { isFirebaseConfigured } from '@/lib/firebase'
+import { hasUserProfile } from '@/lib/profile'
 
 const styles = {
   container: {
@@ -228,16 +229,21 @@ function Login() {
   const firebaseReady = isFirebaseConfigured()
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace('/home')
-    }
+    if (loading || !user) return
+    hasUserProfile(user.uid)
+      .then((exists) => {
+        router.replace(exists ? '/home' : '/onboarding')
+      })
+      .catch(() => {
+        router.replace('/onboarding')
+      })
   }, [loading, user, router])
 
   useEffect(() => {
-    handleRedirectResult().then((redirectUser) => {
-      if (redirectUser) {
-        router.replace('/profile')
-      }
+    handleRedirectResult().then(async (redirectUser) => {
+      if (!redirectUser) return
+      const exists = await hasUserProfile(redirectUser.uid)
+      router.replace(exists ? '/home' : '/onboarding')
     })
   }, [router])
 
@@ -248,7 +254,8 @@ function Login() {
     try {
       const signedInUser = await signInWithGoogle()
       if (signedInUser) {
-        router.push('/profile')
+        const exists = await hasUserProfile(signedInUser.uid)
+        router.push(exists ? '/home' : '/onboarding')
       }
     } catch (err) {
       setError('ログインに失敗しました。時間をおいて再度お試しください。')

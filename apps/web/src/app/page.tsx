@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { LogIn, Camera, MessageCircle, Leaf, Sparkles } from "lucide-react";
 import { signInWithGoogle, useAuth } from "@/lib/auth";
 import { isFirebaseConfigured } from "@/lib/firebase";
+import { hasUserProfile } from "@/lib/profile";
 
 const styles: Record<string, CSSProperties> = {
   container: {
@@ -197,9 +198,14 @@ export default function Home() {
   const firebaseReady = isFirebaseConfigured();
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/home");
-    }
+    if (loading || !user) return;
+    hasUserProfile(user.uid)
+      .then((exists) => {
+        router.replace(exists ? "/home" : "/onboarding");
+      })
+      .catch(() => {
+        router.replace("/onboarding");
+      });
   }, [loading, user, router]);
 
   const handleLogin = () => {
@@ -207,10 +213,10 @@ export default function Home() {
     setError("");
     setStatus("loading");
     signInWithGoogle()
-      .then((signedInUser) => {
-        if (signedInUser) {
-          router.push("/home");
-        }
+      .then(async (signedInUser) => {
+        if (!signedInUser) return;
+        const exists = await hasUserProfile(signedInUser.uid);
+        router.push(exists ? "/home" : "/onboarding");
       })
       .catch((err) => {
         console.error(err);
