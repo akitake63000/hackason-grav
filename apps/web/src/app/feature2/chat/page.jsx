@@ -1,16 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Send } from 'lucide-react'
+import { Users, Send, Loader2 } from 'lucide-react'
 import Layout from '@/components/Layout'
+import { apiFetch } from '@/lib/api'
 
 const colors = {
   deepForest: '#1a3d2e',
   sage: '#7c9a7c',
   cream: '#f8f6f2',
   gold: '#c9a962',
+}
+
+// 3人格のエージェント設定
+const agentConfig = {
+  encourager: {
+    name: 'サポーター',
+    emoji: '❤️',
+    color: 'linear-gradient(135deg, #f8b4b4 0%, #f472b6 100%)',
+  },
+  coach: {
+    name: 'コーチ',
+    emoji: '💪',
+    color: 'linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)',
+  },
+  doctor: {
+    name: 'ドクター',
+    emoji: '🔬',
+    color: 'linear-gradient(135deg, #86efac 0%, #22c55e 100%)',
+  },
+  orchestrator: {
+    name: 'まとめ',
+    emoji: '🌿',
+    color: `linear-gradient(135deg, ${colors.sage} 0%, ${colors.deepForest} 100%)`,
+  },
 }
 
 const styles = {
@@ -144,26 +169,41 @@ const styles = {
     paddingRight: '0',
     paddingLeft: '0',
   },
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '16px',
+  },
+  loadingText: {
+    fontSize: '14px',
+    color: colors.sage,
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+  },
+  agentLabel: {
+    fontSize: '11px',
+    color: '#7f786d',
+    marginBottom: '4px',
+    paddingLeft: '46px',
+    fontWeight: '500',
+  },
+  errorMessage: {
+    padding: '12px 16px',
+    background: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: '12px',
+    color: '#dc2626',
+    fontSize: '14px',
+    margin: '8px 16px',
+  },
 }
 
 const initialMessages = [
   {
     id: 1,
     type: 'ai',
+    agent: 'orchestrator',
     text: 'こんにちは！髪のお悩みについてお気軽にご相談ください。どのようなことが気になっていますか？',
-    time: '10:30',
-  },
-  {
-    id: 2,
-    type: 'user',
-    text: '最近抜け毛が気になります',
-    time: '10:32',
-  },
-  {
-    id: 3,
-    type: 'ai',
-    text: '心配されていることをお聞かせいただきありがとうございます。まず、抜け毛が気になり始めたのはいつ頃からですか？',
-    time: '10:32',
+    time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
   },
 ]
 
@@ -171,33 +211,84 @@ function Chat() {
   const router = useRouter()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [threadId, setThreadId] = useState('default')
+  const chatAreaRef = useRef(null)
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return
+  // チャットエリアを最下部にスクロール
+  useEffect(() => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return
 
     const now = new Date()
     const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
     const newUserMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       type: 'user',
       text: inputValue,
       time,
     }
 
-    setMessages([...messages, newUserMessage])
+    setMessages(prev => [...prev, newUserMessage])
     setInputValue('')
+    setIsLoading(true)
+    setError(null)
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: messages.length + 2,
-        type: 'ai',
-        text: 'ご回答ありがとうございます。もう少し詳しくお聞かせいただけますか？日常生活での変化や、ストレス、睡眠の質なども関係することがあります。',
-        time: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }),
+    try {
+      const response = await apiFetch('/api/v1/mental-shield/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          threadId,
+          message: inputValue,
+          mode: 'balanced',
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
       }
-      setMessages(prev => [...prev, aiResponse])
-    }, 1500)
+
+      const data = await response.json()
+      const responseTime = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+
+      // スレッドIDを更新
+      if (data.threadId) {
+        setThreadId(data.threadId)
+      }
+
+      // 3人格の応答をメッセージに追加
+      const agentMessages = data.cards.map((card, index) => ({
+        id: Date.now() + index + 1,
+        type: 'ai',
+        agent: card.agent,
+        text: card.text,
+        time: responseTime,
+      }))
+
+      // サマリーを追加
+      const summaryMessage = {
+        id: Date.now() + data.cards.length + 1,
+        type: 'ai',
+        agent: 'orchestrator',
+        text: data.summary,
+        time: responseTime,
+      }
+
+      setMessages(prev => [...prev, ...agentMessages, summaryMessage])
+    } catch (err) {
+      console.error('Chat API error:', err)
+      setError('メッセージの送信に失敗しました。もう一度お試しください。')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleKeyDown = (e) => {
@@ -209,17 +300,30 @@ function Chat() {
 
   return (
     <Layout>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <div style={styles.container}>
         <div style={styles.chatWrapper}>
-        <div style={styles.chatArea}>
+        <div style={styles.chatArea} ref={chatAreaRef}>
           <AnimatePresence>
-            {messages.map((message, index) => (
+            {messages.map((message, index) => {
+              const agent = message.agent ? agentConfig[message.agent] : null
+              return (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
+                {message.type === 'ai' && agent && (
+                  <div style={styles.agentLabel}>
+                    {agent.emoji} {agent.name}
+                  </div>
+                )}
                 <div
                   style={{
                     ...styles.messageRow,
@@ -227,8 +331,11 @@ function Chat() {
                   }}
                 >
                   {message.type === 'ai' && (
-                    <div style={styles.avatar}>
-                      <span role="img" aria-label="AI">🌿</span>
+                    <div style={{
+                      ...styles.avatar,
+                      background: agent?.color || styles.avatar.background,
+                    }}>
+                      <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
                   )}
                   <motion.div
@@ -250,8 +357,33 @@ function Chat() {
                   {message.time}
                 </div>
               </motion.div>
-            ))}
+            )})}
           </AnimatePresence>
+
+          {/* ローディング表示 */}
+          {isLoading && (
+            <motion.div
+              style={styles.loadingContainer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <div style={styles.avatar}>
+                <Loader2 size={18} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+              </div>
+              <span style={styles.loadingText}>チームが相談中...</span>
+            </motion.div>
+          )}
+
+          {/* エラー表示 */}
+          {error && (
+            <motion.div
+              style={styles.errorMessage}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {error}
+            </motion.div>
+          )}
         </div>
 
         <motion.button
@@ -276,12 +408,21 @@ function Chat() {
             onKeyDown={handleKeyDown}
           />
           <motion.button
-            style={styles.sendButton}
+            style={{
+              ...styles.sendButton,
+              opacity: isLoading ? 0.6 : 1,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
             onClick={handleSend}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            disabled={isLoading}
+            whileHover={isLoading ? {} : { scale: 1.05 }}
+            whileTap={isLoading ? {} : { scale: 0.95 }}
           >
-            <Send size={18} color="#ffffff" />
+            {isLoading ? (
+              <Loader2 size={18} color="#ffffff" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Send size={18} color="#ffffff" />
+            )}
           </motion.button>
         </div>
         </div>
