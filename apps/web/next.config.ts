@@ -14,9 +14,6 @@ const nextConfig: NextConfig = {
   // 本番環境でソースマップを無効化（ビルドサイズ削減）
   productionBrowserSourceMaps: false,
 
-  // SWC minifierを使用（高速化）
-  swcMinify: true,
-
   // 実験的機能: さらなる最適化
   experimental: {
     // 使用されていないコードを削除
