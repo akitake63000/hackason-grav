@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Save, MessageSquare, Microscope, Users } from 'lucide-react'
+import { Save, MessageSquare, Microscope, Users, Loader2 } from 'lucide-react'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
+import { useAuth } from '@/lib/auth'
+import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -168,10 +171,41 @@ const styles = {
 }
 
 function ChatSettings() {
+  const { user, loading: authLoading } = useAuth()
   const [styleValue, setStyleValue] = useState(50) // 0=優しい, 100=厳しい
   const [detailValue, setDetailValue] = useState(30) // 0=簡潔, 100=詳細
   const [autoTeamMeeting, setAutoTeamMeeting] = useState(true)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [loadingSettings, setLoadingSettings] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Firestoreから設定を読み込み
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user || !isFirebaseConfigured()) {
+        setLoadingSettings(false)
+        return
+      }
+      try {
+        const db = getFirestoreDb()
+        const snapshot = await getDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'))
+        if (snapshot.exists()) {
+          const data = snapshot.data()
+          if (data.styleValue !== undefined) setStyleValue(data.styleValue)
+          if (data.detailValue !== undefined) setDetailValue(data.detailValue)
+          if (data.autoTeamMeeting !== undefined) setAutoTeamMeeting(data.autoTeamMeeting)
+        }
+      } catch (err) {
+        console.error('Failed to load chat settings:', err)
+      } finally {
+        setLoadingSettings(false)
+      }
+    }
+    if (!authLoading) {
+      loadSettings()
+    }
+  }, [user, authLoading])
 
   const handleSliderClick = (setter) => (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -180,9 +214,28 @@ function ChatSettings() {
     setter(Math.round(percentage))
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      if (user && isFirebaseConfigured()) {
+        const db = getFirestoreDb()
+        await setDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'), {
+          styleValue,
+          detailValue,
+          autoTeamMeeting,
+          updatedAt: new Date().toISOString(),
+        })
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      console.error('Failed to save chat settings:', err)
+      setError('設定の保存に失敗しました。')
+      setTimeout(() => setError(null), 3000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const getStyleLabel = (value) => {
@@ -195,6 +248,17 @@ function ChatSettings() {
     if (value < 33) return '簡潔'
     if (value < 66) return '標準'
     return '詳細'
+  }
+
+  if (authLoading || loadingSettings) {
+    return (
+      <Layout>
+        <div style={{ ...styles.container, alignItems: 'center', justifyContent: 'center' }}>
+          <Loader2 size={28} color={colors.sage} style={{ animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </Layout>
+    )
   }
 
   return (
@@ -309,11 +373,13 @@ function ChatSettings() {
           <Button
             variant="primary"
             size="full"
-            icon={<Save size={18} />}
+            icon={saving ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={18} />}
             onClick={handleSave}
+            disabled={saving}
           >
-            設定を保存
+            {saving ? '保存中...' : '設定を保存'}
           </Button>
+          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           {saved && (
             <motion.div
               style={styles.successMessage}
@@ -322,6 +388,15 @@ function ChatSettings() {
               exit={{ opacity: 0 }}
             >
               設定を保存しました
+            </motion.div>
+          )}
+          {error && (
+            <motion.div
+              style={{ ...styles.successMessage, background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {error}
             </motion.div>
           )}
         </div>
