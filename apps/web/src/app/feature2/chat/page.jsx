@@ -6,6 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Send, Loader2 } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
+import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
+import { collection, doc, setDoc, getDocs, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -209,12 +212,52 @@ const initialMessages = [
 
 function Chat() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState(null)
   const [threadId, setThreadId] = useState('default')
   const chatAreaRef = useRef(null)
+
+  // Firestoreから会話履歴を読み込む
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user || !isFirebaseConfigured()) {
+        setLoadingHistory(false)
+        return
+      }
+      try {
+        const db = getFirestoreDb()
+        const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
+        const q = query(messagesRef, orderBy('timestamp', 'asc'))
+        const snapshot = await getDocs(q)
+        if (!snapshot.empty) {
+          const history = snapshot.docs.map((docSnap) => {
+            const d = docSnap.data()
+            return {
+              id: docSnap.id,
+              type: d.role === 'user' ? 'user' : 'ai',
+              agent: d.agent || 'orchestrator',
+              text: d.content,
+              time: d.timestamp?.toDate
+                ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                : '',
+            }
+          })
+          setMessages(history)
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err)
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+    if (!authLoading) {
+      loadHistory()
+    }
+  }, [user, authLoading, threadId])
 
   // チャットエリアを最下部にスクロール
   useEffect(() => {
@@ -241,6 +284,25 @@ function Chat() {
     setIsLoading(true)
     setError(null)
 
+    // ユーザーメッセージをFirestoreに保存
+    const saveMessage = async (tid, msg) => {
+      if (!user || !isFirebaseConfigured()) return
+      try {
+        const db = getFirestoreDb()
+        const msgRef = doc(collection(db, 'users', user.uid, 'conversations', tid, 'messages'))
+        await setDoc(msgRef, {
+          role: msg.type === 'user' ? 'user' : 'ai',
+          content: msg.text,
+          ...(msg.agent && { agent: msg.agent }),
+          timestamp: serverTimestamp(),
+        })
+      } catch (e) {
+        console.error('Failed to save message:', e)
+      }
+    }
+
+    await saveMessage(threadId, newUserMessage)
+
     try {
       const response = await apiFetch('/api/v1/mental-shield/chat', {
         method: 'POST',
@@ -260,6 +322,7 @@ function Chat() {
       const responseTime = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
       // スレッドIDを更新
+      const currentThreadId = data.threadId || threadId
       if (data.threadId) {
         setThreadId(data.threadId)
       }
@@ -283,6 +346,11 @@ function Chat() {
       }
 
       setMessages(prev => [...prev, ...agentMessages, summaryMessage])
+
+      // AI応答をFirestoreに保存
+      for (const msg of [...agentMessages, summaryMessage]) {
+        await saveMessage(currentThreadId, msg)
+      }
     } catch (err) {
       console.error('Chat API error:', err)
       setError('メッセージの送信に失敗しました。もう一度お試しください。')
@@ -309,6 +377,14 @@ function Chat() {
       <div style={styles.container}>
         <div style={styles.chatWrapper}>
         <div style={styles.chatArea} ref={chatAreaRef}>
+          {loadingHistory ? (
+            <div style={styles.loadingContainer}>
+              <div style={styles.avatar}>
+                <Loader2 size={18} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+              </div>
+              <span style={styles.loadingText}>会話履歴を読み込み中...</span>
+            </div>
+          ) : (
           <AnimatePresence>
             {messages.map((message, index) => {
               const agent = message.agent ? agentConfig[message.agent] : null
@@ -359,6 +435,7 @@ function Chat() {
               </motion.div>
             )})}
           </AnimatePresence>
+          )}
 
           {/* ローディング表示 */}
           {isLoading && (
