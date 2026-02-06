@@ -1,11 +1,14 @@
 # HairGuard Agent 作業ログ
 
-## 2026-02-05 17:00 Session - デプロイエラー修正 & Git競合解決
+## 2026-02-05 17:00 Session - デプロイエラー修正 & Git競合解決 & セキュリティ強化
 
 ### Completed
 - [x] Next.js設定の修正（`swcMinify` 削除）
 - [x] デプロイエラーの解消
 - [x] Git pullマージコンフリクトの解決
+- [x] Firebase API Key セキュリティ確認
+- [x] API Keyドメイン制限設定ガイド作成
+- [x] API Keyドメイン制限設定完了
 
 ### 実施内容
 
@@ -56,8 +59,44 @@ error: Your local changes to the following files would be overwritten by merge:
 - ✅ リモートと同期完了
 - ✅ チームCの変更（`apps/web/src/app/feature2/settings/page.jsx`）も取り込み
 
+#### Firebase API Key セキュリティ確認・ドメイン制限設定
+
+**ユーザーからの質問**:
+- ログイン時にURLにAPIキーが表示されるが問題ないか？
+
+**回答**:
+- Firebase API Keyは**公開されても安全な設計**
+- 実際のセキュリティはFirestore Rules / Storage Rules / Cloud Run認証で保護
+- セキュリティ監査: 94%合格（15/16項目）
+
+**追加セキュリティ対策として実施**:
+1. API Keyドメイン制限設定ガイドを作成
+2. Google Cloud Console でドメイン制限を設定
+   - Firebase Web API Key: HTTPリファラー制限 + API制限
+   - OAuth Client ID: JavaScript生成元 + リダイレクトURI制限
+
+**設定内容**:
+
+**許可ドメイン**:
+```
+https://hackason-grab.web.app/*
+https://hackason-grab.firebaseapp.com/*
+http://localhost:3000/*
+http://localhost:3001/*
+http://127.0.0.1:3000/*
+```
+
+**効果**:
+- ✅ 不正利用の防止（他のドメインからAPI Keyを使われることを防止）
+- ✅ 請求額の保護（第三者による不正利用での課金を防止）
+- ✅ 攻撃対象の縮小（API Keyの流出時の影響を限定）
+
+**検証結果**:
+- ✅ 本番環境・開発環境でログイン動作確認済み
+
 ### 出力ファイル
 - [apps/web/next.config.ts](/home/yujmatsu/projects/hackason-grab/apps/web/next.config.ts) - swcMinifyオプション削除
+- [docs/api-key-domain-restriction-guide.md](/home/yujmatsu/projects/hackason-grab/docs/api-key-domain-restriction-guide.md) - API Keyドメイン制限設定ガイド（新規作成）
 
 ### Next
 - GitHub Actionsでデプロイが自動実行されることを確認
