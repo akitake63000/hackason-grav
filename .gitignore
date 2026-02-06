@@ -24,7 +24,8 @@ apps/web/out/
 # Firebase
 .firebase/
 
-# Logs (root level only, docs/log.md is tracked)
-/log.md
+# Logs (all log.md files)
+log.md
+docs/log.md
 
 backup/*
