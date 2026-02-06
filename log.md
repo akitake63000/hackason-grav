@@ -1,10 +1,11 @@
 # HairGuard Agent 作業ログ
 
-## 2026-02-05 17:00 Session - デプロイエラー修正
+## 2026-02-05 17:00 Session - デプロイエラー修正 & Git競合解決
 
 ### Completed
 - [x] Next.js設定の修正（`swcMinify` 削除）
 - [x] デプロイエラーの解消
+- [x] Git pullマージコンフリクトの解決
 
 ### 実施内容
 
@@ -29,6 +30,31 @@ Type error: Object literal may only specify known properties, and 'swcMinify' do
 - TypeScriptビルドエラー解消
 - デプロイが正常に実行可能に
 - SWC minifierは引き続きデフォルトで有効
+
+#### Git Pullマージコンフリクトの解決
+
+**状況**:
+```
+error: Your local changes to the following files would be overwritten by merge:
+	docs/チーム分担書.md
+```
+
+**原因**:
+- ローカル: チームA実装メモの追加（未コミット）
+- リモート: チャット設定Firestore永続化の追加
+- 両方が変更履歴テーブルの同じ場所を編集
+
+**対処**:
+1. ローカルの変更をコミット（`1449b83`）
+2. `git pull` 実行 → マージコンフリクト発生
+3. コンフリクト解決: 両方の履歴エントリを保持
+4. マージコミット完了（`dc536e5`）
+5. プッシュ完了
+
+**結果**:
+- ✅ 両方の変更履歴を保持
+- ✅ リモートと同期完了
+- ✅ チームCの変更（`apps/web/src/app/feature2/settings/page.jsx`）も取り込み
 
 ### 出力ファイル
 - [apps/web/next.config.ts](/home/yujmatsu/projects/hackason-grab/apps/web/next.config.ts) - swcMinifyオプション削除
