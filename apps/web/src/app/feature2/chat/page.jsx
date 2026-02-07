@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Send, Loader2 } from 'lucide-react'
+import { Users, Send, Loader2, Trash2 } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
-import { collection, doc, setDoc, getDocs, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, setDoc, getDocs, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -366,6 +366,25 @@ function Chat() {
     }
   }
 
+  const handleDeleteHistory = async () => {
+    if (!confirm('会話履歴を削除しますか？この操作は取り消せません。')) return
+    if (!user || !isFirebaseConfigured()) {
+      setMessages(initialMessages)
+      return
+    }
+    try {
+      const db = getFirestoreDb()
+      const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
+      const snapshot = await getDocs(messagesRef)
+      const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref))
+      await Promise.all(deletePromises)
+      setMessages(initialMessages)
+    } catch (err) {
+      console.error('Failed to delete chat history:', err)
+      setError('履歴の削除に失敗しました。もう一度お試しください。')
+    }
+  }
+
   return (
     <Layout>
       <style>{`
@@ -463,15 +482,37 @@ function Chat() {
           )}
         </div>
 
-        <motion.button
-          style={styles.teamMeetingButton}
-          onClick={() => router.push('/feature2/team-meeting')}
-          whileHover={{ scale: 1.02, y: -2 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Users size={18} />
-          チーム会議を開く
-        </motion.button>
+        <div style={{ display: 'flex', gap: '8px', margin: '8px 16px' }}>
+          <motion.button
+            style={{ ...styles.teamMeetingButton, flex: 1, margin: 0 }}
+            onClick={() => router.push('/feature2/team-meeting')}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Users size={18} />
+            チーム会議を開く
+          </motion.button>
+          <motion.button
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '16px',
+              border: 'none',
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            onClick={handleDeleteHistory}
+            whileHover={{ scale: 1.05, background: 'rgba(239, 68, 68, 0.2)' }}
+            whileTap={{ scale: 0.95 }}
+            title="会話履歴を削除"
+          >
+            <Trash2 size={18} color="#dc2626" />
+          </motion.button>
+        </div>
       </div>
 
       <div style={styles.inputArea}>
