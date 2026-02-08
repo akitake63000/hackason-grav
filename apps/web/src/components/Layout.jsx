@@ -6,7 +6,7 @@ import {
   Home, Camera, MessageCircle, Leaf, Settings,
   X, ChevronRight
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useAuth } from '@/lib/auth'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
@@ -171,6 +171,17 @@ const styles = {
     background: 'rgba(0, 0, 0, 0.3)',
     zIndex: 95,
   },
+  // Loading bar
+  loadingBar: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
+    background: 'linear-gradient(90deg, #419873 0%, #347a5c 100%)',
+    zIndex: 9999,
+    transformOrigin: 'left',
+  },
   // Decorative blobs
   blob1: {
     position: 'fixed',
@@ -203,6 +214,7 @@ function Layout({ children }) {
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedNav, setExpandedNav] = useState(null)
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     const checkMobile = () => {
@@ -268,13 +280,17 @@ function Layout({ children }) {
     if (item.subItems) {
       setExpandedNav(expandedNav === item.id ? null : item.id)
     } else {
-      router.push(item.path)
+      startTransition(() => {
+        router.push(item.path)
+      })
       if (isMobile) setSidebarOpen(false)
     }
   }
 
   const handleSubNavClick = (path) => {
-    router.push(path)
+    startTransition(() => {
+      router.push(path)
+    })
     if (isMobile) setSidebarOpen(false)
   }
 
@@ -349,6 +365,19 @@ function Layout({ children }) {
 
   return (
     <div style={styles.layout}>
+      {/* Loading bar during page transitions */}
+      <AnimatePresence>
+        {isPending && (
+          <motion.div
+            style={styles.loadingBar}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            exit={{ scaleX: 1, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Decorative blobs */}
       <div style={styles.blob1} />
       <div style={styles.blob2} />
@@ -405,7 +434,7 @@ function Layout({ children }) {
         isMobile={isMobile}
         items={navItems}
         isActive={isActive}
-        onNavigate={(path) => router.push(path)}
+        onNavigate={(path) => startTransition(() => router.push(path))}
       />
     </div>
   )
