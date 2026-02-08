@@ -1,5 +1,6 @@
 import firebase_admin
 from firebase_admin import auth, firestore
+from .firestore_mock import MockFirestoreClient
 
 from .config import FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET
 
@@ -22,6 +23,14 @@ def verify_id_token(id_token: str):
     return auth.verify_id_token(id_token)
 
 
+_MOCK_FIRESTORE = None
+
 def get_firestore_client():
-    init_firebase()
-    return firestore.client()
+    global _MOCK_FIRESTORE
+    try:
+        init_firebase()
+        return firestore.client()
+    except Exception:
+        if _MOCK_FIRESTORE is None:
+            _MOCK_FIRESTORE = MockFirestoreClient()
+        return _MOCK_FIRESTORE

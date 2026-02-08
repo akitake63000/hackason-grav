@@ -383,6 +383,7 @@ function Tendency() {
       setResultData(data)
       setViewState('result')
     } catch (err) {
+      console.error('Tendency submit error:', err)
       setError(err.message)
       setViewState('intro')
     }
