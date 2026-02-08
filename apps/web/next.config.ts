@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "export",
 
+  // Firebase Hosting compatibility: add trailing slash
+  trailingSlash: true,
+
   // 画像最適化（Static Exportでは制限あり）
   images: {
     unoptimized: true,

@@ -16,6 +16,10 @@
           "serviceId": "agent-api",
           "region": "asia-northeast1"
         }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ],
     "headers": [
