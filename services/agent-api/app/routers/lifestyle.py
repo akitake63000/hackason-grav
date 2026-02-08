@@ -1,14 +1,19 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import logging
 import random
 import re
+import uuid
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from google.cloud import storage as gcs
 
 from ..auth import get_current_uid
-from ..config import GEMINI_MODEL, GEMINI_MODEL_LIGHT
-from ..services.gemini_chat import gemini_enabled, generate_text
+from ..config import FIREBASE_STORAGE_BUCKET, GEMINI_MODEL, GEMINI_MODEL_LIGHT
+from ..firebase import get_firestore_client
+from ..llm.vertex_gemini import _get_client as get_gemini_client, gemini_enabled as _raw_gemini_enabled
+from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 
 router = APIRouter(prefix="/api/v1/lifestyle", tags=["lifestyle"])
 
@@ -112,3 +117,147 @@ def tip(_: str = Depends(get_current_uid)) -> TipResponse:
         return TipResponse(tip=tip_text, source="gemini")
     except Exception:
         return TipResponse(tip=_fallback_tip(season), source="fallback")
+
+
+# ---------------------------------------------------------------------------
+# POST /meal-analyze — 食事画像の栄養分析
+# ---------------------------------------------------------------------------
+
+class MealAnalyzeRequest(BaseModel):
+    storagePath: str  # Firebase Storage パス (users/{uid}/meals/xxx.jpg)
+
+
+class NutrientInfo(BaseModel):
+    name: str
+    current: float
+    target: float
+    unit: str
+    status: str  # "good" | "low"
+
+
+class MealAnalyzeResponse(BaseModel):
+    nutrients: list[NutrientInfo]
+    summary: str
+    deficiencies: list[str]
+    source: str  # "gemini" | "fallback"
+
+
+FALLBACK_NUTRIENTS = [
+    NutrientInfo(name="タンパク質", current=12.0, target=20.0, unit="g", status="low"),
+    NutrientInfo(name="鉄分", current=2.5, target=6.0, unit="mg", status="low"),
+    NutrientInfo(name="亜鉛", current=3.0, target=8.0, unit="mg", status="low"),
+    NutrientInfo(name="ビタミンB群", current=0.8, target=1.2, unit="mg", status="low"),
+    NutrientInfo(name="ビタミンC", current=60.0, target=100.0, unit="mg", status="good"),
+]
+
+MEAL_ANALYZE_PROMPT = """\
+あなたは管理栄養士です。以下の食事画像を分析し、髪の健康に関連する栄養素を推定してください。
+
+以下のJSON形式で回答してください（JSON以外は出力しないでください）:
+{
+  "nutrients": [
+    {"name": "栄養素名", "current": 推定摂取量(数値), "target": 推奨量(数値), "unit": "単位", "status": "good または low"}
+  ],
+  "summary": "この食事の栄養バランスの1文要約",
+  "deficiencies": ["不足している栄養素名のリスト"]
+}
+
+必ず以下の栄養素を含めてください: タンパク質, 鉄分, 亜鉛, ビタミンB群, ビタミンC
+statusは推定摂取量が推奨量の70%未満なら"low"、それ以上なら"good"にしてください。
+"""
+
+
+def _download_image_from_storage(storage_path: str) -> bytes:
+    """Firebase Storage から画像バイトをダウンロードする。"""
+    client = gcs.Client()
+    bucket = client.bucket(FIREBASE_STORAGE_BUCKET)
+    blob = bucket.blob(storage_path)
+    return blob.download_as_bytes()
+
+
+def _analyze_with_gemini(image_bytes: bytes) -> MealAnalyzeResponse:
+    """Gemini Vision で食事画像を分析する。"""
+    from google.genai.types import Part
+
+    client = get_gemini_client()
+    model = GEMINI_MODEL
+
+    image_part = Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+    response = client.models.generate_content(
+        model=model,
+        contents=[MEAL_ANALYZE_PROMPT, image_part],
+    )
+
+    raw_text = response.text or ""
+    data = safe_json_load(raw_text)
+
+    nutrients = [
+        NutrientInfo(
+            name=n["name"],
+            current=float(n["current"]),
+            target=float(n["target"]),
+            unit=n["unit"],
+            status=n.get("status", "low"),
+        )
+        for n in data.get("nutrients", [])
+    ]
+    summary = data.get("summary", "分析結果を取得しました。")
+    deficiencies = data.get("deficiencies", [])
+
+    return MealAnalyzeResponse(
+        nutrients=nutrients,
+        summary=summary,
+        deficiencies=deficiencies,
+        source="gemini",
+    )
+
+
+def _fallback_meal_analysis() -> MealAnalyzeResponse:
+    """Gemini が使えない場合のフォールバック。"""
+    return MealAnalyzeResponse(
+        nutrients=FALLBACK_NUTRIENTS,
+        summary="画像分析が利用できないため、一般的な食事の栄養推定を表示しています。",
+        deficiencies=["タンパク質", "鉄分", "亜鉛", "ビタミンB群"],
+        source="fallback",
+    )
+
+
+@router.post("/meal-analyze", response_model=MealAnalyzeResponse)
+def meal_analyze(
+    req: MealAnalyzeRequest,
+    uid: str = Depends(get_current_uid),
+) -> MealAnalyzeResponse:
+    # Gemini が無効な場合はフォールバック
+    if not _raw_gemini_enabled():
+        return _fallback_meal_analysis()
+
+    try:
+        image_bytes = _download_image_from_storage(req.storagePath)
+    except Exception:
+        logging.exception("Failed to download image from Storage: %s", req.storagePath)
+        return _fallback_meal_analysis()
+
+    try:
+        result = _analyze_with_gemini(image_bytes)
+    except Exception:
+        logging.exception("Gemini meal analysis failed")
+        return _fallback_meal_analysis()
+
+    # Firestore に結果を保存
+    try:
+        db = get_firestore_client()
+        doc_id = str(uuid.uuid4())
+        db.collection("users").document(uid).collection("mealAnalysis").document(doc_id).set(
+            {
+                "storagePath": req.storagePath,
+                "nutrients": [n.model_dump() for n in result.nutrients],
+                "summary": result.summary,
+                "deficiencies": result.deficiencies,
+                "createdAt": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
+            }
+        )
+    except Exception:
+        logging.exception("Failed to save meal analysis to Firestore")
+        # 保存失敗でもレスポンスは返す
+
+    return result
