@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -279,7 +278,6 @@ const initialMessages = [
 ]
 
 function Chat() {
-  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
@@ -772,16 +770,7 @@ function Chat() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', margin: '8px 16px' }}>
-          <motion.button
-            style={{ ...styles.teamMeetingButton, flex: 1, margin: 0 }}
-            onClick={() => router.push('/feature2/team-meeting')}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Users size={18} />
-            チーム会議を開く
-          </motion.button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 16px' }}>
           <motion.button
             style={{
               width: '48px',
@@ -793,7 +782,6 @@ function Chat() {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              flexShrink: 0,
             }}
             onClick={handleDeleteHistory}
             whileHover={{ scale: 1.05, background: 'rgba(239, 68, 68, 0.2)' }}
