@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { FileText } from 'lucide-react'
+import { FileText, AlertCircle } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
+import { apiFetch } from '@/lib/api'
+import { getFirebaseAuth } from '@/lib/firebase'
 
 const styles = {
   container: {
@@ -140,30 +142,110 @@ const styles = {
     width: '100%',
     alignSelf: 'center',
   },
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '300px',
+    color: '#7f786d',
+    fontSize: '14px',
+  },
+  errorContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '16px',
+    background: 'rgba(184, 84, 80, 0.08)',
+    borderRadius: '16px',
+    color: '#b85450',
+    fontSize: '14px',
+    border: '1px solid rgba(184, 84, 80, 0.2)',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
 }
-
-const chartData = [
-  { month: '8月', value: 65 },
-  { month: '9月', value: 67 },
-  { month: '10月', value: 66 },
-  { month: '11月', value: 69 },
-  { month: '12月', value: 70 },
-  { month: '1月', value: 72 },
-]
-
-const thumbnails = [
-  { date: '1/28', score: 72 },
-  { date: '12/28', score: 70 },
-  { date: '11/28', score: 69 },
-  { date: '10/28', score: 66 },
-  { date: '9/28', score: 67 },
-  { date: '8/28', score: 65 },
-]
 
 function Dashboard() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState('6ヶ月')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [chartData, setChartData] = useState([])
+  const [thumbnails, setThumbnails] = useState([])
   const filters = ['1ヶ月', '3ヶ月', '6ヶ月']
+
+  useEffect(() => {
+    const auth = getFirebaseAuth()
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        const response = await apiFetch('/api/v1/photos/analysis-history?limit=50', {
+          method: 'GET',
+        })
+
+        if (!response.ok) {
+          throw new Error('データの取得に失敗しました')
+        }
+
+        const data = await response.json()
+
+        if (data.items.length === 0) {
+          const message = encodeURIComponent('解析結果がまだありません。まず写真を撮影して解析してください。')
+          router.push(`/feature1/capture?message=${message}`)
+          return
+        }
+
+        // Transform data for chart - get last 6 months
+        const chartItems = data.items.slice(0, 6).reverse()
+        const transformedChartData = chartItems.map(item => {
+          const date = new Date(item.analyzedAt || item.capturedAt)
+          const month = `${date.getMonth() + 1}月`
+          return {
+            month,
+            value: item.score,
+            date: date,
+          }
+        })
+
+        // Transform data for thumbnails - get last 6 photos
+        const thumbnailItems = data.items.slice(0, 6)
+        const transformedThumbnails = thumbnailItems.map(item => {
+          const date = new Date(item.analyzedAt || item.capturedAt)
+          const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`
+          return {
+            date: formattedDate,
+            score: Math.round(item.score),
+            photoId: item.photoId,
+            downloadUrl: item.downloadUrl,
+          }
+        })
+
+        setChartData(transformedChartData)
+        setThumbnails(transformedThumbnails)
+      } catch (err) {
+        console.error('Failed to fetch analysis history:', err)
+        setError(err.message || 'データの取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [router])
 
   // Generate SVG path for the chart - using viewBox for responsiveness
   const chartWidth = 320
@@ -178,8 +260,41 @@ function Dashboard() {
     return { x, y, value: d.value }
   })
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`
+  // Generate SVG path only if we have data
+  let linePath = ''
+  let areaPath = ''
+
+  if (chartData.length > 0 && points.length > 0) {
+    linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+    areaPath = `${linePath} L ${points[points.length - 1].x} ${chartHeight - padding} L ${padding} ${chartHeight - padding} Z`
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div style={styles.container}>
+          <div style={styles.loadingContainer}>
+            データを読み込んでいます...
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div style={styles.container}>
+          <div style={styles.content}>
+            <div style={styles.errorContainer}>
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout>
@@ -316,15 +431,24 @@ function Dashboard() {
           <div style={styles.thumbnailGrid}>
             {thumbnails.map((thumb, i) => (
               <motion.div
-                key={i}
+                key={thumb.photoId || i}
                 style={styles.thumbnail}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: 0.5 + i * 0.05 }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
+                onClick={() => router.push(`/feature1/result?photoId=${thumb.photoId}`)}
               >
-                <div style={styles.silhouetteCircle} />
+                {thumb.downloadUrl ? (
+                  <img
+                    src={thumb.downloadUrl}
+                    alt={`Photo from ${thumb.date}`}
+                    style={styles.thumbnailImage}
+                  />
+                ) : (
+                  <div style={styles.silhouetteCircle} />
+                )}
                 <div style={styles.thumbnailOverlay}>
                   <div style={styles.thumbnailDate}>{thumb.date}</div>
                   <div style={styles.thumbnailScore}>{thumb.score}点</div>

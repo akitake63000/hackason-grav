@@ -1,4 +1,5 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from firebase_admin import firestore as admin_firestore
@@ -21,6 +22,20 @@ class AnalyzePhotoResponse(BaseModel):
     analysisId: str
     photoId: str
     result: Dict[str, Any]
+
+
+class AnalysisHistoryItem(BaseModel):
+    photoId: str
+    score: float
+    notes: str
+    analyzedAt: str
+    capturedAt: str
+    downloadUrl: str
+
+
+class AnalysisHistoryResponse(BaseModel):
+    items: List[AnalysisHistoryItem]
+    total: int
 
 
 @router.post("/analyze", response_model=AnalyzePhotoResponse)
@@ -91,4 +106,80 @@ def analyze_photo(
             "score": result.score,
             "notes": result.notes
         }
+    )
+
+
+@router.get("/analysis-history", response_model=AnalysisHistoryResponse)
+def get_analysis_history(
+    uid: str = Depends(get_current_uid),
+    limit: Optional[int] = 50
+) -> AnalysisHistoryResponse:
+    """
+    Fetches analysis history for the authenticated user.
+    Returns analysis results with photo metadata, sorted by analysis date (newest first).
+    """
+    db = get_firestore_client()
+
+    # Fetch all analysisResults for the user
+    analysis_results_ref = (
+        db.collection("users")
+        .document(uid)
+        .collection("analysisResults")
+        .order_by("analyzedAt", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+    )
+
+    analysis_docs = analysis_results_ref.stream()
+
+    items = []
+
+    for analysis_doc in analysis_docs:
+        analysis_data = analysis_doc.to_dict()
+        photo_id = analysis_data.get("photoId")
+
+        if not photo_id:
+            continue
+
+        # Fetch corresponding photo metadata
+        photo_ref = db.collection("users").document(uid).collection("photos").document(photo_id)
+        photo_snap = photo_ref.get()
+
+        if not photo_snap.exists:
+            continue
+
+        photo_data = photo_snap.to_dict()
+
+        # Extract timestamps
+        analyzed_at = analysis_data.get("analyzedAt")
+        captured_at = photo_data.get("capturedAt")
+
+        # Convert Firestore timestamps to ISO strings
+        analyzed_at_str = ""
+        if analyzed_at:
+            if hasattr(analyzed_at, 'isoformat'):
+                analyzed_at_str = analyzed_at.isoformat()
+            else:
+                analyzed_at_str = str(analyzed_at)
+
+        captured_at_str = ""
+        if captured_at:
+            if hasattr(captured_at, 'isoformat'):
+                captured_at_str = captured_at.isoformat()
+            else:
+                captured_at_str = str(captured_at)
+
+        items.append(
+            AnalysisHistoryItem(
+                photoId=photo_id,
+                score=analysis_data.get("score", 0.0),
+                notes=analysis_data.get("notes", ""),
+                analyzedAt=analyzed_at_str,
+                capturedAt=captured_at_str,
+                downloadUrl=photo_data.get("downloadUrl", "")
+            )
+        )
+
+    return AnalysisHistoryResponse(
+        items=items,
+        total=len(items)
     )
