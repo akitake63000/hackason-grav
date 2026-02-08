@@ -33,10 +33,8 @@ const navItems = [
   { id: 'feature3', icon: Leaf, label: '生活アドバイス', path: '/feature3/tendency',
     subItems: [
       { label: '傾向分析', path: '/feature3/tendency' },
-      { label: '食事記録', path: '/feature3/meal' },
       { label: '食材レコメンド', path: '/feature3/food-recommend' },
       { label: '運動レコメンド', path: '/feature3/exercise-recommend' },
-      { label: '近くの店舗', path: '/feature3/nearby-stores' },
     ]
   },
   { id: 'settings', icon: Settings, label: '設定', path: '/settings' },
