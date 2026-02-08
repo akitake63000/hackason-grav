@@ -208,7 +208,7 @@ function ResultContent() {
             <Layout>
                 <div style={styles.container}>
                     <div style={styles.loadingContainer}>
-                        <Card variant="default" padding="lg">
+                        <Card variant="default" padding="lg" style={{}} onClick={undefined}>
                             <div style={styles.loadingCard}>
                                 <div style={styles.loadingSpinner}>⏳</div>
                                 <h2 style={styles.errorTitle}>読み込み中...</h2>
@@ -226,7 +226,7 @@ function ResultContent() {
             <Layout>
                 <div style={styles.container}>
                     <div style={styles.errorContainer}>
-                        <Card variant="default" padding="lg">
+                        <Card variant="default" padding="lg" style={{}} onClick={undefined}>
                             <div style={styles.errorCard}>
                                 <div style={styles.errorIcon}>⚠️</div>
                                 <h2 style={styles.errorTitle}>エラーが発生しました</h2>
@@ -291,7 +291,7 @@ function ResultContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                            <Card variant="default" padding="lg">
+                            <Card variant="default" padding="lg" style={{}} onClick={undefined}>
                                 <span style={styles.cardTitle}>分析コメント</span>
                                 <p style={styles.notesText}>{result.notes}</p>
                             </Card>
