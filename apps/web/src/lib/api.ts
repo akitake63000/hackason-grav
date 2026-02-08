@@ -31,9 +31,14 @@ export const apiFetch = async (
       const token = await getIdToken();
       const headers = new Headers(init.headers ?? {});
       if (token) {
-        headers.set("X-Firebase-Auth", token);
+        console.log("[apiFetch] Token found (first 20 chars):", token.slice(0, 20));
+        headers.set("Authorization", `Bearer ${token}`);
+        console.log("[apiFetch] Authorization header set:", headers.get("Authorization")?.slice(0, 30) + "...");
+      } else {
+        console.warn("[apiFetch] No ID Token found!");
       }
       const url = input.startsWith("http") ? input : `${API_BASE}${input}`;
+      console.log("[apiFetch] Requesting URL:", url);
       const response = await fetch(url, { ...init, headers });
 
       // レスポンスがエラーの場合

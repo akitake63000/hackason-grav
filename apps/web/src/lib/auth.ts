@@ -16,17 +16,7 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
 let persistenceReady: Promise<void> | null = null;
-
-const ensureSessionPersistence = async (): Promise<void> => {
-  const auth = getAuthSafe();
-  if (!auth) return;
-  if (!persistenceReady) {
-    persistenceReady = setPersistence(auth, browserSessionPersistence).catch((error) => {
-      console.warn("Failed to set session persistence.", error);
-    });
-  }
-  await persistenceReady;
-};
+let authReadyPromise: Promise<void> | null = null;
 
 const getAuthSafe = () => {
   if (!isFirebaseConfigured()) {
@@ -40,6 +30,32 @@ const getAuthSafe = () => {
   }
 };
 
+const ensureSessionPersistence = async (): Promise<void> => {
+  const auth = getAuthSafe();
+  if (!auth) return;
+  if (!persistenceReady) {
+    persistenceReady = setPersistence(auth, browserSessionPersistence).catch((error) => {
+      console.warn("Failed to set session persistence.", error);
+    });
+  }
+  await persistenceReady;
+};
+
+export const waitForAuthReady = (): Promise<void> => {
+  const auth = getAuthSafe();
+  if (!auth) return Promise.resolve();
+
+  if (!authReadyPromise) {
+    authReadyPromise = new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, () => {
+        unsubscribe();
+        resolve();
+      });
+    });
+  }
+  return authReadyPromise;
+};
+
 export const useAuth = (): { user: User | null; loading: boolean } => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,10 +67,12 @@ export const useAuth = (): { user: User | null; loading: boolean } => {
       return undefined;
     }
     ensureSessionPersistence().catch(() => undefined);
-    return onAuthStateChanged(auth, (currentUser) => {
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
+    return unsubscribe;
   }, []);
 
   return { user, loading };
@@ -103,6 +121,8 @@ export const signOutUser = async (): Promise<void> => {
 };
 
 export const getIdToken = async (forceRefresh = false): Promise<string | null> => {
+  await waitForAuthReady(); // Wait for initial auth state
+
   const auth = getAuthSafe();
   if (!auth?.currentUser) {
     return null;
