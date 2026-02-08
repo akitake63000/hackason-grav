@@ -6,7 +6,7 @@ import {
   Home, Camera, MessageCircle, Leaf, Settings,
   X, ChevronRight
 } from 'lucide-react'
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useCallback, memo } from 'react'
 import { useAuth } from '@/lib/auth'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
@@ -207,6 +207,86 @@ const styles = {
   },
 }
 
+// Memoized Sidebar Component
+const SidebarContent = memo(({ pathname, expandedNav, onNavClick, onSubNavClick }) => {
+  const isActive = (item) => {
+    if (item.path === pathname) return true
+    if (item.subItems) {
+      return item.subItems.some(sub => sub.path === pathname)
+    }
+    return pathname.startsWith(`/${item.id}`)
+  }
+
+  return (
+    <>
+      <div style={styles.logo}>
+        <div style={styles.logoIcon}>🌿</div>
+        <span style={styles.logoText}>薄毛対策AIエージェント</span>
+      </div>
+      <nav style={styles.navList}>
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const active = isActive(item)
+          const expanded = expandedNav === item.id
+
+          return (
+            <div key={item.id}>
+              <motion.button
+                style={{
+                  ...styles.navItem,
+                  ...(active ? styles.navItemActive : {}),
+                }}
+                onClick={() => onNavClick(item)}
+                whileHover={{ background: active ? 'rgba(65, 152, 115, 0.15)' : 'rgba(26, 61, 46, 0.05)' }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Icon size={20} />
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.subItems && (
+                  <motion.div
+                    animate={{ rotate: expanded ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronRight size={16} />
+                  </motion.div>
+                )}
+              </motion.button>
+
+              {item.subItems && (
+                <AnimatePresence>
+                  {expanded && (
+                    <motion.div
+                      style={styles.subNav}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {item.subItems.map((subItem) => (
+                        <motion.button
+                          key={subItem.path}
+                          style={{
+                            ...styles.subNavItem,
+                            ...(pathname === subItem.path ? styles.subNavItemActive : {}),
+                          }}
+                          onClick={() => onSubNavClick(subItem.path)}
+                          whileHover={{ background: 'rgba(65, 152, 115, 0.08)' }}
+                        >
+                          {subItem.label}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
+            </div>
+          )
+        })}
+      </nav>
+    </>
+  )
+})
+
 function Layout({ children }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/'
@@ -268,100 +348,31 @@ function Layout({ children }) {
     return null
   }
 
-  const isActive = (item) => {
+  const isActive = useCallback((item) => {
     if (item.path === pathname) return true
     if (item.subItems) {
       return item.subItems.some(sub => sub.path === pathname)
     }
     return pathname.startsWith(`/${item.id}`)
-  }
+  }, [pathname])
 
-  const handleNavClick = (item) => {
+  const handleNavClick = useCallback((item) => {
     if (item.subItems) {
-      setExpandedNav(expandedNav === item.id ? null : item.id)
+      setExpandedNav(prev => prev === item.id ? null : item.id)
     } else {
       startTransition(() => {
         router.push(item.path)
       })
       if (isMobile) setSidebarOpen(false)
     }
-  }
+  }, [isMobile, router, startTransition])
 
-  const handleSubNavClick = (path) => {
+  const handleSubNavClick = useCallback((path) => {
     startTransition(() => {
       router.push(path)
     })
     if (isMobile) setSidebarOpen(false)
-  }
-
-  const SidebarContent = () => (
-    <>
-      <div style={styles.logo}>
-        <div style={styles.logoIcon}>🌿</div>
-        <span style={styles.logoText}>薄毛対策AIエージェント</span>
-      </div>
-      <nav style={styles.navList}>
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const active = isActive(item)
-          const expanded = expandedNav === item.id
-
-          return (
-            <div key={item.id}>
-              <motion.button
-                style={{
-                  ...styles.navItem,
-                  ...(active ? styles.navItemActive : {}),
-                }}
-                onClick={() => handleNavClick(item)}
-                whileHover={{ background: active ? 'rgba(65, 152, 115, 0.15)' : 'rgba(26, 61, 46, 0.05)' }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Icon size={20} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.subItems && (
-                  <motion.div
-                    animate={{ rotate: expanded ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronRight size={16} />
-                  </motion.div>
-                )}
-              </motion.button>
-
-              {item.subItems && (
-                <AnimatePresence>
-                  {expanded && (
-                    <motion.div
-                      style={styles.subNav}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.subItems.map((subItem) => (
-                        <motion.button
-                          key={subItem.path}
-                          style={{
-                            ...styles.subNavItem,
-                            ...(pathname === subItem.path ? styles.subNavItemActive : {}),
-                          }}
-                          onClick={() => handleSubNavClick(subItem.path)}
-                          whileHover={{ background: 'rgba(65, 152, 115, 0.08)' }}
-                        >
-                          {subItem.label}
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
-            </div>
-          )
-        })}
-      </nav>
-    </>
-  )
+  }, [isMobile, router, startTransition])
 
   return (
     <div style={styles.layout}>
@@ -385,7 +396,12 @@ function Layout({ children }) {
       {/* Desktop Sidebar */}
       {!isMobile && (
         <aside style={styles.sidebar}>
-          <SidebarContent />
+          <SidebarContent
+            pathname={pathname}
+            expandedNav={expandedNav}
+            onNavClick={handleNavClick}
+            onSubNavClick={handleSubNavClick}
+          />
         </aside>
       )}
 
@@ -407,7 +423,12 @@ function Layout({ children }) {
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
-              <SidebarContent />
+              <SidebarContent
+                pathname={pathname}
+                expandedNav={expandedNav}
+                onNavClick={handleNavClick}
+                onSubNavClick={handleSubNavClick}
+              />
             </motion.aside>
           </>
         )}
