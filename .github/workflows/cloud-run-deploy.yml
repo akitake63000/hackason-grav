@@ -46,6 +46,16 @@ jobs:
             exit 1
           fi
 
+          # Set default values for optional environment variables
+          FIREBASE_STORAGE_BUCKET="${FIREBASE_STORAGE_BUCKET:-hackason-grab.firebasestorage.app}"
+          FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-hackason-grab}"
+          GEMINI_MODEL="${GEMINI_MODEL:-gemini-2.5-flash}"
+          GEMINI_MODEL_LIGHT="${GEMINI_MODEL_LIGHT:-gemini-2.5-flash}"
+          GEMINI_MODEL_HEAVY="${GEMINI_MODEL_HEAVY:-gemini-2.5-pro}"
+          GEMINI_MODEL_VISION="${GEMINI_MODEL_VISION:-gemini-2.5-pro}"
+          GEMINI_ENABLED="${GEMINI_ENABLED:-true}"
+          ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://hackason-grab.web.app,https://hackason-grab.firebaseapp.com,http://localhost:3000}"
+
           FLAGS=""
           if [ "${ALLOW_UNAUTHENTICATED}" = "true" ]; then
             FLAGS="--allow-unauthenticated"
