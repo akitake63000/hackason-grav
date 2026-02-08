@@ -231,53 +231,54 @@ const SidebarContent = memo(({ pathname, expandedNav, onNavClick, onSubNavClick 
 
           return (
             <div key={item.id}>
-              <motion.button
+              <button
                 style={{
                   ...styles.navItem,
                   ...(active ? styles.navItemActive : {}),
                 }}
                 onClick={() => onNavClick(item)}
-                whileHover={{ background: active ? 'rgba(65, 152, 115, 0.15)' : 'rgba(26, 61, 46, 0.05)' }}
-                whileTap={{ scale: 0.98 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = active ? 'rgba(65, 152, 115, 0.15)' : 'rgba(26, 61, 46, 0.05)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = active ? 'rgba(65, 152, 115, 0.1)' : 'transparent'
+                }}
               >
                 <Icon size={20} />
                 <span style={{ flex: 1 }}>{item.label}</span>
                 {item.subItems && (
-                  <motion.div
-                    animate={{ rotate: expanded ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
+                    style={{
+                      transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s ease',
+                    }}
                   >
                     <ChevronRight size={16} />
-                  </motion.div>
+                  </div>
                 )}
-              </motion.button>
+              </button>
 
-              {item.subItems && (
-                <AnimatePresence>
-                  {expanded && (
-                    <motion.div
-                      style={styles.subNav}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+              {item.subItems && expanded && (
+                <div style={styles.subNav}>
+                  {item.subItems.map((subItem) => (
+                    <button
+                      key={subItem.path}
+                      style={{
+                        ...styles.subNavItem,
+                        ...(pathname === subItem.path ? styles.subNavItemActive : {}),
+                      }}
+                      onClick={() => onSubNavClick(subItem.path)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(65, 152, 115, 0.08)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = pathname === subItem.path ? 'rgba(65, 152, 115, 0.08)' : 'transparent'
+                      }}
                     >
-                      {item.subItems.map((subItem) => (
-                        <motion.button
-                          key={subItem.path}
-                          style={{
-                            ...styles.subNavItem,
-                            ...(pathname === subItem.path ? styles.subNavItemActive : {}),
-                          }}
-                          onClick={() => onSubNavClick(subItem.path)}
-                          whileHover={{ background: 'rgba(65, 152, 115, 0.08)' }}
-                        >
-                          {subItem.label}
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {subItem.label}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )
