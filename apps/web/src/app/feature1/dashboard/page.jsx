@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { FileText, AlertCircle } from 'lucide-react'
+import { FileText, Camera } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
@@ -169,13 +169,43 @@ const styles = {
     top: 0,
     left: 0,
   },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '48px 24px',
+    textAlign: 'center',
+    gap: '16px',
+  },
+  emptyStateIcon: {
+    width: '80px',
+    height: '80px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '40px',
+  },
+  emptyStateTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1a3d2e',
+    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+  },
+  emptyStateDescription: {
+    fontSize: '14px',
+    color: '#7f786d',
+    lineHeight: '1.6',
+    maxWidth: '320px',
+  },
 }
 
 function Dashboard() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState('6ヶ月')
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [chartData, setChartData] = useState([])
   const [thumbnails, setThumbnails] = useState([])
   const filters = ['1ヶ月', '3ヶ月', '6ヶ月']
@@ -191,11 +221,18 @@ function Dashboard() {
 
       try {
         setLoading(true)
-        setError(null)
 
         const response = await apiFetch('/api/v1/photos/analysis-history?limit=50', {
           method: 'GET',
         })
+
+        // Handle 404 as empty data (no analysis history collection yet)
+        if (response.status === 404) {
+          setChartData([])
+          setThumbnails([])
+          setLoading(false)
+          return
+        }
 
         if (!response.ok) {
           throw new Error('データの取得に失敗しました')
@@ -203,9 +240,11 @@ function Dashboard() {
 
         const data = await response.json()
 
+        // If no data, show empty state instead of redirecting
         if (data.items.length === 0) {
-          const message = encodeURIComponent('解析結果がまだありません。まず写真を撮影して解析してください。')
-          router.push(`/feature1/capture?message=${message}`)
+          setChartData([])
+          setThumbnails([])
+          setLoading(false)
           return
         }
 
@@ -238,7 +277,9 @@ function Dashboard() {
         setThumbnails(transformedThumbnails)
       } catch (err) {
         console.error('Failed to fetch analysis history:', err)
-        setError(err.message || 'データの取得に失敗しました')
+        // Treat errors as empty state instead of showing error
+        setChartData([])
+        setThumbnails([])
       } finally {
         setLoading(false)
       }
@@ -281,15 +322,34 @@ function Dashboard() {
     )
   }
 
-  if (error) {
+  // Show empty state if no data
+  if (chartData.length === 0 && thumbnails.length === 0) {
     return (
       <Layout>
         <div style={styles.container}>
           <div style={styles.content}>
-            <div style={styles.errorContainer}>
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
+            <motion.div
+              style={styles.emptyState}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div style={styles.emptyStateIcon}>
+                <Camera size={40} color="#419873" />
+              </div>
+              <h2 style={styles.emptyStateTitle}>まだ解析結果がありません</h2>
+              <p style={styles.emptyStateDescription}>
+                まずは写真を撮影して、AIによる髪密度の解析を始めましょう。
+              </p>
+              <Button
+                variant="primary"
+                size="medium"
+                icon={<Camera size={18} />}
+                onClick={() => router.push('/feature1/capture')}
+              >
+                写真を撮影する
+              </Button>
+            </motion.div>
           </div>
         </div>
       </Layout>
