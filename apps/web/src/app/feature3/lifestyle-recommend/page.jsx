@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'next/navigation'
 import { Clock, ChevronRight, Loader2, Target, CheckCircle, Info, Sparkles, X } from 'lucide-react'
@@ -189,7 +189,7 @@ const styles = {
   },
 }
 
-function LifestyleRecommend() {
+function LifestyleRecommendContent() {
   const searchParams = useSearchParams()
   const [recommendations, setRecommendations] = useState([])
   const [axisLabels, setAxisLabels] = useState({})
@@ -369,6 +369,27 @@ function LifestyleRecommend() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+// ローディングフォールバック
+function LifestyleRecommendFallback() {
+  return (
+    <Layout>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Loader2 className="animate-spin" size={40} color="#419873" />
+        <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
+      </div>
+    </Layout>
+  )
+}
+
+// メインコンポーネント: Suspenseでラップする
+function LifestyleRecommend() {
+  return (
+    <Suspense fallback={<LifestyleRecommendFallback />}>
+      <LifestyleRecommendContent />
+    </Suspense>
   )
 }
 
