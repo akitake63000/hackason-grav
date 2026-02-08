@@ -7,6 +7,10 @@ import { apiFetch } from '@/lib/api';
 interface AnalysisResult {
     score: number;
     notes: string | null;
+    hairType?: string;
+    pattern?: string;
+    quality?: string;
+    deltaVsPrev?: string;
 }
 
 function ResultContent() {
@@ -47,7 +51,7 @@ function ResultContent() {
             }
 
             const data = await res.json();
-            // Expected response: { analysisId, photoId, result: { score, notes } }
+            // Expected response: { analysisId, photoId, result: { score, notes, hairType, pattern, quality, deltaVsPrev } }
             setResult(data.result);
             setStatus('success');
 
@@ -112,8 +116,27 @@ function ResultContent() {
                         <div className="bg-green-50 rounded-xl p-4 text-left space-y-4 border border-green-100">
                             <div className="flex justify-between items-center border-b border-green-200 pb-2">
                                 <span className="text-gray-600 font-medium">髪密度スコア</span>
-                                <span className="text-3xl font-bold text-green-700">{result.score}</span>
+                                <div className="text-right">
+                                    <span className="text-3xl font-bold text-green-700">{result.score}</span>
+                                    {result.deltaVsPrev && (
+                                        <span className={`block text-xs ${result.deltaVsPrev.startsWith('+') ? 'text-green-600' : 'text-red-500'}`}>
+                                            前回比: {result.deltaVsPrev}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4 border-b border-green-200 pb-2">
+                                <div>
+                                    <span className="text-gray-500 text-xs block">AI判定タイプ</span>
+                                    <span className="text-gray-800 font-semibold">{result.hairType || '---'}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 text-xs block">パターン</span>
+                                    <span className="text-gray-800 font-semibold">{result.pattern || '---'}</span>
+                                </div>
+                            </div>
+
                             <div>
                                 <span className="text-gray-600 font-medium block mb-1">分析コメント</span>
                                 <p className="text-gray-700 text-sm bg-white p-2 rounded border border-green-100">

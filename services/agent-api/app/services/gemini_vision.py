@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 class VisionResult:
     score: float
     notes: Optional[str] = None
+    hairType: Optional[str] = None
+    pattern: Optional[str] = None
+    quality: Optional[str] = None
 
 def vision_enabled() -> bool:
     return bool(os.environ.get("GOOGLE_API_KEY"))
@@ -21,7 +24,7 @@ def vision_enabled() -> bool:
 def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
     """
     Analyzes the image bytes using Gemini Vision (Flash model).
-    Returns a score (0-100) and notes.
+    Returns a score (0-100), hair type, pattern, quality and notes.
     """
     if not vision_enabled():
         logger.warning("GOOGLE_API_KEY not set. Returning dummy result.")
@@ -37,7 +40,10 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
         
         Provide the following in JSON format:
         - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
-        - "notes": A brief, professional summary of the condition (e.g., "Good density, slight redness visible", "Thinning observed in crown area").
+        - "hairType": Norwood-Hamilton scale classification (e.g., "Type II", "Type III-Vertex") or "Normal".
+        - "pattern": Hair loss pattern (e.g., "M-Shape", "O-Shape", "U-Shape", "Diffuse", "None").
+        - "quality": Image quality for analysis ("good", "fair", "poor").
+        - "notes": A brief, professional summary of the condition in Japanese (approx 50 chars).
         
         Ensure the output is raw JSON without markdown formatting.
         """
@@ -62,7 +68,10 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             data = json.loads(response.text)
             return VisionResult(
                 score=float(data.get("score", 0.0)),
-                notes=data.get("notes", "")
+                notes=data.get("notes", ""),
+                hairType=data.get("hairType"),
+                pattern=data.get("pattern"),
+                quality=data.get("quality")
             )
         except json.JSONDecodeError:
             logger.error(f"Failed to parse JSON from Gemini: {response.text}")

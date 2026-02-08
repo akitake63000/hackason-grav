@@ -67,6 +67,17 @@ def analyze_photo(
 
     # 3. Analyze Image
     result = analyze_image_bytes(image_bytes)
+
+    # Fetch previous result for delta calculation
+    previous_score = 0.0
+    results_ref = db.collection("users").document(uid).collection("analysisResults")
+    # Get latest analysis before this one
+    previous_docs = results_ref.order_by("analyzedAt", direction=admin_firestore.Query.DESCENDING).limit(1).get()
+    if previous_docs:
+        previous_data = previous_docs[0].to_dict()
+        previous_score = float(previous_data.get("score", 0.0))
+    
+    delta_vs_prev = f"{result.score - previous_score:+.1f}" if previous_score > 0 else "---"
     
     # 4. Save Result
     analysis_ref = db.collection("users").document(uid).collection("analysisResults").document(payload.photoId)
@@ -76,6 +87,9 @@ def analyze_photo(
         "analyzedAt": admin_firestore.SERVER_TIMESTAMP,
         "score": result.score,
         "notes": result.notes,
+        "hairType": result.hairType,
+        "pattern": result.pattern,
+        "quality": result.quality,
         "version": "v1-gemini-1.5-flash"
     }
     
@@ -89,7 +103,11 @@ def analyze_photo(
         photoId=payload.photoId,
         result={
             "score": result.score,
-            "notes": result.notes
+            "notes": result.notes,
+            "hairType": result.hairType,
+            "pattern": result.pattern,
+            "quality": result.quality,
+            "deltaVsPrev": delta_vs_prev
         }
     )
 
