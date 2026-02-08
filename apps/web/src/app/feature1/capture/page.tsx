@@ -9,6 +9,7 @@ import CameraCapture from '@/components/feature1/CameraCapture';
 import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { apiFetch } from '@/lib/api';
 
 const styles = {
     container: {
@@ -130,6 +131,19 @@ export default function CapturePage() {
                 capturedAt: serverTimestamp(),
                 status: 'uploaded'
             });
+
+            // Call analysis API
+            const analysisRes = await apiFetch('/api/v1/photos/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ photoId }),
+            });
+
+            if (!analysisRes.ok) {
+                throw new Error('解析に失敗しました');
+            }
 
             // Redirect to Result page
             router.push(`/feature1/result?photoId=${photoId}`);
