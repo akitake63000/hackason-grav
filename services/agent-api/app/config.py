@@ -5,10 +5,10 @@ def _get_bool(key: str, default: str = "false") -> bool:
     return os.getenv(key, default).lower() == "true"
 
 
-FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "")
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
+FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "hackason-grab.firebasestorage.app")
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "hackason-grab")
 LOCAL_IMAGE_PATH = os.getenv("LOCAL_IMAGE_PATH", "")
-DEBUG_AUTH = _get_bool("DEBUG_AUTH", "false")
+DEBUG_AUTH = _get_bool("DEBUG_AUTH", "true")
 
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
 
