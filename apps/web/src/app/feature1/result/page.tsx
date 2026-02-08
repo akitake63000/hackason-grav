@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { AlertCircle, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronRight, Camera } from 'lucide-react';
 import { getFirestoreDb } from '@/lib/firebase';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -143,6 +143,37 @@ const styles = {
         color: '#7f786d',
         marginBottom: '24px',
     },
+    emptyState: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 24px',
+        textAlign: 'center' as const,
+        gap: '16px',
+    },
+    emptyStateIcon: {
+        width: '80px',
+        height: '80px',
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '40px',
+    },
+    emptyStateTitle: {
+        fontSize: '18px',
+        fontWeight: '600' as const,
+        color: '#1a3d2e',
+        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+    },
+    emptyStateDescription: {
+        fontSize: '14px',
+        color: '#7f786d',
+        lineHeight: '1.6',
+        maxWidth: '320px',
+    },
 };
 
 function ResultContent() {
@@ -176,9 +207,9 @@ function ResultContent() {
                     const querySnapshot = await getDocs(q);
 
                     if (querySnapshot.empty) {
-                        // Redirect to capture page with message instead of showing error
-                        const message = encodeURIComponent("解析結果がまだありません。まず写真を撮影して解析してください。");
-                        router.push(`/feature1/capture?message=${message}`);
+                        // Show empty state instead of redirecting
+                        setResult(null);
+                        setLoading(false);
                         return;
                     }
 
@@ -189,9 +220,9 @@ function ResultContent() {
                 const resultSnap = await getDoc(resultRef);
 
                 if (!resultSnap.exists()) {
-                    // Redirect to capture page with message instead of showing error
-                    const message = encodeURIComponent("解析結果が見つかりません。新しく撮影してください。");
-                    router.push(`/feature1/capture?message=${message}`);
+                    // Show empty state instead of redirecting
+                    setResult(null);
+                    setLoading(false);
                     return;
                 }
 
@@ -229,27 +260,35 @@ function ResultContent() {
         );
     }
 
-    if (error) {
+    // Show empty state if no result or error
+    if (!result || error) {
         return (
             <Layout>
                 <div style={styles.container}>
-                    <div style={styles.errorContainer}>
-                        <Card variant="default" padding="lg" style={{}} onClick={undefined}>
-                            <div style={styles.errorCard}>
-                                <div style={styles.errorIcon}>⚠️</div>
-                                <h2 style={styles.errorTitle}>エラーが発生しました</h2>
-                                <p style={styles.errorMessage}>{error}</p>
-                                <Button
-                                    variant="primary"
-                                    size="full"
-                                    icon={undefined}
-                                    style={{}}
-                                    onClick={() => router.push('/feature1/capture')}
-                                >
-                                    戻る
-                                </Button>
+                    <div style={styles.content}>
+                        <motion.div
+                            style={styles.emptyState}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                        >
+                            <div style={styles.emptyStateIcon}>
+                                <Camera size={40} color="#419873" />
                             </div>
-                        </Card>
+                            <h2 style={styles.emptyStateTitle}>まだ解析結果がありません</h2>
+                            <p style={styles.emptyStateDescription}>
+                                まずは写真を撮影して、AIによる髪密度の解析を始めましょう。
+                            </p>
+                            <Button
+                                variant="primary"
+                                size="medium"
+                                icon={<Camera size={18} />}
+                                style={{}}
+                                onClick={() => router.push('/feature1/capture')}
+                            >
+                                写真を撮影する
+                            </Button>
+                        </motion.div>
                     </div>
                 </div>
             </Layout>
