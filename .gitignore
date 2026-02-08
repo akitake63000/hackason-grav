@@ -28,4 +28,7 @@ apps/web/out/
 log.md
 docs/log.md
 
+# Internal task tracking
+docs/development-status-and-tasks.md
+
 backup/*
