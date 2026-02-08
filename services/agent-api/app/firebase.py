@@ -23,14 +23,6 @@ def verify_id_token(id_token: str):
     return auth.verify_id_token(id_token)
 
 
-_MOCK_FIRESTORE = None
-
 def get_firestore_client():
-    global _MOCK_FIRESTORE
-    try:
-        init_firebase()
-        return firestore.client()
-    except Exception:
-        if _MOCK_FIRESTORE is None:
-            _MOCK_FIRESTORE = MockFirestoreClient()
-        return _MOCK_FIRESTORE
+    init_firebase()
+    return firestore.client()

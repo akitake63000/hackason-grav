@@ -28,10 +28,7 @@ export const apiFetch = async (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      let token = await getIdToken();
-      if (!token && process.env.NODE_ENV === "development") {
-        token = "mock-token";
-      }
+      const token = await getIdToken();
       const headers = new Headers(init.headers ?? {});
       if (token) {
         headers.set("X-Firebase-Auth", token);
