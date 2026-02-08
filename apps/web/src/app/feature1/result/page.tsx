@@ -234,6 +234,8 @@ function ResultContent() {
                                 <Button
                                     variant="primary"
                                     size="full"
+                                    icon={undefined}
+                                    style={{}}
                                     onClick={() => router.push('/feature1/capture')}
                                 >
                                     戻る
