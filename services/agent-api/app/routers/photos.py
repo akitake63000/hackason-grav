@@ -92,3 +92,54 @@ def analyze_photo(
             "notes": result.notes
         }
     )
+
+
+class AnalysisHistoryItem(BaseModel):
+    analysisId: str
+    photoId: str
+    score: int
+    analyzedAt: str  # ISO format
+    notes: Optional[str] = None
+
+
+class AnalysisHistoryResponse(BaseModel):
+    items: list[AnalysisHistoryItem]
+
+
+@router.get("/history", response_model=AnalysisHistoryResponse)
+def get_analysis_history(
+    limit: int = 20,
+    uid: str = Depends(get_current_uid)
+) -> AnalysisHistoryResponse:
+    """
+    Fetches the history of analysis results for the current user.
+    Ordered by analyzedAt descending.
+    """
+    db = get_firestore_client()
+    
+    # Query analysisResults subcollection
+    results_ref = db.collection("users").document(uid).collection("analysisResults")
+    query = results_ref.order_by("analyzedAt", direction=firestore.Query.DESCENDING).limit(limit)
+    
+    docs = query.stream()
+    
+    items = []
+    for doc in docs:
+        data = doc.to_dict()
+        analyzed_at = data.get("analyzedAt")
+        
+        # Handle timestamp conversion
+        if hasattr(analyzed_at, "isoformat"):
+            analyzed_at_str = analyzed_at.isoformat()
+        else:
+            analyzed_at_str = str(analyzed_at)
+
+        items.append(AnalysisHistoryItem(
+            analysisId=doc.id,
+            photoId=data.get("photoId", ""),
+            score=data.get("score", 0),
+            analyzedAt=analyzed_at_str,
+            notes=data.get("notes")
+        ))
+        
+    return AnalysisHistoryResponse(items=items)
