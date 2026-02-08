@@ -18,6 +18,16 @@ interface AnalysisResult {
     deltaVsPrev?: string;
 }
 
+const PATTERN_DISPLAY_MAP: Record<string, string> = {
+    'M字': 'M字型薄毛',
+    'O字': 'O字型薄毛',
+    'U字': 'U字型薄毛',
+    'びまん性': 'びまん性薄毛',
+    'オルセン型': 'オルセン型薄毛',
+    'ハミルトン型': 'ハミルトン型薄毛',
+    'None': '特になし',
+};
+
 const styles = {
     container: {
         flex: 1,
@@ -303,7 +313,9 @@ function ResultContent() {
                                 </div>
                                 <div style={styles.gridItem}>
                                     <span style={styles.gridLabel}>パターン</span>
-                                    <span style={styles.gridValue}>{result.pattern || '---'}</span>
+                                    <span style={styles.gridValue}>
+                                        {result.pattern ? (PATTERN_DISPLAY_MAP[result.pattern] || result.pattern) : '---'}
+                                    </span>
                                 </div>
                             </div>
 

@@ -41,7 +41,14 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
         Provide the following in JSON format:
         - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
         - "hairType": Norwood-Hamilton scale classification (e.g., "Type II", "Type III-Vertex") or "Normal".
-        - "pattern": Hair loss pattern (e.g., "M-Shape", "O-Shape", "U-Shape", "Diffuse", "None").
+        - "pattern": Hair loss pattern. MUST be one of the following exact strings:
+            - "M字": Receding hairline at the temples (M-shaped).
+            - "O字": Thinning at the vertex/crown (O-shaped).
+            - "U字": Receding hairline and vertex thinning merging (U-shaped).
+            - "びまん性": Diffuse thinning over the entire scalp (common in females).
+            - "オルセン型": christmas tree pattern, widening of the part line (common in females).
+            - "ハミルトン型": Male-pattern thinning but occurring in females (due to hormonal issues).
+            - "None": If no significant hair loss is observed.
         - "quality": Image quality for analysis ("good", "fair", "poor").
         - "notes": A brief, professional summary of the condition in Japanese (approx 50 chars).
         
