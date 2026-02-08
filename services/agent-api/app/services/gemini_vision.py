@@ -83,14 +83,33 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
 
         try:
             # response.text should be JSON due to response_mime_type
+            logger.info(f"Gemini response text: {response.text}")
             data = json.loads(response.text)
+            logger.info(f"Parsed JSON data: {data}")
+
+            # Extract score with validation
+            score_value = data.get("score")
+            if score_value is None:
+                logger.error(f"'score' field missing in response: {data}")
+                return VisionResult(score=0.0, notes="Score field missing in analysis response")
+
+            try:
+                score = float(score_value)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid score value: {score_value}, error: {e}")
+                return VisionResult(score=0.0, notes=f"Invalid score value: {score_value}")
+
+            notes = data.get("notes", "")
+
+            logger.info(f"Extracted score: {score}, notes: {notes}")
+
             return VisionResult(
-                score=float(data.get("score", 0.0)),
-                notes=data.get("notes", "")
+                score=score,
+                notes=notes
             )
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON from Gemini: {response.text}")
-            return VisionResult(score=0.0, notes="Failed to parse analysis result")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON from Gemini: {response.text}, error: {e}")
+            return VisionResult(score=0.0, notes=f"Failed to parse analysis result: {response.text[:100]}")
 
     except Exception as e:
         logger.exception(f"Gemini Vision API Error: {e}")
