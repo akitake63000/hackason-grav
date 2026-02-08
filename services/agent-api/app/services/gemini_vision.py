@@ -55,14 +55,15 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             client = genai.Client(http_options=HttpOptions(api_version="v1"))
 
         prompt = """
-        You are an expert trichologist (hair and scalp specialist).
-        Analyze this image of a scalp/hair.
-        
-        Provide the following in JSON format:
-        - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
-        - "notes": A brief, professional summary of the condition (e.g., "Good density, slight redness visible", "Thinning observed in crown area").
-        
-        Ensure the output is raw JSON without markdown formatting.
+        あなたは専門的な毛髪診断士です。
+        この頭皮・髪の画像を分析してください。
+
+        以下をJSON形式で提供してください：
+        - "score": 0.0から100.0の間の浮動小数点数で、髪の密度と健康状態を表します（100が最良）。
+        - "notes": 状態の簡潔で専門的な要約を日本語で記述してください（例: "密度は良好、軽度の赤みが見られます"、"頭頂部に薄毛が観察されます"）。
+
+        出力はマークダウン形式を使わず、生のJSONとしてください。
+        notesフィールドは必ず日本語で記述してください。
         """
 
         response = client.models.generate_content(
