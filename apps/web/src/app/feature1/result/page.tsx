@@ -174,7 +174,10 @@ function ResultContent() {
                     const querySnapshot = await getDocs(q);
 
                     if (querySnapshot.empty) {
-                        throw new Error("解析結果がまだありません。まず写真を撮影して解析してください。");
+                        // Redirect to capture page with message instead of showing error
+                        const message = encodeURIComponent("解析結果がまだありません。まず写真を撮影して解析してください。");
+                        router.push(`/feature1/capture?message=${message}`);
+                        return;
                     }
 
                     targetPhotoId = querySnapshot.docs[0].id;
@@ -184,7 +187,10 @@ function ResultContent() {
                 const resultSnap = await getDoc(resultRef);
 
                 if (!resultSnap.exists()) {
-                    throw new Error("解析結果が見つかりません");
+                    // Redirect to capture page with message instead of showing error
+                    const message = encodeURIComponent("解析結果が見つかりません。新しく撮影してください。");
+                    router.push(`/feature1/capture?message=${message}`);
+                    return;
                 }
 
                 const data = resultSnap.data();
@@ -201,7 +207,7 @@ function ResultContent() {
         };
 
         fetchResult();
-    }, [photoId]);
+    }, [photoId, router]);
 
     if (loading) {
         return (

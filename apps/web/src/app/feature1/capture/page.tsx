@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Camera, Upload, AlertCircle } from 'lucide-react';
+import { Camera, Upload, AlertCircle, Info } from 'lucide-react';
 import Layout from '@/components/Layout';
 import CameraCapture from '@/components/feature1/CameraCapture';
 import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/firebase';
@@ -88,13 +88,35 @@ const styles = {
         fontSize: '14px',
         border: '1px solid rgba(184, 84, 80, 0.2)',
     },
+    infoMessage: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '16px',
+        background: 'rgba(65, 152, 115, 0.08)',
+        borderRadius: '16px',
+        color: '#1a3d2e',
+        fontSize: '14px',
+        border: '1px solid rgba(65, 152, 115, 0.2)',
+        marginBottom: '24px',
+        boxShadow: '0 2px 8px rgba(65, 152, 115, 0.1)',
+    },
 };
 
-export default function CapturePage() {
+function CaptureContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        const message = searchParams.get('message');
+        if (message) {
+            setInfoMessage(decodeURIComponent(message));
+        }
+    }, [searchParams]);
 
     const handleUpload = async () => {
         if (!file) return;
@@ -160,6 +182,19 @@ export default function CapturePage() {
         <Layout>
             <div style={styles.container}>
                 <div style={styles.scrollArea}>
+                    {/* Info Message */}
+                    {infoMessage && (
+                        <motion.div
+                            style={styles.infoMessage}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Info size={18} color="#419873" />
+                            <span>{infoMessage}</span>
+                        </motion.div>
+                    )}
+
                     {/* Tips Card */}
                     <motion.div
                         style={styles.tipsCard}
@@ -224,5 +259,19 @@ export default function CapturePage() {
                 </div>
             </div>
         </Layout>
+    );
+}
+
+export default function CapturePage() {
+    return (
+        <Suspense fallback={
+            <Layout>
+                <div style={{ padding: '24px', textAlign: 'center' }}>
+                    <p>Loading...</p>
+                </div>
+            </Layout>
+        }>
+            <CaptureContent />
+        </Suspense>
     );
 }
