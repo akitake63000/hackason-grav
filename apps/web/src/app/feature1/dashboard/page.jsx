@@ -68,6 +68,12 @@ const styles = {
     border: '1px solid #1a3d2e',
     boxShadow: '0 4px 12px rgba(26, 61, 46, 0.2)',
   },
+  filterButtonDisabled: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
+    background: 'rgba(200, 200, 200, 0.3)',
+    color: '#999',
+  },
   sectionTitle: {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontSize: '16px',
@@ -202,7 +208,7 @@ const styles = {
 
 function Dashboard() {
   const router = useRouter()
-  const [activeFilter, setActiveFilter] = useState('6ヶ月')
+  const [activeFilter, setActiveFilter] = useState('1ヶ月')
   const [loading, setLoading] = useState(true)
   const [allData, setAllData] = useState([]) // Store all fetched data
   const [chartData, setChartData] = useState([])
@@ -379,6 +385,31 @@ function Dashboard() {
     setThumbnails(memoizedThumbnails)
   }, [memoizedChartData, memoizedThumbnails])
 
+  // Check data availability for each filter period
+  const filterAvailability = useMemo(() => {
+    if (allData.length === 0) {
+      return { '1ヶ月': true, '3ヶ月': false, '6ヶ月': false }
+    }
+
+    // Count unique dates in the dataset
+    const uniqueDates = new Set()
+    allData.forEach(item => {
+      const itemDate = new Date(item.analyzedAt || item.capturedAt)
+      const dateKey = itemDate.toISOString().split('T')[0]
+      uniqueDates.add(dateKey)
+    })
+
+    const totalDays = uniqueDates.size
+
+    // Minimum days required for each period
+    // 1ヶ月: 20 days, 3ヶ月: 60 days, 6ヶ月: 120 days
+    return {
+      '1ヶ月': totalDays >= 20,
+      '3ヶ月': totalDays >= 60,
+      '6ヶ月': totalDays >= 120,
+    }
+  }, [allData])
+
   // Generate SVG path for the chart - using viewBox for responsiveness
   const chartWidth = 450
   const chartHeight = 180
@@ -537,19 +568,27 @@ function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          {filters.map((filter) => (
-            <motion.button
-              key={filter}
-              style={{
-                ...styles.filterButton,
-                ...(activeFilter === filter ? styles.filterButtonActive : {}),
-              }}
-              onClick={() => setActiveFilter(filter)}
-              whileTap={{ scale: 0.97 }}
-            >
-              {filter}
-            </motion.button>
-          ))}
+          {filters.map((filter) => {
+            const isAvailable = filterAvailability[filter]
+            const isActive = activeFilter === filter
+
+            return (
+              <motion.button
+                key={filter}
+                style={{
+                  ...styles.filterButton,
+                  ...(isActive ? styles.filterButtonActive : {}),
+                  ...(!isAvailable ? styles.filterButtonDisabled : {}),
+                }}
+                onClick={() => isAvailable && setActiveFilter(filter)}
+                whileTap={isAvailable ? { scale: 0.97 } : {}}
+                disabled={!isAvailable}
+                title={!isAvailable ? 'データ準備中' : ''}
+              >
+                {filter}
+              </motion.button>
+            )
+          })}
         </motion.div>
 
         {/* Chart Card */}
