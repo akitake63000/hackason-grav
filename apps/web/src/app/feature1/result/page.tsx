@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, ChevronRight } from 'lucide-react';
 import { getFirestoreDb } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
@@ -155,12 +155,6 @@ function ResultContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!photoId) {
-            setError("photoId が見つかりません。");
-            setLoading(false);
-            return;
-        }
-
         const fetchResult = async () => {
             try {
                 const auth = getAuth();
@@ -171,7 +165,22 @@ function ResultContent() {
                 }
 
                 const db = getFirestoreDb();
-                const resultRef = doc(db, `users/${user.uid}/analysisResults`, photoId);
+                let targetPhotoId = photoId;
+
+                // If no photoId provided, fetch the latest analysis result
+                if (!targetPhotoId) {
+                    const resultsRef = collection(db, `users/${user.uid}/analysisResults`);
+                    const q = query(resultsRef, orderBy('analyzedAt', 'desc'), limit(1));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        throw new Error("解析結果がまだありません。まず写真を撮影して解析してください。");
+                    }
+
+                    targetPhotoId = querySnapshot.docs[0].id;
+                }
+
+                const resultRef = doc(db, `users/${user.uid}/analysisResults`, targetPhotoId);
                 const resultSnap = await getDoc(resultRef);
 
                 if (!resultSnap.exists()) {
