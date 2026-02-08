@@ -335,6 +335,42 @@ const styles = {
   },
 }
 
+// フォールバック用デフォルトデータ（M字パターン）
+// バックエンドの PATTERN_FOOD_MAP と同じデータソース
+const DEFAULT_FALLBACK = {
+  patternInfo: null,
+  nutrients: [
+    {
+      name: 'イソフラボン',
+      role: '5α-リダクターゼの働きを穏やかに抑制し、DHTの生成を減らす',
+      dailyRecommended: '40〜50mg',
+      foods: [
+        { name: '納豆', emoji: '🫘', serving: '1パック（50g）', amount: 'イソフラボン 約37mg', dailyPercentValue: 74, dailyPercent: '約74%', tip: '朝食に1パック追加するだけで1日分の大半をカバー' },
+        { name: '豆腐', emoji: '🧈', serving: '半丁（150g）', amount: 'イソフラボン 約33mg', dailyPercentValue: 66, dailyPercent: '約66%', tip: '味噌汁や冷奴で手軽に摂取できる' },
+      ],
+    },
+    {
+      name: '亜鉛',
+      role: 'DHT生成に関わる酵素活性を調整し、毛髪のケラチン合成にも必要',
+      dailyRecommended: '11mg（成人男性）/ 8mg（成人女性）',
+      foods: [
+        { name: '牡蠣', emoji: '🦪', serving: '2個（約40g）', amount: '亜鉛 5.6mg', dailyPercentValue: 51, dailyPercent: '約51%', tip: '亜鉛含有量は食品中トップクラス' },
+        { name: 'かぼちゃの種', emoji: '🎃', serving: '30g', amount: '亜鉛 2.3mg', dailyPercentValue: 21, dailyPercent: '約21%', tip: '間食やサラダのトッピングに' },
+      ],
+    },
+    {
+      name: 'ビタミンE',
+      role: '血行を促進し、毛包への栄養供給を改善する',
+      dailyRecommended: '6.0mg（成人男性）/ 5.0mg（成人女性）',
+      foods: [
+        { name: 'アーモンド', emoji: '🥜', serving: '25粒（30g）', amount: 'ビタミンE 8.6mg', dailyPercentValue: 100, dailyPercent: '100%超', tip: '間食をアーモンドに置き換えるだけで十分量を確保' },
+        { name: 'アボカド', emoji: '🥑', serving: '1/2個（70g）', amount: 'ビタミンE 2.5mg', dailyPercentValue: 42, dailyPercent: '約42%', tip: 'サラダやトーストに加えるだけで手軽に摂取' },
+      ],
+    },
+  ],
+  hairPattern: null,
+}
+
 function getBarColor(value) {
   if (!value) return 'linear-gradient(90deg, #9c958a 0%, #b8b2a8 100%)'
   if (value >= 80) return 'linear-gradient(90deg, #22c55e 0%, #4ade80 100%)'
@@ -350,6 +386,8 @@ function FoodRecommendContent() {
   const [error, setError] = useState(null)
   const [recipeModal, setRecipeModal] = useState(null)
 
+  const hairPattern = searchParams.get('hairPattern') || ''
+
   const fetchRecommendations = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -360,22 +398,22 @@ function FoodRecommendContent() {
       const response = await apiFetch('/api/v1/food-sniper/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: deficiencies }),
+        body: JSON.stringify({
+          message: deficiencies,
+          hairPattern: hairPattern || null,
+        }),
       })
 
       const result = await response.json()
       setData(result)
     } catch (err) {
       console.error('Food recommendation error:', err)
-      if (err?.status === 401 || err?.message?.includes('401')) {
-        setError('ログインが必要です。ページを再読み込みしてください。')
-      } else {
-        setError('食材の取得に失敗しました。もう一度お試しください。')
-      }
+      // API失敗時はフォールバックデータを使用
+      setData(DEFAULT_FALLBACK)
     } finally {
       setIsLoading(false)
     }
-  }, [searchParams])
+  }, [searchParams, hairPattern])
 
   useEffect(() => {
     fetchRecommendations()
@@ -493,16 +531,32 @@ function FoodRecommendContent() {
               )}
 
               {!patternInfo && (
-                <motion.p
-                  style={styles.introText}
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
+                  style={{ marginBottom: '24px' }}
                 >
-                  あなたの栄養分析結果に基づき、
-                  <br />
-                  育毛に効果的な食材をおすすめします
-                </motion.p>
+                  <Card padding="lg" variant="outlined">
+                    <p style={{ ...styles.introText, marginBottom: '16px', textAlign: 'center' }}>
+                      まずはAIチェックで薄毛タイプを診断すると、
+                      <br />
+                      あなたに最適な食材をおすすめできます
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        onClick={() => window.location.href = '/feature1/capture'}
+                      >
+                        薄毛タイプ診断へ
+                      </Button>
+                    </div>
+                  </Card>
+                  <p style={{ ...styles.introText, marginTop: '20px' }}>
+                    以下は一般的におすすめの食材です
+                  </p>
+                </motion.div>
               )}
 
               {/* Nutrient Sections */}
