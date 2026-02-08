@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, TrendingUp, AlertCircle, Loader2, ArrowRight, RotateCcw } from 'lucide-react';
+import Layout from '@/components/Layout';
+import Card from '@/components/Card';
+import Button from '@/components/Button';
 import { apiFetch } from '@/lib/api';
 
 interface AnalysisResult {
@@ -13,11 +18,154 @@ interface AnalysisResult {
     deltaVsPrev?: string;
 }
 
+const styles = {
+    container: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        width: '100%',
+    },
+    content: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        padding: '24px',
+        gap: '24px',
+        maxWidth: '600px',
+        width: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box' as const,
+    },
+    title: {
+        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+        fontSize: 'clamp(24px, 4vw, 32px)',
+        fontWeight: '600',
+        color: '#1a3d2e',
+        textAlign: 'center' as const,
+    },
+    subtitle: {
+        fontSize: '14px',
+        color: '#7f786d',
+        textAlign: 'center' as const,
+        marginTop: '4px',
+    },
+    loadingContainer: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '400px',
+        gap: '16px',
+    },
+    loadingText: {
+        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+        color: '#1a3d2e',
+        fontSize: '16px',
+    },
+    loadingSubtext: {
+        fontSize: '13px',
+        color: '#7f786d',
+    },
+    errorContainer: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '300px',
+        gap: '16px',
+        padding: '24px',
+        textAlign: 'center' as const,
+    },
+    errorText: {
+        color: '#dc2626',
+        fontSize: '14px',
+    },
+    scoreSection: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        padding: '24px 0',
+        borderBottom: '1px solid rgba(26, 61, 46, 0.08)',
+        marginBottom: '20px',
+    },
+    scoreLabel: {
+        fontSize: '13px',
+        color: '#7f786d',
+        marginBottom: '4px',
+    },
+    scoreValue: {
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: '56px',
+        fontWeight: '600',
+        color: '#1a3d2e',
+        lineHeight: 1,
+    },
+    scoreDelta: {
+        fontSize: '13px',
+        fontWeight: '600',
+        marginTop: '8px',
+        padding: '4px 12px',
+        borderRadius: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+    },
+    grid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '16px',
+        marginBottom: '24px',
+    },
+    gridItem: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: '4px',
+    },
+    gridLabel: {
+        fontSize: '11px',
+        color: '#7f786d',
+        fontWeight: '600',
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.5px',
+    },
+    gridValue: {
+        fontSize: '15px',
+        color: '#1a3d2e',
+        fontWeight: '500',
+        fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    },
+    notesSection: {
+        background: 'rgba(26, 61, 46, 0.03)',
+        borderRadius: '12px',
+        padding: '16px',
+        marginTop: '8px',
+    },
+    notesTitle: {
+        fontSize: '13px',
+        fontWeight: '600',
+        color: '#1a3d2e',
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+    },
+    notesText: {
+        fontSize: '14px',
+        color: '#4a4540',
+        lineHeight: 1.6,
+    },
+    actions: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: '12px',
+        marginTop: '24px',
+    }
+};
+
 function ResultContent() {
     const searchParams = useSearchParams();
     const photoId = searchParams.get('photoId');
 
-    // States: 'idle', 'loading', 'success', 'error'
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,7 +199,6 @@ function ResultContent() {
             }
 
             const data = await res.json();
-            // Expected response: { analysisId, photoId, result: { score, notes, hairType, pattern, quality, deltaVsPrev } }
             setResult(data.result);
             setStatus('success');
 
@@ -63,112 +210,143 @@ function ResultContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-                <h1 className="text-2xl font-bold mb-6 text-gray-800">解析結果</h1>
+        <Layout>
+            <div style={styles.container}>
+                <div style={styles.content}>
+                    {/* Header */}
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                    >
+                        <h1 style={styles.title}>AI解析結果</h1>
+                        <p style={styles.subtitle}>
+                            {status === 'success' ? '解析が完了しました' : '写真の状態を分析します'}
+                        </p>
+                    </motion.div>
 
-                {/* Status: Loading */}
-                {status === 'loading' && (
-                    <div className="space-y-4">
-                        <div className="animate-spin text-blue-500 text-5xl mb-4">⏳</div>
-                        <h2 className="text-xl font-semibold text-gray-700">解析中...</h2>
-                        <p className="text-gray-500">AIが画像を分析しています。<br />しばらくお待ちください。</p>
-                    </div>
-                )}
+                    {/* Status: Loading */}
+                    {status === 'loading' && (
+                        <div style={styles.loadingContainer}>
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            >
+                                <Loader2 size={40} color="#c9a962" />
+                            </motion.div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={styles.loadingText}>解析中...</div>
+                                <div style={styles.loadingSubtext}>AIが画像を分析しています</div>
+                            </div>
+                        </div>
+                    )}
 
-                {/* Status: Error */}
-                {status === 'error' && (
-                    <div className="space-y-4">
-                        <div className="text-red-500 text-5xl mb-4">⚠️</div>
-                        <h2 className="text-xl font-semibold text-gray-700">エラーが発生しました</h2>
-                        <p className="text-gray-500">{errorMessage || "不明なエラー"}</p>
-                        <button
-                            onClick={() => photoId ? handleAnalyze() : null}
-                            disabled={!photoId}
-                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-lg transition disabled:opacity-50"
-                        >
-                            リトライ
-                        </button>
-                    </div>
-                )}
+                    {/* Status: Error */}
+                    {status === 'error' && (
+                        <Card variant="outlined" style={styles.errorContainer}>
+                            <AlertCircle size={32} color="#dc2626" />
+                            <p style={styles.errorText}>{errorMessage || "不明なエラー"}</p>
+                            <Button
+                                variant="secondary"
+                                onClick={() => photoId ? handleAnalyze() : null}
+                                disabled={!photoId}
+                                icon={<RotateCcw size={16} />}
+                            >
+                                リトライ
+                            </Button>
+                        </Card>
+                    )}
 
-                {/* Status: Idle */}
-                {status === 'idle' && (
-                    <div className="space-y-4">
-                        <div className="text-blue-500 text-5xl mb-4">📸</div>
-                        <h2 className="text-xl font-semibold text-gray-700">Ready to Analyze</h2>
-                        <p className="text-gray-500 text-sm">ID: {photoId}</p>
-                        <button
-                            onClick={handleAnalyze}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow transition"
-                        >
-                            解析を開始する
-                        </button>
-                    </div>
-                )}
+                    {/* Status: Idle */}
+                    {status === 'idle' && (
+                        <div style={{ ...styles.loadingContainer, minHeight: '300px' }}>
+                            <Sparkles size={48} color="#419873" />
+                            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                                <div style={styles.loadingText}>準備完了</div>
+                                <div style={styles.loadingSubtext}>ID: {photoId}</div>
+                            </div>
+                            <Button
+                                variant="primary"
+                                size="lg"
+                                onClick={handleAnalyze}
+                                icon={<Sparkles size={18} />}
+                            >
+                                解析を開始する
+                            </Button>
+                        </div>
+                    )}
 
-                {/* Status: Success */}
-                {status === 'success' && result && (
-                    <div className="space-y-6">
-                        <div className="text-green-500 text-5xl mb-4">✨</div>
-                        <h2 className="text-xl font-semibold text-gray-700">解析完了</h2>
+                    {/* Status: Success */}
+                    {status === 'success' && result && (
+                        <Card variant="elevated" padding="lg" delay={0.2}>
+                            {/* Score Section */}
+                            <div style={styles.scoreSection}>
+                                <span style={styles.scoreLabel}>髪密度スコア</span>
+                                <span style={styles.scoreValue}>{result.score}</span>
+                                {result.deltaVsPrev && (
+                                    <div style={{
+                                        ...styles.scoreDelta,
+                                        background: result.deltaVsPrev.startsWith('+') ? 'rgba(65, 152, 115, 0.1)' : 'rgba(220, 38, 38, 0.1)',
+                                        color: result.deltaVsPrev.startsWith('+') ? '#419873' : '#dc2626',
+                                    }}>
+                                        <TrendingUp size={14} />
+                                        <span>前回比 {result.deltaVsPrev}</span>
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="bg-green-50 rounded-xl p-4 text-left space-y-4 border border-green-100">
-                            <div className="flex justify-between items-center border-b border-green-200 pb-2">
-                                <span className="text-gray-600 font-medium">髪密度スコア</span>
-                                <div className="text-right">
-                                    <span className="text-3xl font-bold text-green-700">{result.score}</span>
-                                    {result.deltaVsPrev && (
-                                        <span className={`block text-xs ${result.deltaVsPrev.startsWith('+') ? 'text-green-600' : 'text-red-500'}`}>
-                                            前回比: {result.deltaVsPrev}
-                                        </span>
-                                    )}
+                            {/* Details Grid */}
+                            <div style={styles.grid}>
+                                <div style={styles.gridItem}>
+                                    <span style={styles.gridLabel}>AI判定タイプ</span>
+                                    <span style={styles.gridValue}>{result.hairType || '---'}</span>
+                                </div>
+                                <div style={styles.gridItem}>
+                                    <span style={styles.gridLabel}>パターン</span>
+                                    <span style={styles.gridValue}>{result.pattern || '---'}</span>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 border-b border-green-200 pb-2">
-                                <div>
-                                    <span className="text-gray-500 text-xs block">AI判定タイプ</span>
-                                    <span className="text-gray-800 font-semibold">{result.hairType || '---'}</span>
+                            {/* Notes */}
+                            <div style={styles.notesSection}>
+                                <div style={styles.notesTitle}>
+                                    <Sparkles size={14} color="#c9a962" />
+                                    <span>分析コメント</span>
                                 </div>
-                                <div>
-                                    <span className="text-gray-500 text-xs block">パターン</span>
-                                    <span className="text-gray-800 font-semibold">{result.pattern || '---'}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <span className="text-gray-600 font-medium block mb-1">分析コメント</span>
-                                <p className="text-gray-700 text-sm bg-white p-2 rounded border border-green-100">
+                                <p style={styles.notesText}>
                                     {result.notes || "コメントはありません"}
                                 </p>
                             </div>
-                        </div>
 
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={() => window.location.href = '/feature1/dashboard'}
-                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg transition border border-gray-300"
-                            >
-                                ダッシュボードへ戻る
-                            </button>
-                            <button
-                                onClick={handleAnalyze}
-                                className="text-gray-500 hover:text-gray-700 font-medium underline text-sm"
-                            >
-                                再解析 (Retry)
-                            </button>
-                        </div>
-                    </div>
-                )}
+                            {/* Actions */}
+                            <div style={styles.actions}>
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => window.location.href = '/feature1/dashboard'}
+                                    icon={<ArrowRight size={16} />}
+                                >
+                                    ダッシュボードへ戻る
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleAnalyze}
+                                    style={{ alignSelf: 'center', textDecoration: 'underline' }}
+                                >
+                                    再解析する
+                                </Button>
+                            </div>
+                        </Card>
+                    )}
+                </div>
             </div>
-        </div>
+        </Layout>
     );
 }
 
 export default function ResultPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>}>
             <ResultContent />
         </Suspense>
     );
