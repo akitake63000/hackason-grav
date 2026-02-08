@@ -3,9 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Send, Loader2 } from 'lucide-react'
+import { Users, Send, Loader2, Trash2 } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
+import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
+import { collection, doc, setDoc, getDocs, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -209,12 +212,52 @@ const initialMessages = [
 
 function Chat() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState(null)
   const [threadId, setThreadId] = useState('default')
   const chatAreaRef = useRef(null)
+
+  // Firestoreから会話履歴を読み込む
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user || !isFirebaseConfigured()) {
+        setLoadingHistory(false)
+        return
+      }
+      try {
+        const db = getFirestoreDb()
+        const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
+        const q = query(messagesRef, orderBy('timestamp', 'asc'))
+        const snapshot = await getDocs(q)
+        if (!snapshot.empty) {
+          const history = snapshot.docs.map((docSnap) => {
+            const d = docSnap.data()
+            return {
+              id: docSnap.id,
+              type: d.role === 'user' ? 'user' : 'ai',
+              agent: d.agent || 'orchestrator',
+              text: d.content,
+              time: d.timestamp?.toDate
+                ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                : '',
+            }
+          })
+          setMessages(history)
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err)
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+    if (!authLoading) {
+      loadHistory()
+    }
+  }, [user, authLoading, threadId])
 
   // チャットエリアを最下部にスクロール
   useEffect(() => {
@@ -241,6 +284,25 @@ function Chat() {
     setIsLoading(true)
     setError(null)
 
+    // ユーザーメッセージをFirestoreに保存
+    const saveMessage = async (tid, msg) => {
+      if (!user || !isFirebaseConfigured()) return
+      try {
+        const db = getFirestoreDb()
+        const msgRef = doc(collection(db, 'users', user.uid, 'conversations', tid, 'messages'))
+        await setDoc(msgRef, {
+          role: msg.type === 'user' ? 'user' : 'ai',
+          content: msg.text,
+          ...(msg.agent && { agent: msg.agent }),
+          timestamp: serverTimestamp(),
+        })
+      } catch (e) {
+        console.error('Failed to save message:', e)
+      }
+    }
+
+    await saveMessage(threadId, newUserMessage)
+
     try {
       const response = await apiFetch('/api/v1/mental-shield/chat', {
         method: 'POST',
@@ -260,6 +322,7 @@ function Chat() {
       const responseTime = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 
       // スレッドIDを更新
+      const currentThreadId = data.threadId || threadId
       if (data.threadId) {
         setThreadId(data.threadId)
       }
@@ -283,6 +346,11 @@ function Chat() {
       }
 
       setMessages(prev => [...prev, ...agentMessages, summaryMessage])
+
+      // AI応答をFirestoreに保存
+      for (const msg of [...agentMessages, summaryMessage]) {
+        await saveMessage(currentThreadId, msg)
+      }
     } catch (err) {
       console.error('Chat API error:', err)
       setError('メッセージの送信に失敗しました。もう一度お試しください。')
@@ -298,6 +366,25 @@ function Chat() {
     }
   }
 
+  const handleDeleteHistory = async () => {
+    if (!confirm('会話履歴を削除しますか？この操作は取り消せません。')) return
+    if (!user || !isFirebaseConfigured()) {
+      setMessages(initialMessages)
+      return
+    }
+    try {
+      const db = getFirestoreDb()
+      const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
+      const snapshot = await getDocs(messagesRef)
+      const deletePromises = snapshot.docs.map((d) => deleteDoc(d.ref))
+      await Promise.all(deletePromises)
+      setMessages(initialMessages)
+    } catch (err) {
+      console.error('Failed to delete chat history:', err)
+      setError('履歴の削除に失敗しました。もう一度お試しください。')
+    }
+  }
+
   return (
     <Layout>
       <style>{`
@@ -309,6 +396,14 @@ function Chat() {
       <div style={styles.container}>
         <div style={styles.chatWrapper}>
         <div style={styles.chatArea} ref={chatAreaRef}>
+          {loadingHistory ? (
+            <div style={styles.loadingContainer}>
+              <div style={styles.avatar}>
+                <Loader2 size={18} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+              </div>
+              <span style={styles.loadingText}>会話履歴を読み込み中...</span>
+            </div>
+          ) : (
           <AnimatePresence>
             {messages.map((message, index) => {
               const agent = message.agent ? agentConfig[message.agent] : null
@@ -359,6 +454,7 @@ function Chat() {
               </motion.div>
             )})}
           </AnimatePresence>
+          )}
 
           {/* ローディング表示 */}
           {isLoading && (
@@ -386,15 +482,37 @@ function Chat() {
           )}
         </div>
 
-        <motion.button
-          style={styles.teamMeetingButton}
-          onClick={() => router.push('/feature2/team-meeting')}
-          whileHover={{ scale: 1.02, y: -2 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Users size={18} />
-          チーム会議を開く
-        </motion.button>
+        <div style={{ display: 'flex', gap: '8px', margin: '8px 16px' }}>
+          <motion.button
+            style={{ ...styles.teamMeetingButton, flex: 1, margin: 0 }}
+            onClick={() => router.push('/feature2/team-meeting')}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Users size={18} />
+            チーム会議を開く
+          </motion.button>
+          <motion.button
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '16px',
+              border: 'none',
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            onClick={handleDeleteHistory}
+            whileHover={{ scale: 1.05, background: 'rgba(239, 68, 68, 0.2)' }}
+            whileTap={{ scale: 0.95 }}
+            title="会話履歴を削除"
+          >
+            <Trash2 size={18} color="#dc2626" />
+          </motion.button>
+        </div>
       </div>
 
       <div style={styles.inputArea}>

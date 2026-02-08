@@ -24,4 +24,8 @@ apps/web/out/
 # Firebase
 .firebase/
 
+# Logs (all log.md files)
+log.md
+docs/log.md
+
 backup/*
