@@ -226,14 +226,6 @@ function Dashboard() {
           method: 'GET',
         })
 
-        // Handle 404 as empty data (no analysis history collection yet)
-        if (response.status === 404) {
-          setChartData([])
-          setThumbnails([])
-          setLoading(false)
-          return
-        }
-
         if (!response.ok) {
           throw new Error('データの取得に失敗しました')
         }
@@ -276,10 +268,16 @@ function Dashboard() {
         setChartData(transformedChartData)
         setThumbnails(transformedThumbnails)
       } catch (err) {
-        console.error('Failed to fetch analysis history:', err)
-        // Treat errors as empty state instead of showing error
-        setChartData([])
-        setThumbnails([])
+        // Handle 404 (no analysis history yet) as empty state without console error
+        if (err?.statusCode === 404 || err?.code === 'NOT_FOUND') {
+          setChartData([])
+          setThumbnails([])
+        } else {
+          console.error('Failed to fetch analysis history:', err)
+          // Treat other errors as empty state too
+          setChartData([])
+          setThumbnails([])
+        }
       } finally {
         setLoading(false)
       }
