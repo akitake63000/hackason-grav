@@ -66,9 +66,10 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
         """
 
         response = client.models.generate_content(
-            model=GEMINI_MODEL_VISION, 
+            model=GEMINI_MODEL_VISION,
             contents=[
                 types.Content(
+                    role="user",
                     parts=[
                         types.Part.from_text(text=prompt),
                         types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
