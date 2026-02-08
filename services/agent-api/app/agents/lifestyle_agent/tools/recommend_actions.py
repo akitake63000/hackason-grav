@@ -14,6 +14,7 @@ class RecommendedAction(TypedDict):
     duration: str
     reason: str
     explanation: str
+    tips: list[str]  # Detailed advice/next steps
     targets: list[str]  # axes this action improves
     priority: str  # "high" | "medium" | "low"
 
@@ -26,7 +27,12 @@ ACTIONS_CATALOG: list[dict] = [
         "emoji": "🌙",
         "duration": "毎日",
         "reason": "成長ホルモンの分泌を最大化",
-        "explanation": "22時〜2時は成長ホルモンが最も分泌される時間帯。毛髪の成長に直結します。",
+        "explanation": "22時〜2時は成長ホルモンが最も分泌される時間帯。毛細細胞の修復や髪の成長に直結します。",
+        "tips": [
+            "就寝1時間前にはスマホ画面を閉じ、リラックスタイムを設ける。",
+            "23時までに完全に消灯し、部屋を静かで涼しい状態に保つ。",
+            "休日も大きく時間をずらさないように意識する。"
+        ],
         "targets": {"hormone": 0.8, "circadian": 0.6, "stress": 0.3},
     },
     {
@@ -35,7 +41,12 @@ ACTIONS_CATALOG: list[dict] = [
         "emoji": "⏰",
         "duration": "毎日",
         "reason": "体内時計をリセット",
-        "explanation": "毎日同じ時刻に起きることで、体内時計が整い、毛包幹細胞の活性化サイクルが正常化します。",
+        "explanation": "毎日同じ時刻に起きることで、体内時計が整い、毛細幹細胞の活性化サイクルが正常化します。",
+        "tips": [
+            "土日も平日との差を1時間以内にとどめる。",
+            "起きたらすぐにカーテンを開けて太陽の光を浴び、脳を覚醒させる。",
+            "昼寝をする場合は15分〜20分以内に抑え、夜の睡眠に影響させない。"
+        ],
         "targets": {"circadian": 0.9, "hormone": 0.4},
     },
     {
@@ -45,6 +56,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "15分/朝",
         "reason": "メラトニン・セロトニン分泌調整",
         "explanation": "朝の光がセロトニン分泌を促し、夜のメラトニン分泌へつながります。スムーズな睡眠で成長ホルモン分泌がアップ。",
+        "tips": [
+            "ベランダに出るか、窓際で日光を直接感じる（ガラス越しでも可）。",
+            "朝食を窓際で摂る習慣をつけると継続しやすい。",
+            "曇りや雨の日でも、外の明るさは体内時計リセットに十分効果あり。"
+        ],
         "targets": {"circadian": 0.8, "stress": 0.4, "hormone": 0.3},
     },
     {
@@ -54,6 +70,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "30分/日",
         "reason": "全身血行促進とストレス解消",
         "explanation": "ウォーキングやジョギングで血流が改善し、頭皮への栄養供給が向上します。エンドルフィン分泌でストレスも軽減。",
+        "tips": [
+            "まずは「一駅分歩く」など、生活の中に組み込みやすいことから始める。",
+            "週3回、汗をわずかにかく程度の早歩きからで十分効果的。",
+            "運動後はぬるめのシャワーで汗を流し、リラックスする。"
+        ],
         "targets": {"blood_flow": 0.9, "stress": 0.7, "hormone": 0.3},
     },
     {
@@ -63,6 +84,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "10分/日",
         "reason": "頭部への血流改善",
         "explanation": "首や肩のコリは頭皮への血流を阻害します。こまめなストレッチで血行を維持しましょう。",
+        "tips": [
+            "デスクワークで1時間経つごとに、肩甲骨を大きく回す。",
+            "耳を肩に近づけるように首を左右にゆっくり倒し、15秒ずつキープ。",
+            "お風呂上がりなど、筋肉が温まっている時に行うのが最も効果的。"
+        ],
         "targets": {"blood_flow": 0.8, "stress": 0.4},
     },
     {
@@ -72,6 +98,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "15分/日",
         "reason": "深部体温上昇と副交感神経優位",
         "explanation": "ぬるめのお湯で15分浸かると、深部体温が上昇し、入浴後に下がることで入眠しやすくなります。リラックス効果も。",
+        "tips": [
+            "お湯の温度は40度を超えないように設定し、交感神経を刺激しすぎない。",
+            "お気に入りの入浴剤（炭酸ガス系など）を使うと血行促進効果がアップ。",
+            "お風呂の中で深呼吸を意識すると、ストレスケアにも非常に効果的。"
+        ],
         "targets": {"blood_flow": 0.8, "stress": 0.7, "circadian": 0.3},
     },
     {
@@ -81,6 +112,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "10分/日",
         "reason": "コルチゾール低下",
         "explanation": "深い呼吸と瞑想でコルチゾール（ストレスホルモン）が低下。GAS6タンパク質のブロックを防ぎ、脱毛抑制に。",
+        "tips": [
+            "4秒で吸って、8秒でゆっくり吐き出すリズムを意識する。",
+            "雑念が浮かんでも無視せず、「あ、今考えてるな」と客観視して呼吸に戻る。",
+            "寝る前や仕事の合間など、静かな場所で1日5分からでもOK。"
+        ],
         "targets": {"stress": 0.9, "hormone": 0.3},
     },
     {
@@ -90,6 +126,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "継続",
         "reason": "血管収縮の防止",
         "explanation": "タバコのニコチンは血管を収縮させ、頭皮への血流を著しく低下させます。禁煙は最も効果的な血流改善策です。",
+        "tips": [
+            "まずは本数を減らすのではなく、完全に断つ日（休煙日）を数日設ける。",
+            "口寂しい時は冷たい水やミントガム、深呼吸で代用する。",
+            "自力で難しい場合は、禁煙外来やパッチなどのサポートを利用する。"
+        ],
         "targets": {"blood_flow": 1.0, "hormone": 0.4},
     },
     {
@@ -99,15 +140,25 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "週2日以下",
         "reason": "成長ホルモン分泌への悪影響を軽減",
         "explanation": "アルコールは成長ホルモンの分泌を抑制します。週2日以下に控えることで影響を最小限に。",
+        "tips": [
+            "休肝日を週に2日以上設定し、肝臓を休ませる機会を作る。",
+            "お酒と同量以上の水を一緒に飲む（チェイサー）ことで分解を助ける。",
+            "就寝前の3時間は飲酒を控えることで、睡眠の質の低下を防ぐ。"
+        ],
         "targets": {"hormone": 0.8, "circadian": 0.5, "blood_flow": 0.3},
     },
     {
         "id": "limit_caffeine",
-        "name": "カフェイン制限（午後2時以降は避ける）",
+        "name": "カフェイン制限",
         "emoji": "☕",
-        "duration": "毎日",
+        "duration": "午後2時以降制限",
         "reason": "睡眠の質改善",
         "explanation": "カフェインは体内に6時間以上残ります。午後早めに最後のカフェインを摂り、夜の睡眠をしっかり確保しましょう。",
+        "tips": [
+            "午後のリフレッシュには、カフェインレスのハーブティーや炭酸水を使う。",
+            "どうしても飲みたい場合は少量にとどめ、就寝への影響を意識する。",
+            "朝一番のコーヒーは、起床から90分以上空けると目覚めにより効果的。"
+        ],
         "targets": {"circadian": 0.7, "hormone": 0.5, "stress": 0.2},
     },
     {
@@ -117,6 +168,11 @@ ACTIONS_CATALOG: list[dict] = [
         "duration": "毎日",
         "reason": "血液粘度を下げ血流改善",
         "explanation": "脱水状態では血液がドロドロになり、頭皮への栄養供給が低下します。こまめな水分補給が大切です。",
+        "tips": [
+            "一気に飲むのではなく、コップ1杯の水をこまめに（1日8回程度）飲む。",
+            "常温の水や白湯を飲むことで、胃腸への負担を減らし吸収を良くする。",
+            "起床時と入浴前後には必ずコップ1杯の水を摂取する。"
+        ],
         "targets": {"blood_flow": 0.8},
     },
     {
@@ -125,7 +181,12 @@ ACTIONS_CATALOG: list[dict] = [
         "emoji": "💆",
         "duration": "5分/日",
         "reason": "直接的な血行促進",
-        "explanation": "指の腹で頭皮を優しく揉みほぐすことで、毛根への血流が直接改善します。入浴時がおすすめ。",
+        "explanation": "指の腹で頭皮を優しく揉みほぐすことで、毛細血管の血流が改善します。リラックス効果も絶大。",
+        "tips": [
+            "「こめかみ」から「頭頂部」に向けて、円を描くように動かす。",
+            "頭皮を「こする」のではなく、皮下組織を「動かす」イメージで行う。",
+            "お風呂の中でトリートメントをしている時など、1日3分程度で十分。"
+        ],
         "targets": {"blood_flow": 0.7, "stress": 0.3},
     },
 ]
@@ -146,7 +207,7 @@ def get_recommended_actions(
         優先度順の推奨アクションリスト
     """
     # Calculate priority score for each action based on how much it helps low-scoring axes
-    action_priorities: list[tuple[dict, float]] = []
+    action_priorities: list[tuple[dict, float, list]] = []
 
     for action in ACTIONS_CATALOG:
         priority_score = 0.0
@@ -179,6 +240,7 @@ def get_recommended_actions(
                 duration=action["duration"],
                 reason=action["reason"],
                 explanation=action["explanation"],
+                tips=action.get("tips", []),
                 targets=targets if targets else list(action["targets"].keys())[:2],
                 priority=priority_label,
             )

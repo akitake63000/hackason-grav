@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import {
-  Dna,
-  Apple,
   Brain,
   Heart,
   Activity,
+  Droplets,
   ArrowRight,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
   Loader2,
+  Info,
 } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
@@ -98,75 +98,60 @@ const styles = {
     color: '#1a3d2e',
     fontWeight: '600',
   },
-  // Result UI
-  introCard: {
-    textAlign: 'center',
+  // Result UI - Matrix Style
+  matrixGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
     marginBottom: '24px',
   },
-  introTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: 'clamp(18px, 3vw, 22px)',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    marginBottom: '12px',
-  },
-  introText: {
-    fontSize: 'clamp(14px, 2vw, 16px)',
-    color: '#7f786d',
-    lineHeight: 1.6,
-  },
-  tendencyList: {
+  matrixCard: {
+    padding: '20px',
+    borderRadius: '24px',
+    textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
-    marginBottom: '32px',
-  },
-  tendencyItem: {
-    display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '12px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
   },
-  iconWrapper: {
-    width: '48px',
-    height: '48px',
+  matrixIcon: {
+    width: '44px',
+    height: '44px',
     borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
-  tendencyContent: {
-    flex: 1,
-  },
-  tendencyHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '6px',
-  },
-  tendencyName: {
+  matrixLabel: {
     fontSize: '14px',
     fontWeight: '600',
     color: '#1a3d2e',
   },
-  tendencyScore: {
-    fontSize: '14px',
+  matrixScore: {
+    fontSize: '28px',
+    fontFamily: "'Cormorant Garamond', serif",
     fontWeight: '700',
   },
-  progressBar: {
-    height: '8px',
-    background: 'rgba(26, 61, 46, 0.08)',
-    borderRadius: '100px',
-    overflow: 'hidden',
+  matrixDesc: {
+    fontSize: '11px',
+    color: '#7f786d',
+    lineHeight: 1.4,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: '100px',
+  summaryCard: {
+    textAlign: 'center',
+    marginBottom: '24px',
+  },
+  summaryTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1a3d2e',
+    marginBottom: '8px',
   },
   navigation: {
     display: 'flex',
     justifyContent: 'space-between',
-    marginTop: '24px',
+    marginTop: '12px',
     gap: '12px',
   },
   loadingContainer: {
@@ -176,6 +161,17 @@ const styles = {
     justifyContent: 'center',
     padding: '60px 20px',
     textAlign: 'center',
+  },
+  introTitle: {
+    fontSize: '22px',
+    fontWeight: '600',
+    color: '#1a3d2e',
+    marginBottom: '12px',
+  },
+  introText: {
+    fontSize: '15px',
+    color: '#4a4a4a',
+    lineHeight: 1.6,
   },
 }
 
@@ -332,9 +328,8 @@ function Tendency() {
   const [resultData, setResultData] = useState(null)
   const [error, setError] = useState(null)
 
-  // 嗜好品チェックに応じて条件付き質問を動的に追加・削除する
   useEffect(() => {
-    if (currentStep === 9 && answers.substances) {
+    if (currentStep >= 8 && answers.substances) {
       const moreQuestions = []
       if (CONDITIONAL_QUESTIONS.smoking_amount.trigger(answers)) {
         moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
@@ -357,7 +352,6 @@ function Tendency() {
   const handleOptionSelect = (qId, value) => {
     setAnswers((prev) => ({ ...prev, [qId]: value }))
 
-    // 少し待ってから次の質問へ (UX向上のため)
     setTimeout(() => {
       if (currentStep < visibleQuestions.length - 1) {
         setCurrentStep((prev) => prev + 1)
@@ -394,34 +388,17 @@ function Tendency() {
     }
   }
 
-  // 結果表示用のデータ変換
-  const tendencyResults = resultData
-    ? Object.keys(resultData.scores).map((key) => {
-      const score = resultData.scores[key]
-      const label = resultData.axis_labels[key]
-      const colors = {
-        hormone: { from: '#ec4899', to: '#f472b6', bg: 'rgba(236, 72, 153, 0.1)' },
-        circadian: { from: '#8b5cf6', to: '#a78bfa', bg: 'rgba(139, 92, 246, 0.1)' },
-        blood_flow: { from: '#3b82f6', to: '#60a5fa', bg: 'rgba(59, 130, 246, 0.1)' },
-        stress: { from: '#f59e0b', to: '#fbbf24', bg: 'rgba(245, 158, 11, 0.1)' },
-      }
-      const icons = {
-        hormone: Heart,
-        circadian: Activity,
-        blood_flow: Dna,
-        stress: Brain,
-      }
-      return {
-        id: key,
-        name: label.name,
-        score: score,
-        icon: icons[key] || Activity,
-        color: label.color,
-        bgColor: colors[key]?.bg || 'rgba(0,0,0,0.1)',
-        gradientFrom: colors[key]?.from || '#ccc',
-        gradientTo: colors[key]?.to || '#999',
-      }
-    })
+  const resultList = resultData && resultData.scores
+    ? [
+      { id: 'hormone', icon: Heart, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)', desc: '成長ホルモンと代謝' },
+      { id: 'circadian', icon: Activity, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', desc: '生活リズムと体内時計' },
+      { id: 'blood_flow', icon: Droplets, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', desc: '頭皮への血流供給' },
+      { id: 'stress', icon: Brain, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', desc: '精神的ストレス状態' },
+    ].map(item => ({
+      ...item,
+      name: resultData.axis_labels?.[item.id]?.name || item.id,
+      score: resultData.scores[item.id] || 0
+    }))
     : []
 
   if (viewState === 'loading') {
@@ -434,8 +411,8 @@ function Tendency() {
           >
             <Loader2 size={48} color="#419873" />
           </motion.div>
-          <h2 style={{ ...styles.introTitle, marginTop: '24px' }}>AIが分析中です...</h2>
-          <p style={styles.introText}>あなたの情報を元に育毛メカニズム軸を解析しています</p>
+          <h2 style={{ ...styles.introTitle, marginTop: '24px' }}>AIによるマトリクス分析中...</h2>
+          <p style={styles.introText}>あなたの生活習慣を4つの育毛メカニズム軸で解析しています</p>
         </div>
       </Layout>
     )
@@ -447,68 +424,63 @@ function Tendency() {
         <div style={styles.container}>
           <div style={styles.content}>
             <motion.h1 style={styles.pageTitle} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              傾向分析結果
+              診断マトリクス結果
             </motion.h1>
 
-            <Card variant="accent" padding="lg" delay={0.1}>
-              <div style={styles.introCard}>
-                <h2 style={styles.introTitle}>あなたの髪の健康状態</h2>
-                <p style={styles.introText}>
-                  問診に基づき、4つの重要メカニズムをスコア化しました。
-                  点数が低い項目ほど、優先的なケアが必要です。
-                </p>
-              </div>
+            <Card variant="accent" padding="lg" style={styles.summaryCard}>
+              <h2 style={styles.summaryTitle}>分析スコアの総括</h2>
+              <p style={styles.introText}>
+                4つの主要な指標に基づいたあなたの現状です。<br />
+                各項目のスコアが低いほど、改善の余地が大きいことを示しています。
+              </p>
             </Card>
 
-            <Card padding="lg" delay={0.2}>
-              <div style={styles.tendencyList}>
-                {tendencyResults.map((t, index) => (
-                  <motion.div
-                    key={t.id}
-                    style={styles.tendencyItem}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                  >
-                    <div style={{ ...styles.iconWrapper, background: t.bgColor }}>
-                      <t.icon size={22} color={t.color} />
-                    </div>
-                    <div style={styles.tendencyContent}>
-                      <div style={styles.tendencyHeader}>
-                        <span style={styles.tendencyName}>{t.name}</span>
-                        <span style={{ ...styles.tendencyScore, color: t.color }}>{t.score}%</span>
-                      </div>
-                      <div style={styles.progressBar}>
-                        <motion.div
-                          style={{
-                            ...styles.progressFill,
-                            background: `linear-gradient(90deg, ${t.gradientFrom} 0%, ${t.gradientTo} 100%)`,
-                          }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${t.score}%` }}
-                          transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </Card>
+            <motion.div
+              style={styles.matrixGrid}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              {resultList.map((t, index) => (
+                <Card key={t.id} style={styles.matrixCard} delay={0.2 + index * 0.1}>
+                  <div style={{ ...styles.matrixIcon, background: t.bg }}>
+                    <t.icon size={24} color={t.color} />
+                  </div>
+                  <div style={styles.matrixLabel}>{t.name}</div>
+                  <div style={{ ...styles.matrixScore, color: t.color }}>
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
+                    >
+                      {t.score}
+                    </motion.span>
+                    <span style={{ fontSize: '14px', marginLeft: '2px' }}>pts</span>
+                  </div>
+                  <div style={styles.matrixDesc}>{t.desc}</div>
+                </Card>
+              ))}
+            </motion.div>
 
-            <div style={styles.actionSection}>
+            <div style={{ marginTop: '24px' }}>
               <Button
                 size="full"
                 icon={<ArrowRight size={18} />}
                 iconPosition="right"
                 onClick={() =>
                   router.push(
-                    `/feature3/exercise-recommend?hormone=${resultData.scores.hormone}&circadian=${resultData.scores.circadian}&blood_flow=${resultData.scores.blood_flow}&stress=${resultData.scores.stress}`
+                    `/feature3/lifestyle-recommend?hormone=${resultData.scores.hormone}&circadian=${resultData.scores.circadian}&blood_flow=${resultData.scores.blood_flow}&stress=${resultData.scores.stress}`
                   )
                 }
               >
-                あなたに最適な対策を見る
+                生活習慣改善レコメンドを見る
               </Button>
             </div>
+
+            <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: '#9c958a' }}>
+              <Info size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+              点数は0-100で、70点以上が良好な状態の目安です。
+            </p>
           </div>
         </div>
       </Layout>
@@ -572,7 +544,6 @@ function Tendency() {
                 variant="outline"
                 icon={<ChevronLeft size={18} />}
                 onClick={handleBack}
-                disabled={currentStep === 0 && viewState === 'intro'}
               >
                 戻る
               </Button>
@@ -599,10 +570,10 @@ function Tendency() {
           </motion.h1>
 
           <Card variant="accent" padding="lg" delay={0.1}>
-            <div style={styles.introCard}>
+            <div style={{ textAlign: 'center' }}>
               <h2 style={styles.introTitle}>今の生活を振り返る</h2>
               <p style={styles.introText}>
-                あなたの日常生活がどれほど「髪の健康」に配慮できているか、10問程度の質問で診断します。
+                日常生活がどれほど「髪の健康」に配慮できているか、4つの主要メカニズム指標に基づいて精密に診断します。
               </p>
             </div>
           </Card>
