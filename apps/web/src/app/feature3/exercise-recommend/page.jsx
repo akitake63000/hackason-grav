@@ -1,9 +1,12 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Clock, ChevronRight } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Clock, ChevronRight, Loader2, Target } from 'lucide-react'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
+import { apiFetch } from '@/lib/api'
 
 const styles = {
   container: {
@@ -11,10 +14,12 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
+    paddingBottom: '40px',
   },
   content: {
     maxWidth: '1200px',
     margin: '0 auto',
+    width: '100%',
   },
   pageTitle: {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
@@ -33,7 +38,7 @@ const styles = {
   },
   exerciseGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
     gap: '20px',
   },
   exerciseCard: {
@@ -43,14 +48,15 @@ const styles = {
     cursor: 'pointer',
   },
   exerciseEmoji: {
-    width: '64px',
-    height: '64px',
-    borderRadius: '18px',
+    width: '60px',
+    height: '60px',
+    borderRadius: '16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '32px',
+    fontSize: '28px',
     flexShrink: 0,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
   },
   exerciseContent: {
     flex: 1,
@@ -63,7 +69,7 @@ const styles = {
   },
   exerciseName: {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: 'clamp(16px, 2.5vw, 20px)',
+    fontSize: '18px',
     fontWeight: '600',
     color: '#1a3d2e',
   },
@@ -74,135 +80,199 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    padding: '5px 12px',
-    background: 'rgba(201, 169, 98, 0.15)',
-    borderRadius: '10px',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#8b7942',
-    marginBottom: '10px',
-  },
-  exerciseEffect: {
-    fontSize: 'clamp(13px, 1.8vw, 15px)',
-    color: '#7f786d',
-    lineHeight: 1.6,
-  },
-  benefitTags: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-    marginTop: '12px',
-  },
-  benefitTag: {
-    padding: '5px 12px',
-    background: 'rgba(65, 152, 115, 0.1)',
-    borderRadius: '10px',
+    padding: '4px 12px',
+    background: 'rgba(201, 169, 98, 0.12)',
+    borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '600',
+    color: '#8b7942',
+    marginBottom: '8px',
+  },
+  priorityBadge: {
+    display: 'inline-flex',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    fontSize: '10px',
+    fontWeight: '700',
+    marginLeft: '8px',
+    textTransform: 'uppercase',
+  },
+  exerciseReason: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#419873',
+    marginBottom: '4px',
+  },
+  exerciseEffect: {
+    fontSize: '13px',
+    color: '#7f786d',
+    lineHeight: 1.5,
+  },
+  targetHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
     color: '#1a3d2e',
+    fontWeight: '600',
+    marginTop: '12px',
+    marginBottom: '6px',
+  },
+  targetTags: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+  },
+  targetTag: {
+    padding: '3px 8px',
+    background: 'rgba(65, 152, 115, 0.08)',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: '500',
+    color: '#1a3d2e',
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
   },
 }
 
-const exercises = [
-  {
-    name: '有酸素運動',
-    emoji: '🏃',
-    bgColor: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%)',
-    duration: '30分/日',
-    effect: '全身の血行を促進し、頭皮への栄養供給を改善します。ウォーキングやジョギングがおすすめです。',
-    benefits: ['血行促進', '代謝アップ', 'ストレス解消'],
-  },
-  {
-    name: '頭皮マッサージ',
-    emoji: '💆',
-    bgColor: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(236, 72, 153, 0.05) 100%)',
-    duration: '5分/日',
-    effect: '頭皮の血流を直接改善し、毛根への栄養供給を促進します。入浴時に行うと効果的です。',
-    benefits: ['頭皮血行', 'リラックス', '毛根活性化'],
-  },
-  {
-    name: 'ヨガ',
-    emoji: '🧘',
-    bgColor: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)',
-    duration: '20分/日',
-    effect: '自律神経を整え、ストレスを軽減します。逆転のポーズは頭部への血流を促進します。',
-    benefits: ['自律神経調整', 'ストレス軽減', '柔軟性向上'],
-  },
-  {
-    name: 'ストレッチ',
-    emoji: '🤸',
-    bgColor: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%)',
-    duration: '10分/日',
-    effect: '首や肩のコリを解消し、頭部への血流を改善します。デスクワークの合間にも最適です。',
-    benefits: ['肩こり改善', '血流改善', 'リフレッシュ'],
-  },
-]
-
 function ExerciseRecommend() {
+  const searchParams = useSearchParams()
+  const [recommendations, setRecommendations] = useState([])
+  const [axisLabels, setAxisLabels] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      setLoading(true)
+      try {
+        const query = new URLSearchParams(searchParams).toString()
+        const res = await apiFetch(`/api/v1/lifestyle/recommendation?${query}`)
+        if (!res.ok) throw new Error('推奨アクションの取得に失敗しました')
+        const data = await res.json()
+        setRecommendations(data.actions)
+        setAxisLabels(data.axis_labels)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [searchParams])
+
+  if (loading) {
+    return (
+      <Layout>
+        <div style={styles.loadingContainer}>
+          <Loader2 className="animate-spin" size={40} color="#419873" />
+          <p style={{ marginTop: '16px', color: '#7f786d' }}>最適な対策を抽出中...</p>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div style={styles.container}>
+          <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div style={styles.container}>
         <div style={styles.content}>
-        <motion.h1
-          style={styles.pageTitle}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          おすすめ運動
-        </motion.h1>
+          <motion.h1
+            style={styles.pageTitle}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            あなたへの最適アクション
+          </motion.h1>
 
-        <motion.p
-          style={styles.introText}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          頭皮の血行促進とストレス解消に<br />
-          効果的な運動をご紹介します
-        </motion.p>
+          <motion.p
+            style={styles.introText}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            分析結果に基づき、今のあなたに最も効果的な<br />
+            改善ステップをご提案します
+          </motion.p>
 
-        <div style={styles.exerciseGrid}>
-          {exercises.map((exercise, index) => (
-            <Card
-              key={exercise.name}
-              padding="lg"
-              hoverable
-              delay={0.15 + index * 0.1}
-            >
-              <div style={styles.exerciseCard}>
-                <motion.div
-                  style={{
-                    ...styles.exerciseEmoji,
-                    background: exercise.bgColor,
-                  }}
-                  whileHover={{ scale: 1.1, rotate: -5 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                >
-                  {exercise.emoji}
-                </motion.div>
-                <div style={styles.exerciseContent}>
-                  <div style={styles.exerciseHeader}>
-                    <span style={styles.exerciseName}>{exercise.name}</span>
-                    <ChevronRight size={20} style={styles.arrowIcon} />
+          <div style={styles.exerciseGrid}>
+            {recommendations.map((action, index) => {
+              const priorityColor =
+                action.priority === 'high' ? '#e11d48' : action.priority === 'medium' ? '#f59e0b' : '#3b82f6'
+              const priorityBg =
+                action.priority === 'high'
+                  ? 'rgba(225, 29, 72, 0.1)'
+                  : action.priority === 'medium'
+                    ? 'rgba(245, 158, 11, 0.1)'
+                    : 'rgba(59, 130, 246, 0.1)'
+
+              return (
+                <Card key={action.id} padding="lg" hoverable delay={0.15 + index * 0.1}>
+                  <div style={styles.exerciseCard}>
+                    <div style={{ ...styles.exerciseEmoji, background: priorityBg }}>{action.emoji}</div>
+                    <div style={styles.exerciseContent}>
+                      <div style={styles.exerciseHeader}>
+                        <span style={styles.exerciseName}>
+                          {action.name}
+                          <span
+                            style={{
+                              ...styles.priorityBadge,
+                              color: priorityColor,
+                              background: priorityBg,
+                            }}
+                          >
+                            {action.priority}
+                          </span>
+                        </span>
+                        <ChevronRight size={18} style={styles.arrowIcon} />
+                      </div>
+
+                      <div style={styles.durationBadge}>
+                        <Clock size={12} />
+                        {action.duration}
+                      </div>
+
+                      <p style={styles.exerciseReason}>{action.reason}</p>
+                      <p style={styles.exerciseEffect}>{action.explanation}</p>
+
+                      <div style={styles.targetHeader}>
+                        <Target size={12} />
+                        改善ターゲット
+                      </div>
+                      <div style={styles.targetTags}>
+                        {action.targets.map((tId) => (
+                          <span key={tId} style={styles.targetTag}>
+                            {axisLabels[tId]?.emoji} {axisLabels[tId]?.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div style={styles.durationBadge}>
-                    <Clock size={14} />
-                    {exercise.duration}
-                  </div>
-                  <p style={styles.exerciseEffect}>{exercise.effect}</p>
-                  <div style={styles.benefitTags}>
-                    {exercise.benefits.map((benefit) => (
-                      <span key={benefit} style={styles.benefitTag}>
-                        {benefit}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+                </Card>
+              )
+            })}
+          </div>
+
+          {recommendations.length === 0 && (
+            <p style={{ textAlign: 'center', py: '40px', color: '#7f786d' }}>
+              現在、特別なアクションは必要ありません。今の習慣を維持しましょう！
+            </p>
+          )}
         </div>
       </div>
     </Layout>

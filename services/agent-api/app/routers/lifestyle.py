@@ -9,6 +9,16 @@ from pydantic import BaseModel
 from ..auth import get_current_uid
 from ..config import GEMINI_MODEL, GEMINI_MODEL_LIGHT
 from ..services.gemini_chat import gemini_enabled, generate_text
+from ..firebase import get_firestore_client
+from ..agents.lifestyle_agent.tools.analyze_tendency import (
+    analyze_tendency_scores,
+    TendencyScores,
+)
+from ..agents.lifestyle_agent.tools.recommend_actions import (
+    get_recommended_actions,
+    RecommendedAction,
+    AXIS_LABELS,
+)
 
 router = APIRouter(prefix="/api/v1/lifestyle", tags=["lifestyle"])
 
@@ -16,6 +26,24 @@ router = APIRouter(prefix="/api/v1/lifestyle", tags=["lifestyle"])
 class TipResponse(BaseModel):
     tip: str
     source: str
+
+
+class TendencyRequest(BaseModel):
+    """問診回答リクエスト"""
+    answers: dict[str, str]
+
+
+class TendencyResponse(BaseModel):
+    """傾向分析レスポンス"""
+    scores: dict[str, int]
+    dominant_issues: list[str]
+    axis_labels: dict[str, dict[str, str]]
+
+
+class RecommendationResponse(BaseModel):
+    """推奨アクションレスポンス"""
+    actions: list[dict]
+    axis_labels: dict[str, dict[str, str]]
 
 
 def _season_label(month: int) -> str:
@@ -112,3 +140,97 @@ def tip(_: str = Depends(get_current_uid)) -> TipResponse:
         return TipResponse(tip=tip_text, source="gemini")
     except Exception:
         return TipResponse(tip=_fallback_tip(season), source="fallback")
+
+
+# ============================================================
+# 傾向分析 API
+# ============================================================
+
+
+@router.post("/tendency", response_model=TendencyResponse)
+def tendency(
+    request: TendencyRequest,
+    uid: str = Depends(get_current_uid),
+) -> TendencyResponse:
+    """
+    問診回答から4軸（ホルモン/体内時計/血流/ストレス）のスコアを算出する。
+    また、機能1（解析結果）を取得してスコアに反映し、結果をFirestoreに保存する。
+    """
+    db = get_firestore_client()
+
+    # 1. 機能1 (haircheck) の最新結果を取得してスコア調整用の入力を準備
+    # (例: 生え際スコアが低い場合、血流やホルモンの重みを増やす等のロジックを将来的に拡張可能)
+    hair_analysis = None
+    try:
+        # 最新の解析結果を1件取得
+        results_ref = db.collection("users").document(uid).collection("analysisResults")
+        latest_results = (
+            results_ref.order_by("analyzedAt", direction="DESCENDING").limit(1).get()
+        )
+        if latest_results:
+            hair_analysis = latest_results[0].to_dict()
+    except Exception as e:
+        print(f"Error fetching hair analysis: {e}")
+
+    # 2. スコア算出
+    result = analyze_tendency_scores(request.answers, hair_analysis=hair_analysis)
+    scores = result["scores"]
+
+    # 3. Firestore に保存
+    try:
+        # 4軸名をFirestore設計に合わせてマッピング
+        # hormone -> hormonal, blood_flow -> bloodCirculation
+        # circadian, stress はそのまま、または追加
+        db.collection("users").document(uid).collection("tendencyScores").document(
+            "latest"
+        ).set(
+            {
+                "hormonal": scores["hormone"],
+                "bloodCirculation": scores["blood_flow"],
+                "circadian": scores["circadian"],
+                "stress": scores["stress"],
+                "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo")),
+                "hairlineScoreSource": hair_analysis.get("hairlineScore")
+                if hair_analysis
+                else None,
+            }
+        )
+    except Exception as e:
+        print(f"Error saving scores to Firestore: {e}")
+
+    return TendencyResponse(
+        scores=scores,
+        dominant_issues=result["dominant_issues"],
+        axis_labels=AXIS_LABELS,
+    )
+
+
+@router.get("/recommendation", response_model=RecommendationResponse)
+def recommendation(
+    uid: str = Depends(get_current_uid),
+    hormone: int = 50,
+    circadian: int = 50,
+    blood_flow: int = 50,
+    stress: int = 50,
+) -> RecommendationResponse:
+    """
+    スコアに基づいて推奨アクションを返す。
+
+    Query params:
+        hormone, circadian, blood_flow, stress: 各軸のスコア（0-100）
+
+    Response:
+        { "actions": [{ "name": "早寝", "reason": "...", "targets": [...], ... }], "axis_labels": {...} }
+    """
+    scores = {
+        "hormone": hormone,
+        "circadian": circadian,
+        "blood_flow": blood_flow,
+        "stress": stress,
+    }
+    actions = get_recommended_actions(scores, max_actions=5)
+    return RecommendationResponse(
+        actions=[dict(a) for a in actions],
+        axis_labels=AXIS_LABELS,
+    )
+
