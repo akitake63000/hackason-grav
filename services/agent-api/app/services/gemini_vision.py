@@ -6,6 +6,14 @@ from typing import Optional
 
 from google import genai
 from google.genai import types
+from google.genai.types import HttpOptions
+
+from ..config import (
+    GOOGLE_CLOUD_PROJECT,
+    GOOGLE_CLOUD_LOCATION,
+    GEMINI_MODEL_VISION,
+    GOOGLE_GENAI_USE_VERTEXAI
+)
 
 # Configure Logger
 logger = logging.getLogger(__name__)
@@ -16,20 +24,35 @@ class VisionResult:
     notes: Optional[str] = None
 
 def vision_enabled() -> bool:
-    return bool(os.environ.get("GOOGLE_API_KEY"))
+    if GOOGLE_GENAI_USE_VERTEXAI:
+        return bool(GOOGLE_CLOUD_PROJECT)
+    else:
+        return bool(os.environ.get("GOOGLE_API_KEY"))
 
 def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
     """
-    Analyzes the image bytes using Gemini Vision (Flash model).
+    Analyzes the image bytes using Gemini Vision via Vertex AI.
     Returns a score (0-100) and notes.
     """
     if not vision_enabled():
-        logger.warning("GOOGLE_API_KEY not set. Returning dummy result.")
+        if GOOGLE_GENAI_USE_VERTEXAI:
+            logger.warning("GOOGLE_CLOUD_PROJECT not set. Returning dummy result.")
+        else:
+            logger.warning("GOOGLE_API_KEY not set. Returning dummy result.")
         return VisionResult(score=0.0, notes="Vision API not enabled")
 
     try:
-        api_key = os.environ["GOOGLE_API_KEY"]
-        client = genai.Client(api_key=api_key)
+        # Initialize client (Vertex AI or Google AI Studio based on config)
+        if GOOGLE_GENAI_USE_VERTEXAI:
+            client = genai.Client(
+                vertexai=True,
+                project=GOOGLE_CLOUD_PROJECT,
+                location=GOOGLE_CLOUD_LOCATION,
+                http_options=HttpOptions(api_version="v1")
+            )
+        else:
+            # Use Google AI Studio API (requires GOOGLE_API_KEY env var)
+            client = genai.Client(http_options=HttpOptions(api_version="v1"))
 
         prompt = """
         You are an expert trichologist (hair and scalp specialist).
@@ -43,7 +66,7 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
         """
 
         response = client.models.generate_content(
-            model="gemini-1.5-flash", 
+            model=GEMINI_MODEL_VISION, 
             contents=[
                 types.Content(
                     parts=[
