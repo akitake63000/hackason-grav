@@ -2,11 +2,93 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Camera, Upload, AlertCircle } from 'lucide-react';
+import Layout from '@/components/Layout';
 import CameraCapture from '@/components/feature1/CameraCapture';
 import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { apiFetch } from '@/lib/api';
+
+const styles = {
+    container: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        overflow: 'hidden',
+        width: '100%',
+    },
+    scrollArea: {
+        flex: 1,
+        overflowY: 'auto' as const,
+        padding: '0 20px 24px',
+    },
+    tipsCard: {
+        background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '20px',
+        padding: '20px',
+        marginBottom: '24px',
+        border: '1px solid rgba(65, 152, 115, 0.2)',
+        boxShadow: '0 4px 20px rgba(26, 61, 46, 0.06)',
+    },
+    tipsHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '12px',
+    },
+    tipsTitle: {
+        fontSize: '15px',
+        fontWeight: '600' as const,
+        color: '#1a3d2e',
+    },
+    tipsList: {
+        margin: 0,
+        paddingLeft: '20px',
+        color: '#4a6356',
+        fontSize: '14px',
+        lineHeight: '1.8',
+    },
+    cameraContainer: {
+        marginBottom: '24px',
+    },
+    uploadButton: {
+        width: '100%',
+        padding: '16px',
+        borderRadius: '16px',
+        border: 'none',
+        background: 'linear-gradient(135deg, #419873 0%, #347a5c 100%)',
+        color: '#ffffff',
+        fontSize: '16px',
+        fontWeight: '600' as const,
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        boxShadow: '0 4px 16px rgba(65, 152, 115, 0.3)',
+    },
+    uploadButtonDisabled: {
+        background: 'linear-gradient(135deg, #b9b3a9 0%, #9c958a 100%)',
+        cursor: 'not-allowed',
+        boxShadow: 'none',
+    },
+    errorMessage: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginTop: '12px',
+        padding: '12px 16px',
+        background: 'rgba(184, 84, 80, 0.08)',
+        borderRadius: '12px',
+        color: '#b85450',
+        fontSize: '14px',
+        border: '1px solid rgba(184, 84, 80, 0.2)',
+    },
+};
 
 export default function CapturePage() {
     const router = useRouter();
@@ -30,19 +112,18 @@ export default function CapturePage() {
 
             const storage = getFirebaseStorage();
             const db = getFirestoreDb();
-            
-            // Step 1: Generate photoId (UUIDv4) client-side
+
+            // Generate photoId (UUIDv4) client-side
             const photoId = crypto.randomUUID();
-            
+
             const storagePath = `users/${user.uid}/photos/${photoId}.jpg`;
             const storageRef = ref(storage, storagePath);
 
-            // Step 2: Upload to Storage
+            // Upload to Storage
             await uploadBytes(storageRef, file);
             const downloadUrl = await getDownloadURL(storageRef);
 
-            // Step 3: Save metadata to Firestore
-            // Consistent ID: users/{uid}/photos/{photoId}
+            // Save metadata to Firestore
             await setDoc(doc(db, `users/${user.uid}/photos`, photoId), {
                 photoId,
                 storagePath,
@@ -51,8 +132,20 @@ export default function CapturePage() {
                 status: 'uploaded'
             });
 
-            // Step 4: Redirect to Result page with photoId
-            // Crucial: We do NOT call the analysis API here. ROI separation.
+            // Call analysis API
+            const analysisRes = await apiFetch('/api/v1/photos/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ photoId }),
+            });
+
+            if (!analysisRes.ok) {
+                throw new Error('解析に失敗しました');
+            }
+
+            // Redirect to Result page
             router.push(`/feature1/result?photoId=${photoId}`);
 
         } catch (err: any) {
@@ -64,38 +157,72 @@ export default function CapturePage() {
     };
 
     return (
-        <div className="min-h-screen bg-white pb-20">
-            <header className="p-4 border-b flex items-center justify-between">
-                <h1 className="text-xl font-bold">AIチェック: 撮影</h1>
-            </header>
+        <Layout>
+            <div style={styles.container}>
+                <div style={styles.scrollArea}>
+                    {/* Tips Card */}
+                    <motion.div
+                        style={styles.tipsCard}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                    >
+                        <div style={styles.tipsHeader}>
+                            <Camera size={20} color="#419873" />
+                            <h3 style={styles.tipsTitle}>撮影のポイント</h3>
+                        </div>
+                        <ul style={styles.tipsList}>
+                            <li>明るい場所で撮影してください</li>
+                            <li>「生え際」または「頭頂部」を大きく写してください</li>
+                            <li>髪をかき上げて撮影すると精度が上がります</li>
+                        </ul>
+                    </motion.div>
 
-            <main className="p-4">
-                <div className="mb-6 bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
-                    <p className="font-bold mb-2">📸 撮影のポイント</p>
-                    <ul className="list-disc list-inside space-y-1">
-                        <li>明るい場所で撮影してください</li>
-                        <li>「生え際」または「頭頂部」を大きく写してください</li>
-                        <li>髪をかき上げて撮影すると精度が上がります</li>
-                    </ul>
-                </div>
+                    {/* Camera Component */}
+                    <motion.div
+                        style={styles.cameraContainer}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        <CameraCapture onCapture={setFile} />
+                    </motion.div>
 
-                <CameraCapture onCapture={setFile} />
-
-                {file && (
-                    <div className="max-w-md mx-auto mt-6">
-                        <button
-                            onClick={handleUpload}
-                            disabled={uploading}
-                            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition
-                ${uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}
-              `}
+                    {/* Upload Button */}
+                    {file && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
                         >
-                            {uploading ? '処理中...' : '解析に進む'}
-                        </button>
-                        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
-                    </div>
-                )}
-            </main>
-        </div>
+                            <motion.button
+                                style={{
+                                    ...styles.uploadButton,
+                                    ...(uploading ? styles.uploadButtonDisabled : {}),
+                                }}
+                                onClick={handleUpload}
+                                disabled={uploading}
+                                whileHover={uploading ? {} : { scale: 1.02 }}
+                                whileTap={uploading ? {} : { scale: 0.98 }}
+                            >
+                                <Upload size={20} />
+                                {uploading ? '処理中...' : '解析に進む'}
+                            </motion.button>
+
+                            {error && (
+                                <motion.div
+                                    style={styles.errorMessage}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                >
+                                    <AlertCircle size={16} />
+                                    {error}
+                                </motion.div>
+                            )}
+                        </motion.div>
+                    )}
+                </div>
+            </div>
+        </Layout>
     );
 }

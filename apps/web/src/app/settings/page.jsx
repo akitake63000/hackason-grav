@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
-  User, Bell, Shield, Trash2, LogOut,
+  User, Shield, Trash2, LogOut,
   ChevronRight, HelpCircle, FileText
 } from 'lucide-react'
 import Button from '@/components/Button'
@@ -140,20 +140,6 @@ const settingsSections = [
     ],
   },
   {
-    title: '通知',
-    items: [
-      {
-        id: 'push',
-        icon: Bell,
-        title: 'プッシュ通知',
-        description: 'リマインダー・お知らせ（準備中）',
-        iconBg: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
-        type: 'toggle',
-        defaultValue: true,
-      },
-    ],
-  },
-  {
     title: 'プライバシー',
     items: [
       {
@@ -226,9 +212,7 @@ function Toggle({ value, onChange }) {
 
 function Settings() {
   const router = useRouter()
-  const [toggleStates, setToggleStates] = useState({
-    push: true,
-  })
+  const [toggleStates, setToggleStates] = useState({})
 
   const handleToggle = (id, value) => {
     setToggleStates(prev => ({ ...prev, [id]: value }))
