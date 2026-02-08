@@ -336,18 +336,7 @@ function Layout({ children }) {
     }
   }, [pathname])
 
-  if (loading) {
-    return (
-      <div style={styles.loading}>
-        認証を確認中...
-      </div>
-    )
-  }
-
-  if (!user) {
-    return null
-  }
-
+  // Define callbacks before any conditional returns (React Hooks rules)
   const isActive = useCallback((item) => {
     if (item.path === pathname) return true
     if (item.subItems) {
@@ -373,6 +362,18 @@ function Layout({ children }) {
     })
     if (isMobile) setSidebarOpen(false)
   }, [isMobile, router, startTransition])
+
+  if (loading) {
+    return (
+      <div style={styles.loading}>
+        認証を確認中...
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   return (
     <div style={styles.layout}>
