@@ -222,18 +222,25 @@ function Dashboard() {
       try {
         setLoading(true)
 
+        console.log('[Dashboard] Fetching analysis history...')
         const response = await apiFetch('/api/v1/photos/analysis-history?limit=50', {
           method: 'GET',
         })
 
+        console.log('[Dashboard] Response status:', response.status, response.ok)
+
         if (!response.ok) {
+          console.error('[Dashboard] Response not OK:', response.status)
           throw new Error('データの取得に失敗しました')
         }
 
         const data = await response.json()
+        console.log('[Dashboard] Data received:', data)
+        console.log('[Dashboard] Items count:', data.items?.length)
 
         // If no data, show empty state instead of redirecting
         if (data.items.length === 0) {
+          console.log('[Dashboard] No items found, showing empty state')
           setChartData([])
           setThumbnails([])
           setLoading(false)
@@ -268,12 +275,15 @@ function Dashboard() {
         setChartData(transformedChartData)
         setThumbnails(transformedThumbnails)
       } catch (err) {
+        console.error('[Dashboard] Error caught:', err)
+        console.error('[Dashboard] Error details - statusCode:', err?.statusCode, 'code:', err?.code)
         // Handle 404 (no analysis history yet) as empty state without console error
         if (err?.statusCode === 404 || err?.code === 'NOT_FOUND') {
+          console.log('[Dashboard] 404 error, showing empty state')
           setChartData([])
           setThumbnails([])
         } else {
-          console.error('Failed to fetch analysis history:', err)
+          console.error('[Dashboard] Other error, showing empty state:', err.message)
           // Treat other errors as empty state too
           setChartData([])
           setThumbnails([])
