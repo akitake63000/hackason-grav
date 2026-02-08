@@ -325,6 +325,7 @@ function ResultContent() {
                             size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
+                            style={{}}
                             onClick={() => router.push('/feature1/capture')}
                         >
                             新しく撮影する
