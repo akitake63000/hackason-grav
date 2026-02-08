@@ -155,15 +155,17 @@ function ResultContent() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchResult = async () => {
+        const auth = getAuth();
+
+        // Wait for auth state to be initialized
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                setError("ログインしてください");
+                setLoading(false);
+                return;
+            }
+
             try {
-                const auth = getAuth();
-                const user = auth.currentUser;
-
-                if (!user) {
-                    throw new Error("ログインしてください");
-                }
-
                 const db = getFirestoreDb();
                 let targetPhotoId = photoId;
 
@@ -204,9 +206,9 @@ function ResultContent() {
             } finally {
                 setLoading(false);
             }
-        };
+        });
 
-        fetchResult();
+        return () => unsubscribe();
     }, [photoId, router]);
 
     if (loading) {
