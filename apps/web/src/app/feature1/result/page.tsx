@@ -145,12 +145,20 @@ function ResultContent() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={handleAnalyze}
-                            className="text-gray-500 hover:text-gray-700 font-medium underline text-sm"
-                        >
-                            再解析 (Retry)
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => window.location.href = '/feature1/dashboard'}
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 px-6 rounded-lg transition border border-gray-300"
+                            >
+                                ダッシュボードへ戻る
+                            </button>
+                            <button
+                                onClick={handleAnalyze}
+                                className="text-gray-500 hover:text-gray-700 font-medium underline text-sm"
+                            >
+                                再解析 (Retry)
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

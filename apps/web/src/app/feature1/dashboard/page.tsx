@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, Loader2, AlertCircle } from 'lucide-react'
+import { FileText, Loader2, AlertCircle, Camera } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
@@ -14,19 +14,26 @@ const styles = {
   container: {
     flex: 1,
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'column' as const,
     width: '100%',
   },
   content: {
     flex: 1,
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'column' as const,
     padding: '24px',
     gap: '24px',
     maxWidth: '1000px',
     width: '100%',
     margin: '0 auto',
     boxSizing: 'border-box' as const,
+  },
+  header: {
+    position: 'relative' as const,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '8px',
   },
   title: {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
@@ -40,6 +47,24 @@ const styles = {
     color: '#7f786d',
     textAlign: 'center' as const,
     marginTop: '4px',
+  },
+  newGenericButton: {
+    position: 'absolute' as const,
+    right: 0,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: '#1a3d2e',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '50%',
+    width: '44px',
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(26, 61, 46, 0.2)',
+    zIndex: 10,
   },
   filterSection: {
     display: 'flex',
