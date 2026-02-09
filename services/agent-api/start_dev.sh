@@ -12,5 +12,5 @@ export GEMINI_MODEL_LIGHT=gemini-1.5-flash
 export GEMINI_MODEL_HEAVY=gemini-1.5-pro
 export GEMINI_MODEL_VISION=gemini-1.5-pro
 
-source venv/bin/activate
+source .venv/bin/activate
 uvicorn app.main:app --reload --port 8000

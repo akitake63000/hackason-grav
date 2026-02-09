@@ -24,6 +24,7 @@ class VisionResult:
     notes: Optional[str] = None
     hairType: Optional[str] = None
     pattern: Optional[str] = None
+    scalpCondition: Optional[str] = None
     quality: Optional[str] = None
 
 def vision_enabled() -> bool:
@@ -35,7 +36,7 @@ def vision_enabled() -> bool:
 def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
     """
     Analyzes the image bytes using Gemini Vision via Vertex AI.
-    Returns a score (0-100), hair type, pattern, quality and notes.
+    Returns a score (0-100) and notes, plus detailed analysis fields (hair type, pattern, scalp condition, quality).
     """
     if not vision_enabled():
         if GOOGLE_GENAI_USE_VERTEXAI:
@@ -60,7 +61,7 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
         prompt = """
         You are an expert trichologist (hair and scalp specialist).
         Analyze this image of a scalp/hair.
-        
+
         Provide the following in JSON format:
         - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
         - "hairType": Norwood-Hamilton scale classification (e.g., "Type II", "Type III-Vertex") or "Normal".
@@ -73,8 +74,9 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             - "ハミルトン型": Male-pattern thinning but occurring in females (due to hormonal issues).
             - "None": If no significant hair loss is observed.
         - "quality": Image quality for analysis ("good", "fair", "poor").
+        - "scalpCondition": 文字列。以下のいずれかを選択してください: "良好", "乾燥", "脂性", "炎症", "フケが多い"。
         - "notes": A brief, professional summary of the condition in Japanese (approx 50 chars).
-        
+
         Ensure the output is raw JSON without markdown formatting.
         """
 
@@ -112,12 +114,21 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
                 logger.error(f"Invalid score value: {score_value}, error: {e}")
                 return VisionResult(score=0.0, notes=f"Invalid score value: {score_value}")
 
+            notes = data.get("notes", "")
+            hair_type = data.get("hairType")
+            pattern = data.get("pattern")
+            quality = data.get("quality")
+            scalp_condition = data.get("scalpCondition")
+
+            logger.info(f"Extracted score: {score}, notes: {notes}")
+
             return VisionResult(
                 score=score,
-                notes=data.get("notes", ""),
-                hairType=data.get("hairType"),
-                pattern=data.get("pattern"),
-                quality=data.get("quality")
+                notes=notes,
+                hairType=hair_type,
+                pattern=pattern,
+                scalpCondition=scalp_condition,
+                quality=quality
             )
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON from Gemini: {response.text}, error: {e}")
