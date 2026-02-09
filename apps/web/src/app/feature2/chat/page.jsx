@@ -410,13 +410,14 @@ function Chat() {
         const db = getFirestoreDb()
         const msgRef = doc(collection(db, 'users', user.uid, 'conversations', tid, 'messages'))
         if (msg.type === 'discussion-result') {
-          await setDoc(msgRef, {
+          const saveData = {
             type: 'discussion-result',
-            bestCard: JSON.stringify(msg.bestCard),
             summary: msg.summary,
             allCards: JSON.stringify(msg.allCards),
             timestamp: serverTimestamp(),
-          })
+          }
+          if (msg.bestCard) saveData.bestCard = JSON.stringify(msg.bestCard)
+          await setDoc(msgRef, saveData)
         } else {
           await setDoc(msgRef, {
             role: msg.type === 'user' ? 'user' : 'ai',

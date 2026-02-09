@@ -218,6 +218,18 @@ class _DiscussState(TypedDict):
     summary: str
 
 
+_DETAIL_TOKEN_LIMIT = {
+    "brief": 150,
+    "normal": 300,
+    "detailed": 600,
+}
+
+
+def _max_tokens_for_detail(detail: str) -> int:
+    """detail 設定に応じた max_output_tokens を返す。"""
+    return _DETAIL_TOKEN_LIMIT.get(detail, 300)
+
+
 def _style_instruction(style: str, detail: str) -> str:
     """style と detail の設定からプロンプト指示文を生成する。"""
     tone = {
@@ -238,7 +250,9 @@ def _detect_risk_node(state: _DiscussState) -> dict:
 
 
 def _encourager_node(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「サポーター（❤️）」です。\n"
         "臨床心理士・認知行動療法（CBT）の専門家として回答してください。\n"
@@ -249,7 +263,7 @@ def _encourager_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "不安に感じるのは自然な反応です。今ここで一緒に整理しましょう。"
@@ -259,7 +273,9 @@ def _encourager_node(state: _DiscussState) -> dict:
 
 
 def _coach_node(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「コーチ（💪）」です。\n"
         "毛髪診断士・生活習慣改善の専門家として回答してください。\n"
@@ -273,7 +289,7 @@ def _coach_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "今日の最小の一手は「同条件で写真を撮る」か「睡眠を30分確保する」。"
@@ -283,7 +299,9 @@ def _coach_node(state: _DiscussState) -> dict:
 
 
 def _doctor_node(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     risk_note = ""
     if state.get("risk_detected"):
         risk_note = "※相談内容に医療リスクに関するキーワードが含まれています。必要に応じて受診を勧めてください。\n"
@@ -304,7 +322,7 @@ def _doctor_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "一般論として、抜け毛は睡眠・ストレス・栄養の影響を受けます。"
@@ -314,7 +332,9 @@ def _doctor_node(state: _DiscussState) -> dict:
 
 
 def _encourager_node_r2(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「サポーター（❤️）」です。\n"
         "臨床心理士・認知行動療法（CBT）の専門家として回答してください。\n"
@@ -328,7 +348,7 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "皆さんの意見を聞いて、まず気持ちを整理することが大切だと改めて感じます。"
@@ -338,7 +358,9 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
 
 
 def _coach_node_r2(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「コーチ（💪）」です。\n"
         "毛髪診断士・生活習慣改善の専門家として回答してください。\n"
@@ -354,7 +376,7 @@ def _coach_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "議論を踏まえて、今日やるべきことは1つ。"
@@ -364,7 +386,9 @@ def _coach_node_r2(state: _DiscussState) -> dict:
 
 
 def _doctor_node_r2(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     risk_note = ""
     if state.get("risk_detected"):
         risk_note = "※医療リスクキーワードあり。必要に応じて受診を勧めてください。\n"
@@ -386,7 +410,7 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
     except Exception:
         text = (
             "皆さんの意見に補足すると、経過観察と生活習慣の改善が基本です。"
@@ -396,7 +420,9 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
 
 
 def _orchestrator_node(state: _DiscussState) -> dict:
-    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
+    detail = state.get("detail", "normal")
+    si = _style_instruction(state.get("style", "balanced"), detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策メンタル支援チームの議論まとめ役です。\n"
         "臨床心理士・毛髪診断士・皮膚科医の3専門家が2回議論しました。\n"
@@ -415,7 +441,7 @@ def _orchestrator_node(state: _DiscussState) -> dict:
         '{"summary": "まとめテキスト"}\n'
     )
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
         data = safe_json_load(text)
         summary = data.get("summary", "")
         if not summary:
