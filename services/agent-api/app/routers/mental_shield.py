@@ -17,6 +17,8 @@ class MentalShieldRequest(BaseModel):
     threadId: Optional[str] = "default"
     message: str
     mode: Optional[str] = "balanced"
+    style: Optional[str] = "balanced"    # gentle / balanced / strict
+    detail: Optional[str] = "normal"     # brief / normal / detailed
 
 
 class MentalShieldCard(BaseModel):
@@ -190,6 +192,8 @@ class MentalShieldDiscussResponse(BaseModel):
 
 class _DiscussState(TypedDict):
     user_message: str
+    style: str
+    detail: str
     risk_detected: bool
     encourager_response: str
     coach_response: str
@@ -201,15 +205,34 @@ class _DiscussState(TypedDict):
     summary: str
 
 
+def _style_instruction(style: str, detail: str) -> str:
+    """style と detail の設定からプロンプト指示文を生成する。"""
+    tone = {
+        "gentle": "相談者の気持ちに最大限寄り添い、安心感を与える優しい口調で回答してください。",
+        "balanced": "共感しつつも、必要な情報はしっかり伝えるバランスの取れた口調で回答してください。",
+        "strict": "率直かつ的確に、甘えを許さないストレートな口調で回答してください。",
+    }.get(style, "共感しつつも、必要な情報はしっかり伝えるバランスの取れた口調で回答してください。")
+    length = {
+        "brief": "回答は2〜3文の簡潔なものにしてください。",
+        "normal": "回答は4〜5文程度でまとめてください。",
+        "detailed": "回答はエビデンスや具体例を交えて詳しく説明してください。",
+    }.get(detail, "回答は4〜5文程度でまとめてください。")
+    return f"{tone}\n{length}\n"
+
+
 def _detect_risk_node(state: _DiscussState) -> dict:
     return {"risk_detected": _contains_risk_keywords(state["user_message"])}
 
 
 def _encourager_node(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「サポーター（❤️）」です。\n"
-        "温かく共感的に寄り添い、相談者が継続できるよう励ます役割です。\n"
-        "以下の相談に対して、日本語で短く回答してください。\n\n"
+        "臨床心理士・認知行動療法（CBT）の専門家として回答してください。\n"
+        "- 相談者の認知の歪み（破局的思考・白黒思考など）があれば優しく指摘する\n"
+        "- 「できていること」に焦点を当て、自己効力感を高める\n"
+        "- 薄毛の悩みは外見不安（body image concern）であることを踏まえて対応する\n\n"
+        f"{si}"
         f"相談内容: {state['user_message']}\n"
     )
     try:
@@ -223,9 +246,14 @@ def _encourager_node(state: _DiscussState) -> dict:
 
 
 def _coach_node(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「コーチ（💪）」です。\n"
-        "具体的なアクションを1つだけ提案する役割です。\n\n"
+        "毛髪診断士・生活習慣改善の専門家として回答してください。\n"
+        "- 睡眠（成長ホルモン分泌）、栄養（亜鉛・ビオチン・タンパク質）、頭皮ケアの観点からアドバイスする\n"
+        "- 具体的で今日から実行できるアクションを1〜2個提案する\n"
+        "- 効果が出るまでの目安期間にも言及する（ヘアサイクルは3〜6ヶ月）\n\n"
+        f"{si}"
         "チームメンバーのサポーターが以下の意見を出しています:\n"
         f"サポーターの意見: {state['encourager_response']}\n\n"
         "サポーターの意見を踏まえつつ、以下の相談に回答してください。\n"
@@ -242,13 +270,19 @@ def _coach_node(state: _DiscussState) -> dict:
 
 
 def _doctor_node(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     risk_note = ""
     if state.get("risk_detected"):
         risk_note = "※相談内容に医療リスクに関するキーワードが含まれています。必要に応じて受診を勧めてください。\n"
 
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「ドクター（🔬）」です。\n"
-        "医学的・科学的な情報を提供する役割です。診断はしないでください。\n\n"
+        "皮膚科専門医・毛髪科学の研究者として回答してください。\n"
+        "- AGA（男性型脱毛症）、FPHL（女性型脱毛症）、休止期脱毛などの知識に基づく\n"
+        "- ミノキシジル、フィナステリド、デュタステリド等の一般的なエビデンスに言及してよい\n"
+        "- ただし個人への診断・処方は行わず「一般的な医学知識」として情報提供する\n"
+        "- 必要に応じて皮膚科受診を推奨する\n\n"
+        f"{si}"
         f"{risk_note}"
         "チームメンバーが以下の意見を出しています:\n"
         f"サポーターの意見: {state['encourager_response']}\n"
@@ -267,10 +301,13 @@ def _doctor_node(state: _DiscussState) -> dict:
 
 
 def _encourager_node_r2(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「サポーター（❤️）」です。\n"
-        "1回目の議論で3人がそれぞれ意見を出しました。\n"
-        "それを踏まえて、改めて相談者へのアドバイスを短くまとめてください。\n\n"
+        "臨床心理士・認知行動療法（CBT）の専門家として回答してください。\n"
+        "1回目の議論で3人がそれぞれ専門的な意見を出しました。\n"
+        "それを踏まえて、相談者の心理面でのケアポイントをまとめてください。\n\n"
+        f"{si}"
         "【1回目の議論】\n"
         f"あなたの意見: {state['encourager_response']}\n"
         f"コーチの意見: {state['coach_response']}\n"
@@ -288,10 +325,13 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
 
 
 def _coach_node_r2(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「コーチ（💪）」です。\n"
+        "毛髪診断士・生活習慣改善の専門家として回答してください。\n"
         "1回目の議論とサポーターの2回目の発言を踏まえて、\n"
-        "具体的なアクションを1つだけ提案してください。\n\n"
+        "最も効果的な具体アクションを1つだけ提案してください。\n\n"
+        f"{si}"
         "【1回目の議論】\n"
         f"サポーター: {state['encourager_response']}\n"
         f"あなたの意見: {state['coach_response']}\n"
@@ -311,14 +351,17 @@ def _coach_node_r2(state: _DiscussState) -> dict:
 
 
 def _doctor_node_r2(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     risk_note = ""
     if state.get("risk_detected"):
         risk_note = "※医療リスクキーワードあり。必要に応じて受診を勧めてください。\n"
 
     prompt = (
         "あなたは薄毛対策メンタル支援チームの「ドクター（🔬）」です。\n"
+        "皮膚科専門医・毛髪科学の研究者として回答してください。\n"
         "1回目の議論と2回目のメンバーの発言を踏まえて、\n"
-        "医学的・科学的な補足を短くまとめてください。診断はしないでください。\n\n"
+        "医学的・科学的な最終見解を述べてください。診断はしないでください。\n\n"
+        f"{si}"
         f"{risk_note}"
         "【1回目の議論】\n"
         f"サポーター: {state['encourager_response']}\n"
@@ -340,14 +383,17 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
 
 
 def _orchestrator_node(state: _DiscussState) -> dict:
+    si = _style_instruction(state.get("style", "balanced"), state.get("detail", "normal"))
     prompt = (
         "あなたは薄毛対策メンタル支援チームの議論まとめ役です。\n"
-        "2回の議論を通じて3人が意見を深めました。\n"
-        "全体を統合したまとめを作成してください。\n\n"
+        "臨床心理士・毛髪診断士・皮膚科医の3専門家が2回議論しました。\n"
+        "全体を統合し、相談者にとって最も有益なまとめを作成してください。\n"
+        "メンタルケア・生活習慣・医学的観点のバランスを意識してください。\n\n"
+        f"{si}"
         "【1回目】\n"
-        f"サポーター: {state['encourager_response']}\n"
-        f"コーチ: {state['coach_response']}\n"
-        f"ドクター: {state['doctor_response']}\n\n"
+        f"サポーター（臨床心理士）: {state['encourager_response']}\n"
+        f"コーチ（毛髪診断士）: {state['coach_response']}\n"
+        f"ドクター（皮膚科医）: {state['doctor_response']}\n\n"
         "【2回目】\n"
         f"サポーター: {state['encourager_response_r2']}\n"
         f"コーチ: {state['coach_response_r2']}\n"
@@ -413,6 +459,8 @@ def mental_shield_discuss(
         try:
             result = _discuss_workflow.invoke({
                 "user_message": payload.message,
+                "style": payload.style or "balanced",
+                "detail": payload.detail or "normal",
                 "risk_detected": False,
                 "encourager_response": "",
                 "coach_response": "",
