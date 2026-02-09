@@ -25,104 +25,125 @@ class TendencyResult(TypedDict):
 
 # Question mappings: question_id -> { answer_value: { axis: points, ... } }
 # Points represent POSITIVE impact (higher = healthier)
+# Question mappings: question_id -> { answer_value: { axis: points, ... } }
+# Points are additive. Each axis has a max possible score of 100 based on the sum of these weights.
+#
+# Axis Max Point Allocations (Total 100 each):
+# ⚖️ Hormone (100): Sleep(30) + Circadian-related(20) + Exercise(10) + Relax(10) + Substances(10) + Bathing(10) + Diet(10) ... Distributed
+# ⏰ Circadian (100): Sleep(30) + Wake(25) + Sun(25) + Caffeine(20)
+# 🩸 Blood Flow (100): Exercise(30) + Stiffness(20) + Bathing(20) + Water(15) + Substances(15)
+# 😰 Stress (100): Feeling(30) + Relax(30) + Exercise(20) + Bathing(10) + Sun(10)
+
 QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
-    # 1. 就寝時刻 (睡眠) → ホルモン, 体内時計
+    # 1. 睡眠時間 (Hormone main)
     "sleep_time": {
-        "before_10pm": {"hormone": 30, "circadian": 30},
-        "before_11pm": {"hormone": 25, "circadian": 25},
-        "before_12am": {"hormone": 15, "circadian": 15},
-        "after_12am": {"hormone": 5, "circadian": 5},
-        "after_1am": {"hormone": 0, "circadian": 0},
+        "score_100": {"hormone": 30, "circadian": 30},
+        "score_80": {"hormone": 25, "circadian": 25},
+        "score_60": {"hormone": 15, "circadian": 15},
+        "score_40": {"hormone": 5, "circadian": 5},
+        "score_20": {"hormone": 0, "circadian": 0},
     },
-    # 2. 起床固定 (睡眠) → 体内時計
+    # 2. 起床固定 (Circadian main)
     "wake_up_regular": {
-        "always": {"circadian": 25},
-        "often": {"circadian": 15},
-        "sometimes": {"circadian": 8},
-        "rarely": {"circadian": 0},
+        "score_100": {"circadian": 25},
+        "score_80": {"circadian": 20},
+        "score_60": {"circadian": 10},
+        "score_40": {"circadian": 5},
+        "score_20": {"circadian": 0},
     },
-    # 3. 朝日を浴びる (睡眠) → 体内時計
+    # 3. 朝日 (Circadian + Serotonin/Stress)
     "morning_sunlight": {
-        "always": {"circadian": 25, "stress": 10},
-        "often": {"circadian": 15, "stress": 5},
-        "sometimes": {"circadian": 8, "stress": 2},
-        "rarely": {"circadian": 0, "stress": 0},
+        "score_100": {"circadian": 25, "stress": 10},
+        "score_80": {"circadian": 20, "stress": 8},
+        "score_60": {"circadian": 10, "stress": 5},
+        "score_40": {"circadian": 5, "stress": 2},
+        "score_20": {"circadian": 0, "stress": 0},
     },
-    # 4. 有酸素運動頻度 (運動) → 血流, ストレス
+    # 4. 運動 (Blood Flow + Stress + Hormone)
     "exercise_frequency": {
-        "daily": {"blood_flow": 30, "stress": 25, "hormone": 10},
-        "3_to_5_weekly": {"blood_flow": 25, "stress": 20, "hormone": 8},
-        "1_to_2_weekly": {"blood_flow": 15, "stress": 12, "hormone": 5},
-        "rarely": {"blood_flow": 5, "stress": 5, "hormone": 0},
-        "never": {"blood_flow": 0, "stress": 0, "hormone": 0},
+        "score_100": {"blood_flow": 30, "stress": 20, "hormone": 15},
+        "score_80": {"blood_flow": 25, "stress": 15, "hormone": 12},
+        "score_60": {"blood_flow": 15, "stress": 10, "hormone": 8},
+        "score_40": {"blood_flow": 5, "stress": 5, "hormone": 3},
+        "score_20": {"blood_flow": 0, "stress": 0, "hormone": 0},
     },
-    # 5. 肩こり/首こり (血流) → 血流
+    # 5. 肩こり (Blood Flow desc)
     "shoulder_stiffness": {
-        "never": {"blood_flow": 25},
-        "rarely": {"blood_flow": 18},
-        "sometimes": {"blood_flow": 10},
-        "often": {"blood_flow": 5},
-        "always": {"blood_flow": 0},
+        "score_100": {"blood_flow": 20},
+        "score_80": {"blood_flow": 15},
+        "score_60": {"blood_flow": 10},
+        "score_40": {"blood_flow": 5},
+        "score_20": {"blood_flow": 0},
     },
-    # 6. 入浴スタイル (血流) → 血流, ストレス
+    # 6. 入浴 (Blood Flow + Stress)
     "bathing_style": {
-        "long_bath": {"blood_flow": 25, "stress": 20},
-        "short_bath": {"blood_flow": 15, "stress": 12},
-        "shower_only": {"blood_flow": 5, "stress": 5},
-        "rarely": {"blood_flow": 0, "stress": 0},
+        "score_100": {"blood_flow": 20, "stress": 10},
+        "score_80": {"blood_flow": 15, "stress": 8},
+        "score_60": {"blood_flow": 10, "stress": 5},
+        "score_40": {"blood_flow": 5, "stress": 2},
+        "score_20": {"blood_flow": 0, "stress": 0},
     },
-    # 7. 目覚めの感覚 (ストレス) → ストレス
+    # 7. 目覚めの気分 (Stress + Hormone)
     "wake_feeling": {
-        "refreshed": {"stress": 25, "hormone": 10},
-        "normal": {"stress": 15, "hormone": 5},
-        "tired": {"stress": 5, "hormone": 0},
-        "exhausted": {"stress": 0, "hormone": 0},
+        "score_100": {"stress": 30, "hormone": 15},
+        "score_80": {"stress": 25, "hormone": 12},
+        "score_60": {"stress": 15, "hormone": 8},
+        "score_40": {"stress": 5, "hormone": 3},
+        "score_20": {"stress": 0, "hormone": 0},
     },
-    # 8. リラックス習慣 (ストレス) → ストレス
+    # 8. リラックス習慣 (Stress)
     "relaxation_habit": {
-        "daily": {"stress": 25},
-        "often": {"stress": 18},
-        "sometimes": {"stress": 10},
-        "rarely": {"stress": 0},
+        "score_100": {"stress": 30},
+        "score_80": {"stress": 20},
+        "score_60": {"stress": 10},
+        "score_40": {"stress": 5},
+        "score_20": {"stress": 0},
     },
-    # 9. 嗜好品チェック (複合) - マイナス要因として扱う
+    # 9. 嗜好品 (Negative Impact) -> Base scores are deducted or low added
     "substances": {
-        "none": {"hormone": 20, "blood_flow": 20, "circadian": 10, "stress": 10},
-        "caffeine_only": {"hormone": 12, "blood_flow": 15, "circadian": 5, "stress": 8},
-        "alcohol_only": {"hormone": 8, "blood_flow": 10, "circadian": 5, "stress": 5},
-        "smoking_only": {"hormone": 5, "blood_flow": 0, "circadian": 5, "stress": 5},
+        "none": {"hormone": 20, "blood_flow": 15, "circadian": 0, "stress": 0},
+        "caffeine": {"hormone": 15, "blood_flow": 15, "circadian": 0, "stress": 0}, # timing check later
+        "alcohol": {"hormone": 10, "blood_flow": 10, "circadian": 0, "stress": 0}, # freq check later
+        "smoking": {"hormone": 5, "blood_flow": 0, "circadian": 0, "stress": 0}, # amount check later
         "multiple": {"hormone": 0, "blood_flow": 0, "circadian": 0, "stress": 0},
     },
-    # 10. 水分摂取量 (血流) → 血流
+    # 10. 水分 (Blood Flow)
     "water_intake": {
-        "over_2L": {"blood_flow": 20},
-        "1_to_2L": {"blood_flow": 15},
-        "under_1L": {"blood_flow": 5},
-        "very_little": {"blood_flow": 0},
+        "score_100": {"blood_flow": 15},
+        "score_80": {"blood_flow": 12},
+        "score_60": {"blood_flow": 8},
+        "score_40": {"blood_flow": 3},
+        "score_20": {"blood_flow": 0},
     },
-    # 条件分岐: 喫煙詳細
+    # 詳細: 喫煙本数 (Hormone, Blood Flow adjustment)
     "smoking_amount": {
-        "none": {"blood_flow": 10, "hormone": 5},
-        "less_than_5": {"blood_flow": 5, "hormone": 2},
-        "5_to_10": {"blood_flow": 2, "hormone": 0},
-        "over_10": {"blood_flow": 0, "hormone": 0},
+        "score_80": {"hormone": 0, "blood_flow": 0}, # 吸わない
+        "score_60": {"hormone": -5, "blood_flow": -5},
+        "score_40": {"hormone": -10, "blood_flow": -10},
+        "score_20": {"hormone": -20, "blood_flow": -20},
+        "score_0": {"hormone": -30, "blood_flow": -30},
     },
-    # 条件分岐: 飲酒詳細
+    # 詳細: 飲酒頻度 (Hormone, Blood Flow adjustment)
     "alcohol_frequency": {
-        "rarely": {"hormone": 10, "circadian": 5, "blood_flow": 5},
-        "1_to_2_weekly": {"hormone": 5, "circadian": 3, "blood_flow": 3},
-        "3_to_5_weekly": {"hormone": 2, "circadian": 0, "blood_flow": 2},
-        "daily": {"hormone": 0, "circadian": 0, "blood_flow": 0},
+        "score_80": {"hormone": 0, "blood_flow": 0},
+        "score_60": {"hormone": -5, "blood_flow": -5},
+        "score_40": {"hormone": -10, "blood_flow": -10},
+        "score_20": {"hormone": -15, "blood_flow": -15},
+        "score_0": {"hormone": -25, "blood_flow": -25},
     },
-    # 条件分岐: カフェイン詳細
+    # 詳細: カフェインタイミング (Circadian adjustment)
     "caffeine_timing": {
-        "morning_only": {"circadian": 10, "hormone": 5},
-        "until_afternoon": {"circadian": 5, "hormone": 3},
-        "evening_too": {"circadian": 0, "hormone": 0},
+        "score_100": {"circadian": 20}, # 午前中
+        "score_80": {"circadian": 15},
+        "score_60": {"circadian": 5},
+        "score_40": {"circadian": -10},
+        "score_20": {"circadian": -20}, # 就寝直前
     },
 }
 
-# Maximum possible scores for normalization
+# Max scores for normalization (Must match sum of max additions)
+# Hormone: Sleep(30)+Exercise(15)+Feeling(15)+Substances(20)+Bathing(0)+.. approx 100 base
+# We will clamp at 100, so rough sum is fine.
 MAX_SCORES = {
     "hormone": 100,
     "circadian": 100,

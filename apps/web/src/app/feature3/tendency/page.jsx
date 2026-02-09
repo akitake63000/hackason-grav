@@ -175,146 +175,157 @@ const styles = {
   },
 }
 
-// 問診データ定義
+// 問診データ定義 (MECE 5択)
 const QUESTIONS = [
   {
     id: 'sleep_time',
     text: '普段の就寝時刻はいつ頃ですか？',
     options: [
-      { label: '22時より前', value: 'before_10pm' },
-      { label: '23時頃', value: 'before_11pm' },
-      { label: '0時頃', value: 'before_12am' },
-      { label: '1時頃', value: 'after_12am' },
-      { label: '2時以降', value: 'after_1am' },
+      { label: '22時より前', value: 'score_100' },
+      { label: '22時〜23時', value: 'score_80' },
+      { label: '23時〜0時', value: 'score_60' },
+      { label: '0時〜1時', value: 'score_40' },
+      { label: '1時以降', value: 'score_20' },
     ],
   },
   {
     id: 'wake_up_regular',
     text: '起床時刻は毎日一定ですか？',
     options: [
-      { label: 'ほぼ毎日同じ', value: 'always' },
-      { label: 'よく守れている', value: 'often' },
-      { label: 'たまにずれる', value: 'sometimes' },
-      { label: '不規則', value: 'rarely' },
+      { label: '常に一定（誤差15分以内）', value: 'score_100' },
+      { label: 'ほぼ一定（誤差30分以内）', value: 'score_80' },
+      { label: '平日と休日で1時間程度違う', value: 'score_60' },
+      { label: '平日と休日で2時間以上違う', value: 'score_40' },
+      { label: '毎日バラバラ', value: 'score_20' },
     ],
   },
   {
     id: 'morning_sunlight',
     text: '起きてから1時間以内に太陽の光を浴びていますか？',
     options: [
-      { label: '毎日浴びる', value: 'always' },
-      { label: '週に数回', value: 'often' },
-      { label: 'あまり浴びない', value: 'sometimes' },
-      { label: 'ほとんど浴びない', value: 'rarely' },
+      { label: '毎日意識して浴びている', value: 'score_100' },
+      { label: '通勤・通学時に浴びる', value: 'score_80' },
+      { label: '週に半分程度', value: 'score_60' },
+      { label: 'たまにしか浴びない', value: 'score_40' },
+      { label: 'ほとんど浴びない（屋内生活）', value: 'score_20' },
     ],
   },
   {
     id: 'exercise_frequency',
     text: 'ウォーキングなどの有酸素運動をしていますか？',
     options: [
-      { label: '毎日20分程度', value: 'daily' },
-      { label: '週に3〜5回', value: '3_to_5_weekly' },
-      { label: '週に1〜2回', value: '1_to_2_weekly' },
-      { label: '月に数回', value: 'rarely' },
-      { label: '全くしない', value: 'never' },
+      { label: '毎日20分以上', value: 'score_100' },
+      { label: '週3〜4回', value: 'score_80' },
+      { label: '週1〜2回', value: 'score_60' },
+      { label: '月に数回程度', value: 'score_40' },
+      { label: 'ほとんどしない', value: 'score_20' },
     ],
   },
   {
     id: 'shoulder_stiffness',
-    text: '肩こりや首こりを感じることはありますか？',
+    text: '肩こりや首こりの状態はどうですか？',
     options: [
-      { label: '全く感じない', value: 'never' },
-      { label: 'たまに感じる', value: 'rarely' },
-      { label: '時々感じる', value: 'sometimes' },
-      { label: 'よく感じる', value: 'often' },
-      { label: '常に感じている', value: 'always' },
+      { label: '全く気にならない', value: 'score_100' },
+      { label: 'たまに軽く感じる', value: 'score_80' },
+      { label: '週に数回感じる', value: 'score_60' },
+      { label: '頻繁に感じる', value: 'score_40' },
+      { label: '常に辛い・痛い', value: 'score_20' },
     ],
   },
   {
     id: 'bathing_style',
     text: '入浴（湯船に浸かる）習慣はありますか？',
     options: [
-      { label: '毎日湯船に浸かる', value: 'long_bath' },
-      { label: '短時間だが毎日', value: 'short_bath' },
-      { label: 'シャワーのみ', value: 'shower_only' },
-      { label: 'あまりお風呂に入らない', value: 'rarely' },
+      { label: '毎日15分以上浸かる', value: 'score_100' },
+      { label: '毎日短時間浸かる', value: 'score_80' },
+      { label: '週3回以上浸かる', value: 'score_60' },
+      { label: 'シャワーのみが多い', value: 'score_40' },
+      { label: '常にシャワーのみ', value: 'score_20' },
     ],
   },
   {
     id: 'wake_feeling',
     text: '朝起きた時の気分や体調はどうですか？',
     options: [
-      { label: 'スッキリ目覚める', value: 'refreshed' },
-      { label: '普通', value: 'normal' },
-      { label: '体が重い', value: 'tired' },
-      { label: '常に疲労感がある', value: 'exhausted' },
+      { label: '非常にスッキリしている', value: 'score_100' },
+      { label: 'まあまあ良い', value: 'score_80' },
+      { label: '少し眠気・ダルさがある', value: 'score_60' },
+      { label: 'なかなか起き上がれない', value: 'score_40' },
+      { label: '最悪・常に疲労困憊', value: 'score_20' },
     ],
   },
   {
     id: 'relaxation_habit',
-    text: '自分なりのリラックス方法（趣味、瞑想など）を実践していますか？',
+    text: '自分なりのリラックス方法（趣味、深呼吸など）を持っていますか？',
     options: [
-      { label: '毎日実践している', value: 'daily' },
-      { label: 'よく実践している', value: 'often' },
-      { label: 'たまに実践する', value: 'sometimes' },
-      { label: 'ほとんどない', value: 'rarely' },
+      { label: '毎日実践している', value: 'score_100' },
+      { label: '週に数回実践している', value: 'score_80' },
+      { label: '週末にまとめて実践する', value: 'score_60' },
+      { label: 'たまにしかできない', value: 'score_40' },
+      { label: '時間がない・方法がない', value: 'score_20' },
     ],
   },
   {
     id: 'substances',
-    text: '以下の嗜好品の中で当てはまるものはありますか？',
+    text: '以下の嗜好品の中で、最も摂取頻度や量が多いものは？',
     options: [
-      { label: '特になし', value: 'none' },
-      { label: 'カフェイン（コーヒー等）のみ', value: 'caffeine_only' },
-      { label: 'アルコール（酒）のみ', value: 'alcohol_only' },
-      { label: 'タバコ（喫煙）のみ', value: 'smoking_only' },
-      { label: '複数あてはまる（併用）', value: 'multiple' },
+      { label: '特になし（健康優良）', value: 'none' },
+      { label: 'カフェイン（コーヒー・紅茶）', value: 'caffeine' },
+      { label: 'アルコール（お酒）', value: 'alcohol' },
+      { label: 'タバコ（喫煙）', value: 'smoking' },
+      { label: '複数・その他', value: 'multiple' },
     ],
   },
   {
     id: 'water_intake',
     text: '1日にどれくらい水分（水・お茶）を摂りますか？',
     options: [
-      { label: '2L以上', value: 'over_2L' },
-      { label: '1〜2L程度', value: '1_to_2L' },
-      { label: '1L未満', value: 'under_1L' },
-      { label: 'ほとんど飲まない', value: 'very_little' },
+      { label: '2リットル以上', value: 'score_100' },
+      { label: '1.5〜2リットル', value: 'score_80' },
+      { label: '1〜1.5リットル', value: 'score_60' },
+      { label: '500ml〜1リットル', value: 'score_40' },
+      { label: 'ほとんど飲まない', value: 'score_20' },
     ],
   },
 ]
 
-// 条件分岐用質問
+// 条件分岐用質問 (MECE 5択 or 必要十分な選択肢)
 const CONDITIONAL_QUESTIONS = {
   smoking_amount: {
     id: 'smoking_amount',
     text: '1日の平均喫煙本数はどれくらいですか？',
-    trigger: (ans) => ans.substances === 'smoking_only' || ans.substances === 'multiple',
+    trigger: (ans) => ans.substances === 'smoking' || ans.substances === 'multiple',
     options: [
-      { label: '吸わない', value: 'none' },
-      { label: '5本未満', value: 'less_than_5' },
-      { label: '5〜10本', value: '5_to_10' },
-      { label: '10本以上', value: 'over_10' },
+      { label: '吸わない（過去に吸っていた）', value: 'score_80' },
+      { label: '1〜5本（ライト）', value: 'score_60' },
+      { label: '6〜10本（ハーフパック）', value: 'score_40' },
+      { label: '11〜20本（1箱）', value: 'score_20' },
+      { label: '21本以上（ヘビースモーカー）', value: 'score_0' },
     ],
   },
   alcohol_frequency: {
     id: 'alcohol_frequency',
-    text: 'お酒を飲む頻度はどれくらいですか？',
-    trigger: (ans) => ans.substances === 'alcohol_only' || ans.substances === 'multiple',
+    text: 'お酒を飲む頻度と量は？',
+    trigger: (ans) => ans.substances === 'alcohol' || ans.substances === 'multiple',
     options: [
-      { label: '月に数回', value: 'rarely' },
-      { label: '週に1〜2回', value: '1_to_2_weekly' },
-      { label: '週に3〜5回', value: '3_to_5_weekly' },
-      { label: '毎日', value: 'daily' },
+      { label: '機会飲酒程度（月数回）', value: 'score_80' },
+      { label: '週1〜2回・適量', value: 'score_60' },
+      { label: '週3〜4回・適量', value: 'score_40' },
+      { label: 'ほぼ毎日・適量', value: 'score_20' },
+      { label: '毎日・多量', value: 'score_0' },
     ],
   },
+  // カフェインは「タイミング」を重視
   caffeine_timing: {
     id: 'caffeine_timing',
-    text: 'コーヒーや紅茶などのカフェインを摂るタイミングは？',
-    trigger: (ans) => ans.substances === 'caffeine_only' || ans.substances === 'multiple',
+    text: 'コーヒーや紅茶などを飲むタイミングは？（睡眠への影響）',
+    trigger: (ans) => ans.substances === 'caffeine' || ans.substances === 'multiple',
     options: [
-      { label: '午前中のみ', value: 'morning_only' },
-      { label: '午後も飲む（夕方前まで）', value: 'until_afternoon' },
-      { label: '夜も飲む', value: 'evening_too' },
+      { label: '午前中のみ', value: 'score_100' },
+      { label: 'ランチ後まで（13時頃）', value: 'score_80' },
+      { label: 'おやつ時まで（15時頃）', value: 'score_60' },
+      { label: '夕食後も飲む', value: 'score_40' },
+      { label: '就寝直前まで飲む', value: 'score_20' },
     ],
   },
 }
@@ -352,13 +363,14 @@ function Tendency() {
   const handleOptionSelect = (qId, value) => {
     setAnswers((prev) => ({ ...prev, [qId]: value }))
 
+    // 自動遷移 (少し遅延させてアニメーションを見せる)
     setTimeout(() => {
       if (currentStep < visibleQuestions.length - 1) {
         setCurrentStep((prev) => prev + 1)
       } else {
         handleSubmit()
       }
-    }, 300)
+    }, 350)
   }
 
   const handleBack = () => {
