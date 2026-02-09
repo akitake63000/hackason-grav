@@ -339,6 +339,24 @@ function Tendency() {
   const [resultData, setResultData] = useState(null)
   const [error, setError] = useState(null)
 
+  // 永続化データ取得
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const res = await apiFetch('/api/v1/lifestyle/tendency/latest')
+        if (res.ok) {
+          const data = await res.json()
+          setResultData(data)
+          // 既存データがあれば結果表示モードにする
+          setViewState('result')
+        }
+      } catch (err) {
+        console.log('No previous tendency data found or error fetching.')
+      }
+    }
+    fetchLatest()
+  }, [])
+
   useEffect(() => {
     if (currentStep >= 8 && answers.substances) {
       const moreQuestions = []
@@ -401,6 +419,15 @@ function Tendency() {
     }
   }
 
+  // 再診断（リセット）
+  const handleRediagnose = () => {
+    setResultData(null)
+    setViewState('question')
+    setCurrentStep(0)
+    setAnswers({})
+    setVisibleQuestions([...QUESTIONS])
+  }
+
   const resultList = resultData && resultData.scores
     ? [
       { id: 'hormone', icon: Heart, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)', desc: '成長ホルモンと代謝' },
@@ -442,10 +469,20 @@ function Tendency() {
 
             <Card variant="accent" padding="lg" style={styles.summaryCard}>
               <h2 style={styles.summaryTitle}>分析スコアの総括</h2>
+              {resultData.updatedAt && (
+                <p style={{ fontSize: '13px', color: '#7f786d', marginBottom: '8px' }}>
+                  前回の診断日時: {new Date(resultData.updatedAt).toLocaleString('ja-JP')}
+                </p>
+              )}
               <p style={styles.introText}>
                 4つの主要な指標に基づいたあなたの現状です。<br />
                 各項目のスコアが低いほど、改善の余地が大きいことを示しています。
               </p>
+              <div style={{ marginTop: '16px' }}>
+                <Button size="sm" variant="outline" onClick={handleRediagnose}>
+                  もう一度診断する
+                </Button>
+              </div>
             </Card>
 
             <motion.div

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Clock, ChevronRight, Loader2, Target, CheckCircle, Info, Sparkles, X } from 'lucide-react'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
@@ -195,20 +195,36 @@ function LifestyleRecommendContent() {
   const [axisLabels, setAxisLabels] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [selectedAction, setSelectedAction] = useState(null)
+  const [diagnosisDate, setDiagnosisDate] = useState(null)
+  const router = useRouter() // router is available here via imports? No, need to import it.
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       setLoading(true)
       try {
-        const query = new URLSearchParams(searchParams).toString()
+        let query = new URLSearchParams(searchParams).toString()
+
+        // クエリがない場合は、最新の診断結果を取得してそれに基づく
+        if (!query) {
+          const tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
+          if (!tendencyRes.ok) {
+            throw new Error('NO_DATA')
+          }
+          const tendencyData = await tendencyRes.json()
+          const scores = tendencyData.scores
+          if (tendencyData.updatedAt) {
+            setDiagnosisDate(tendencyData.updatedAt)
+          }
+          query = `hormone=${scores.hormone}&circadian=${scores.circadian}&blood_flow=${scores.blood_flow}&stress=${scores.stress}`
+        }
+
         const res = await apiFetch(`/api/v1/lifestyle/recommendation?${query}`)
         if (!res.ok) throw new Error('推奨アクションの取得に失敗しました')
         const data = await res.json()
         setRecommendations(data.actions)
         setAxisLabels(data.axis_labels)
       } catch (err) {
-        setError(err.message)
+        setError(err.message === 'NO_DATA' ? '診断データがありません' : err.message)
       } finally {
         setLoading(false)
       }
@@ -239,6 +255,22 @@ function LifestyleRecommendContent() {
     )
   }
 
+  if (error === '診断データがありません') {
+    return (
+      <Layout>
+        <div style={styles.container}>
+          <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
+            <h2 style={styles.pageTitle}>診断データがありません</h2>
+            <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
+            <Button onClick={() => window.location.href = '/feature3/tendency'}>
+              傾向分析を始める
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div style={styles.container}>
@@ -246,6 +278,16 @@ function LifestyleRecommendContent() {
           <motion.h1 style={styles.pageTitle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             生活習慣改善レコメンド
           </motion.h1>
+
+          {diagnosisDate && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{ textAlign: 'center', fontSize: '13px', color: '#7f786d', marginBottom: '8px' }}
+            >
+              診断日時: {new Date(diagnosisDate).toLocaleString('ja-JP')}
+            </motion.p>
+          )}
 
           <motion.p style={styles.introText} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
             4つのメカニズム軸の分析結果に基づき、<br />
