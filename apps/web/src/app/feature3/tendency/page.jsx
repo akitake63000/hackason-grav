@@ -379,10 +379,34 @@ function Tendency() {
   }
 
   const handleOptionSelect = (qId, value) => {
-    setAnswers((prev) => ({ ...prev, [qId]: value }))
+    const newAnswers = { ...answers, [qId]: value }
+    setAnswers(newAnswers)
 
     // 自動遷移 (少し遅延させてアニメーションを見せる)
     setTimeout(() => {
+      // Check if this is the substances question and needs conditional questions
+      if (qId === 'substances') {
+        const needsConditional = value === 'smoking' || value === 'alcohol' || value === 'caffeine' || value === 'multiple'
+        if (needsConditional) {
+          // Add conditional questions first, then advance
+          const moreQuestions = []
+          if (value === 'smoking' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
+          }
+          if (value === 'alcohol' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.alcohol_frequency)
+          }
+          if (value === 'caffeine' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.caffeine_timing)
+          }
+          if (moreQuestions.length > 0) {
+            setVisibleQuestions([...QUESTIONS, ...moreQuestions])
+            setCurrentStep((prev) => prev + 1)
+            return
+          }
+        }
+      }
+
       if (currentStep < visibleQuestions.length - 1) {
         setCurrentStep((prev) => prev + 1)
       } else {
