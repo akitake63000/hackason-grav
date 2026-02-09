@@ -114,31 +114,39 @@
 *   **[DONE] `apps/web/src/app/feature3/tendency/page.tsx`**
     *   問診UI（条件分岐対応, MECE 5択実装済み）
     *   4軸スコアのレーダーチャート表示 (実装済み)
-*   **[CHANGED] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
+*   **[DONE] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
     *   `exercise-recommend` は廃止し、本ページに統合。
     *   スコアに基づく改善アクション提案
     *   「なぜこのアクションが必要か」の解説表示
+*   **[DONE] `apps/web/src/app/feature3/weekly-plan/page.jsx`**
+    *   **[NEW]** アコーディオンUI: アクション名をクリックで詳細（Why?）を展開
+    *   **[NEW]** ストリーク表示: アクション完了時に即時反映（Optimistic Update）
+    *   **[NEW]** デイリー生成: プラン期間中、当日分のアクションをAI生成するボタン
 
 #### バックエンド (FastAPI)
-*   **[NEW] `services/agent-api/app/routers/lifestyle.py`**
+*   **[DONE] `services/agent-api/app/routers/lifestyle.py`**
     *   `POST /tendency`: 問診回答から4軸スコア算出
     *   `GET /recommendation`: スコアに基づく改善アクション取得
-*   **[NEW] `services/agent-api/app/agents/lifestyle_agent/tools/analyze_tendency.py`**
+    *   `POST /plan/daily/generate`: **[NEW]** 当日分のAIアクション生成（Gemini連携）
+*   **[DONE] `services/agent-api/app/agents/lifestyle_agent/tools/analyze_tendency.py`**
     *   ロジック: 問診回答 → 4軸スコア（0-100）
-*   **[NEW] `services/agent-api/app/agents/lifestyle_agent/tools/get_hair_analysis.py`**
+*   **[DONE] `services/agent-api/app/agents/lifestyle_agent/tools/get_hair_analysis.py`**
     *   機能1の結果を取得し、傾向分析の入力とする
-*   **[NEW] `services/agent-api/app/agents/lifestyle_agent/tools/recommend_actions.py`**
+*   **[DONE] `services/agent-api/app/agents/lifestyle_agent/tools/recommend_actions.py`**
     *   ロジック: 各軸の低スコア→具体的アクション提案のマッピング
+*   **[DONE] `services/agent-api/app/agents/lifestyle_agent/tools/generate_plan.py`**
+    *   **[NEW]** Gemini連携: ユーザーの診断結果・過去ログに基づき、ユニークなアクションを生成
+    *   **[NEW]** フォールバック: AIエラー時にランダムな固定アクションを提示（ロボット感の低減）
 
 #### 永続化・再診断フロー (Persistence)
 *   **[DONE] `services/agent-api/app/routers/lifestyle.py`**
     *   `GET /tendency/latest`: 最新の診断結果・日時を取得
-    *   **[NEW]** アンケート回答 (`answers`) も保存し、レコメンド生成に活用
+    *   **[DONE]** アンケート回答 (`answers`) も保存し、レコメンド生成に活用
 *   **[DONE] `apps/web/src/app/feature3/tendency/page.tsx`**
     *   前回結果の表示・再診断ボタンの実装
 *   **[DONE] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
     *   保存されたスコアに基づくレコメンド表示
-    *   **[NEW]** 4軸（ホルモン・体内時計・血流・ストレス）ごとのグルーピング表示
+    *   **[DONE]** 4軸（ホルモン・体内時計・血流・ストレス）ごとのグルーピング表示
 
 ### 6. 因果の設計（Causality）
 *   「就寝が1時以降（問診）」+「肩こりあり（問診）」→「ホルモン/血流スコア低（分析）」→「0時前に寝よう」「首回しストレッチ」（提案）
