@@ -6,11 +6,13 @@ import re
 import uuid
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, validator
 from google.cloud import storage as gcs
+from google.cloud.firestore_v1.base_query import FieldPath
 from google.cloud.exceptions import GoogleCloudError
 from firebase_admin.exceptions import FirebaseError
+from firebase_admin import firestore
 
 from ..auth import get_current_uid
 from ..config import FIREBASE_STORAGE_BUCKET, GEMINI_MODEL, GEMINI_MODEL_LIGHT
@@ -26,6 +28,7 @@ from ..agents.lifestyle_agent.tools.recommend_actions import (
     RecommendedAction,
     AXIS_LABELS,
 )
+from ..agents.lifestyle_agent.tools.generate_plan import generate_weekly_plan, generate_daily_actions
 
 router = APIRouter(prefix="/api/v1/lifestyle", tags=["lifestyle"])
 
@@ -407,7 +410,6 @@ def get_latest_tendency(
     最新の診断結果を取得する。
     存在しない場合は 404 を返す。
     """
-    from fastapi import HTTPException
 
     db = get_firestore_client()
     doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
@@ -488,12 +490,6 @@ def recommendation(
 # Weekly Action Plan API
 # ============================================================
 
-# ============================================================
-# Weekly Action Plan API
-# ============================================================
-
-from ..agents.lifestyle_agent.tools.generate_plan import generate_weekly_plan, generate_daily_actions
-
 class ActionCheckRequest(BaseModel):
     planId: str
     actionId: str
@@ -528,7 +524,6 @@ def generate_plan(
     doc = doc_ref.get()
     
     if not doc.exists:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Diagnosis required before generating plan")
         
     data = doc.to_dict()
@@ -594,7 +589,6 @@ def generate_daily(
     docs = query.get()
     
     if not docs:
-         from fastapi import HTTPException
          raise HTTPException(status_code=404, detail="No active plan found")
          
     plan_doc = docs[0]
@@ -769,7 +763,6 @@ def get_current_plan(
         streak=_calculate_streak(plan_doc)
     )
 
-from google.cloud.firestore_v1.base_query import FieldPath
 
 @router.post("/plan/check")
 def check_action(
@@ -788,7 +781,3 @@ def check_action(
         log_ref.set({"completedActions": firestore.ArrayRemove([req.actionId])}, merge=True)
         
     return {"status": "updated"}
-
-# Need firestore symbol
-from firebase_admin import firestore
-
