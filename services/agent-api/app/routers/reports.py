@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 import uuid
+import logging
+import json
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
@@ -10,6 +12,8 @@ from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL_HEAVY
 from ..services.gemini_chat import GEMINI_MODEL, gemini_enabled, generate_text, safe_json_load
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
@@ -62,7 +66,11 @@ def _generate_report_with_llm(
     try:
         text = generate_text(prompt, model=model)
         data = safe_json_load(text)
-    except Exception:  # noqa: BLE001
+    except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+        logger.warning(f"Failed to generate report with LLM: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error in report generation: {e}", exc_info=True)
         return None
 
     highlights = data.get("highlights") or []

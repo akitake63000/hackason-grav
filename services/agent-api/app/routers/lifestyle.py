@@ -4,10 +4,13 @@ import logging
 import random
 import re
 import uuid
+import json
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, validator
 from google.cloud import storage as gcs
+from google.cloud.exceptions import GoogleCloudError
+from firebase_admin.exceptions import FirebaseError
 
 from ..auth import get_current_uid
 from ..config import FIREBASE_STORAGE_BUCKET, GEMINI_MODEL, GEMINI_MODEL_LIGHT
@@ -155,7 +158,11 @@ def tip(_: str = Depends(get_current_uid)) -> TipResponse:
         if not tip_text:
             raise ValueError("empty tip")
         return TipResponse(tip=tip_text, source="gemini")
-    except Exception:
+    except (ValueError, RuntimeError) as e:
+        logging.warning(f"Failed to generate tip with Gemini: {e}")
+        return TipResponse(tip=_fallback_tip(season), source="fallback")
+    except Exception as e:
+        logging.error(f"Unexpected error in tip generation: {e}", exc_info=True)
         return TipResponse(tip=_fallback_tip(season), source="fallback")
 
 
@@ -282,14 +289,20 @@ def meal_analyze(
 
     try:
         image_bytes = _download_image_from_storage(req.storagePath)
-    except Exception:
-        logging.exception("Failed to download image from Storage: %s", req.storagePath)
+    except (GoogleCloudError, ValueError) as e:
+        logging.error(f"Failed to download image from Storage ({req.storagePath}): {e}")
+        return _fallback_meal_analysis()
+    except Exception as e:
+        logging.error(f"Unexpected error downloading image from Storage ({req.storagePath}): {e}", exc_info=True)
         return _fallback_meal_analysis()
 
     try:
         result = _analyze_with_gemini(image_bytes)
-    except Exception:
-        logging.exception("Gemini meal analysis failed")
+    except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+        logging.warning(f"Gemini meal analysis failed: {e}")
+        return _fallback_meal_analysis()
+    except Exception as e:
+        logging.error(f"Unexpected error in Gemini meal analysis: {e}", exc_info=True)
         return _fallback_meal_analysis()
 
     # Firestore に結果を保存
@@ -305,8 +318,11 @@ def meal_analyze(
                 "createdAt": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
             }
         )
-    except Exception:
-        logging.exception("Failed to save meal analysis to Firestore")
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.error(f"Failed to save meal analysis to Firestore: {e}")
+        # 保存失敗でもレスポンスは返す
+    except Exception as e:
+        logging.error(f"Unexpected error saving meal analysis to Firestore: {e}", exc_info=True)
         # 保存失敗でもレスポンスは返す
 
     return result
@@ -338,8 +354,10 @@ def tendency(
         )
         if latest_results:
             hair_analysis = latest_results[0].to_dict()
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.error(f"Firestore error fetching hair analysis: {e}")
     except Exception as e:
-        print(f"Error fetching hair analysis: {e}")
+        logging.error(f"Unexpected error fetching hair analysis: {e}", exc_info=True)
 
     # 2. スコア算出
     result = analyze_tendency_scores(request.answers, hair_analysis=hair_analysis)
@@ -364,8 +382,10 @@ def tendency(
                 else None,
             }
         )
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.error(f"Firestore error saving scores: {e}")
     except Exception as e:
-        print(f"Error saving scores to Firestore: {e}")
+        logging.error(f"Unexpected error saving scores to Firestore: {e}", exc_info=True)
 
     return TendencyResponse(
         scores=scores,

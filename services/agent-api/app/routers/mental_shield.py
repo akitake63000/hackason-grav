@@ -1,4 +1,6 @@
 from typing import List, Optional, Tuple
+import logging
+import json
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
@@ -7,6 +9,8 @@ from pydantic import BaseModel, Field, validator
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/mental-shield", tags=["mental-shield"])
 
@@ -75,7 +79,11 @@ def _generate_mental_with_llm(
     try:
         text = generate_text(prompt)
         data = safe_json_load(text)
-    except Exception:  # noqa: BLE001
+    except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+        logger.warning(f"Failed to generate mental shield response with LLM: {e}")
+        return None, None
+    except Exception as e:
+        logger.error(f"Unexpected error in mental shield LLM generation: {e}", exc_info=True)
         return None, None
 
     cards_data = data.get("cards")
