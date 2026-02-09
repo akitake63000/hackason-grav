@@ -290,7 +290,7 @@ function Chat() {
   const [error, setError] = useState(null)
   const [threadId, setThreadId] = useState('default')
   const [chatStyle, setChatStyle] = useState('balanced')
-  const [chatDetail, setChatDetail] = useState('normal')
+  const [chatDetail, setChatDetail] = useState('flash')
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
 
@@ -435,7 +435,7 @@ function Chat() {
 
     try {
       // For detailed mode, use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
-      const useDirectUrl = chatDetail === 'detailed'
+      const useDirectUrl = chatDetail === 'pro'
       const apiUrl = useDirectUrl
         ? 'https://agent-api-7wsihnjf7q-an.a.run.app/api/v1/mental-shield/chat/discuss'
         : '/api/v1/mental-shield/chat/discuss'
