@@ -405,14 +405,6 @@ function LifestyleRecommendContent() {
     }
   }
 
-  // ... 
-
-  onClick = {() => isChecked ? handleUncheckAction(action.id) : handleCheck(action)
-}
-                  >
-  <div style={styles.actionInner}>
-
-
   const getPriorityInfo = (priority) => {
     switch (priority) {
       case 'high':
