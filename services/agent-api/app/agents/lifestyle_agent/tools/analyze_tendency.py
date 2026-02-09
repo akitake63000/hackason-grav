@@ -184,7 +184,7 @@ def analyze_tendency_scores(
 
     # Normalize to 0-100 scale
     normalized: TendencyScores = {
-        axis: min(100, int((raw / MAX_SCORES[axis]) * 100))
+        axis: min(100, max(0, int((raw / MAX_SCORES[axis]) * 100)))  # Ensure 0-100 range
         for axis, raw in raw_scores.items()
     }
 

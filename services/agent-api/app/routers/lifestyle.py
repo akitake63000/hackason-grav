@@ -46,7 +46,7 @@ class TendencyResponse(BaseModel):
 
 class RecommendationResponse(BaseModel):
     """推奨アクションレスポンス"""
-    actions: list[dict]
+    grouped_actions: dict[str, list[dict]]
     axis_labels: dict[str, dict[str, str]]
 
 
@@ -336,6 +336,7 @@ def tendency(
                 "bloodCirculation": scores["blood_flow"],
                 "circadian": scores["circadian"],
                 "stress": scores["stress"],
+                "answers": request.answers,  # Save answers for recommendation filtering
                 "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo")),
                 "hairlineScoreSource": hair_analysis.get("hairlineScore")
                 if hair_analysis
@@ -421,8 +422,21 @@ def recommendation(
         "blood_flow": blood_flow,
         "stress": stress,
     }
-    actions = get_recommended_actions(scores, max_actions=5)
+
+    # Fetch latest answers for filtering
+    answers = {}
+    try:
+        db = get_firestore_client()
+        doc = db.collection("users").document(uid).collection("tendencyScores").document("latest").get()
+        if doc.exists:
+            data = doc.to_dict()
+            answers = data.get("answers", {})
+    except Exception as e:
+        print(f"Error fetching answers for recommendation: {e}")
+
+    grouped_actions = get_recommended_actions(scores, answers=answers)
+    
     return RecommendationResponse(
-        actions=[dict(a) for a in actions],
+        grouped_actions=grouped_actions,
         axis_labels=AXIS_LABELS,
     )

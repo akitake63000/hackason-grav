@@ -222,7 +222,7 @@ function LifestyleRecommendContent() {
         const res = await apiFetch(`/api/v1/lifestyle/recommendation?${query}`)
         if (!res.ok) throw new Error('推奨アクションの取得に失敗しました')
         const data = await res.json()
-        setRecommendations(data.actions)
+        setRecommendations(data.grouped_actions || {})
         setAxisLabels(data.axis_labels)
       } catch (err) {
         setError(err.message === 'NO_DATA' ? '診断データがありません' : err.message)
@@ -272,6 +272,9 @@ function LifestyleRecommendContent() {
     )
   }
 
+  // Define display order for axes
+  const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
+
   return (
     <Layout>
       <div style={styles.container}>
@@ -296,39 +299,65 @@ function LifestyleRecommendContent() {
           </motion.p>
 
           <div style={styles.actionGrid}>
-            {recommendations.map((action, index) => {
-              const p = getPriorityInfo(action.priority)
+            {AXIS_ORDER.map((axisKey) => {
+              const actions = recommendations[axisKey] || []
+              const axisLabel = axisLabels[axisKey]
+
+              if (actions.length === 0) return null
+
               return (
-                <Card
-                  key={action.id}
-                  padding="md"
-                  hoverable
-                  delay={0.15 + index * 0.1}
-                  onClick={() => setSelectedAction(action)}
-                  style={styles.actionCard}
-                >
-                  <div style={styles.actionInner}>
-                    <div style={{ ...styles.actionEmoji, background: p.bg }}>{action.emoji}</div>
-                    <div style={styles.actionContent}>
-                      <div style={styles.actionHeader}>
-                        <div style={styles.actionName}>
-                          {action.name}
-                          <span style={{ ...styles.priorityBadge, color: p.color, background: p.bg, marginLeft: '8px' }}>
-                            {p.lead}
-                          </span>
-                        </div>
-                        <ChevronRight size={18} color="#e0dcd0" />
-                      </div>
-                      <div style={styles.actionReason}>
-                        <Sparkles size={14} />
-                        {action.reason}
-                      </div>
-                      <p style={{ fontSize: '13px', color: '#7f786d', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {action.explanation}
-                      </p>
-                    </div>
+                <div key={axisKey} style={{ marginBottom: '24px' }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#1a3d2e',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span style={{ fontSize: '24px' }}>{axisLabel?.emoji}</span>
+                    {axisLabel?.name}のアプローチ
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {actions.map((action, index) => {
+                      const p = getPriorityInfo(action.priority)
+                      return (
+                        <Card
+                          key={action.id}
+                          padding="md"
+                          hoverable
+                          delay={0.15 + index * 0.1}
+                          onClick={() => setSelectedAction(action)}
+                          style={styles.actionCard}
+                        >
+                          <div style={styles.actionInner}>
+                            <div style={{ ...styles.actionEmoji, background: p.bg }}>{action.emoji}</div>
+                            <div style={styles.actionContent}>
+                              <div style={styles.actionHeader}>
+                                <div style={styles.actionName}>
+                                  {action.name}
+                                  <span style={{ ...styles.priorityBadge, color: p.color, background: p.bg, marginLeft: '8px' }}>
+                                    {p.lead}
+                                  </span>
+                                </div>
+                                <ChevronRight size={18} color="#e0dcd0" />
+                              </div>
+                              <div style={styles.actionReason}>
+                                <Sparkles size={14} />
+                                {action.reason}
+                              </div>
+                              <p style={{ fontSize: '13px', color: '#7f786d', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {action.explanation}
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
                   </div>
-                </Card>
+                </div>
               )
             })}
           </div>

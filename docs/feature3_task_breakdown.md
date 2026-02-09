@@ -129,18 +129,29 @@
     *   機能1の結果を取得し、傾向分析の入力とする
 *   **[NEW] `services/agent-api/app/agents/lifestyle_agent/tools/recommend_actions.py`**
     *   ロジック: 各軸の低スコア→具体的アクション提案のマッピング
-133: 
-134: #### 永続化・再診断フロー (Persistence)
-135: *   **[NEW] `services/agent-api/app/routers/lifestyle.py`**
-136:     *   `GET /tendency/latest`: 最新の診断結果・日時を取得
-137: *   **[MODIFIED] `apps/web/src/app/feature3/tendency/page.tsx`**
-138:     *   前回結果の表示・再診断ボタンの実装
-139: *   **[MODIFIED] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
-140:     *   保存されたスコアに基づくレコメンド表示
+
+#### 永続化・再診断フロー (Persistence)
+*   **[DONE] `services/agent-api/app/routers/lifestyle.py`**
+    *   `GET /tendency/latest`: 最新の診断結果・日時を取得
+    *   **[NEW]** アンケート回答 (`answers`) も保存し、レコメンド生成に活用
+*   **[DONE] `apps/web/src/app/feature3/tendency/page.tsx`**
+    *   前回結果の表示・再診断ボタンの実装
+*   **[DONE] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
+    *   保存されたスコアに基づくレコメンド表示
+    *   **[NEW]** 4軸（ホルモン・体内時計・血流・ストレス）ごとのグルーピング表示
 
 ### 6. 因果の設計（Causality）
 *   「就寝が1時以降（問診）」+「肩こりあり（問診）」→「ホルモン/血流スコア低（分析）」→「0時前に寝よう」「首回しストレッチ」（提案）
 *   このロジック全体を一人で調整する。
+
+### 7. 追加改修・品質向上 (Refinements)
+*   **[DONE] スコア計算の適正化**
+    *   `analyze_tendency.py`: 減点方式によるマイナススコア発生を防ぐため、0〜100点に正規化（クリッピング処理追加）。
+*   **[DONE] レコメンドロジックの改善**
+    *   `recommend_actions.py`: アンケート回答（喫煙・飲酒など）と連携し、不適切なアクション（非喫煙者への禁煙提案など）をフィルタリング。
+    *   `recommend_actions.py`: アクションを「軸ごと」にグルーピングして返却。
+*   **[TODO] 行動追跡 (Action Tracking)**
+    *   チェックリスト機能の実装（仕様検討中）
 
 ---
 
