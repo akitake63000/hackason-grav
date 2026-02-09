@@ -353,7 +353,7 @@ def tendency(
 
 
 class TendencyHistoryResponse(TendencyResponse):
-    updatedAt: datetime
+    updatedAt: datetime | None = None
 
 
 @router.get("/tendency/latest", response_model=TendencyHistoryResponse)
