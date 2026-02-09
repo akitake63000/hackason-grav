@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils, BookOpen, X, Loader2, AlertCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -40,6 +40,20 @@ interface FoodSniperResponse {
     nutrients: NutrientInfo[];
     shoppingList: string[];
     hairPattern?: string;
+}
+
+interface RecipeItem {
+    name: string;
+    description: string;
+    ingredients: string[];
+    benefit: string;
+}
+
+interface RecipeModal {
+    food: FoodDetail;
+    loading: boolean;
+    recipes: RecipeItem[];
+    error: string | null;
 }
 
 const styles = {
@@ -194,6 +208,103 @@ const styles = {
         borderRadius: '8px',
         lineHeight: 1.5,
     },
+    recipeBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        padding: '8px',
+        border: '1px solid rgba(65, 152, 115, 0.2)',
+        borderRadius: '10px',
+        background: 'transparent',
+        color: '#419873',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    },
+    modalOverlay: {
+        position: 'fixed' as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px',
+    },
+    modalContent: {
+        background: '#fff',
+        borderRadius: '24px',
+        maxWidth: '500px',
+        width: '100%',
+        maxHeight: '80vh',
+        overflow: 'auto' as const,
+        padding: '24px',
+        position: 'relative' as const,
+    },
+    modalClose: {
+        position: 'absolute' as const,
+        top: '16px',
+        right: '16px',
+        width: '32px',
+        height: '32px',
+        borderRadius: '50%',
+        background: 'rgba(0, 0, 0, 0.06)',
+        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+    },
+    modalTitle: {
+        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+        fontSize: '20px',
+        fontWeight: '600' as const,
+        color: '#1a3d2e',
+        marginBottom: '20px',
+        paddingRight: '40px',
+    },
+    recipeCard: {
+        padding: '16px',
+        background: 'rgba(26, 61, 46, 0.03)',
+        borderRadius: '16px',
+        marginBottom: '12px',
+    },
+    recipeName: {
+        fontSize: '16px',
+        fontWeight: '600' as const,
+        color: '#1a3d2e',
+        marginBottom: '8px',
+    },
+    recipeDesc: {
+        fontSize: '14px',
+        color: '#4a4a4a',
+        lineHeight: 1.6,
+        marginBottom: '10px',
+    },
+    recipeIngredients: {
+        display: 'flex',
+        flexWrap: 'wrap' as const,
+        gap: '6px',
+        marginBottom: '10px',
+    },
+    ingredientTag: {
+        padding: '4px 10px',
+        background: 'rgba(201, 169, 98, 0.1)',
+        borderRadius: '8px',
+        fontSize: '12px',
+        color: '#8a7640',
+    },
+    recipeBenefit: {
+        fontSize: '13px',
+        color: '#419873',
+        fontStyle: 'italic' as const,
+    },
     loadingContainer: {
         flex: 1,
         display: 'flex',
@@ -228,6 +339,7 @@ function FoodRecommendContent() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<FoodSniperResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [recipeModal, setRecipeModal] = useState<RecipeModal | null>(null);
 
     useEffect(() => {
         const fetchRecommendations = async () => {
@@ -264,6 +376,32 @@ function FoodRecommendContent() {
 
         fetchRecommendations();
     }, [patternParam]);
+
+    const handleRecipeClick = async (food: FoodDetail) => {
+        setRecipeModal({ food, loading: true, recipes: [], error: null });
+        try {
+            const response = await apiFetch('/api/v1/food-sniper/recipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    foodName: food.name,
+                    hairPattern: data?.hairPattern || null,
+                }),
+            });
+            const result = await response.json();
+            setRecipeModal((prev) => prev ? {
+                ...prev,
+                loading: false,
+                recipes: result.recipes || [],
+            } : null);
+        } catch {
+            setRecipeModal((prev) => prev ? {
+                ...prev,
+                loading: false,
+                error: 'レシピの取得に失敗しました',
+            } : null);
+        }
+    };
 
     if (loading) {
         return (
@@ -379,6 +517,18 @@ function FoodRecommendContent() {
                                                     {food.dailyPercent && ` (${food.dailyPercent})`}
                                                 </span>
                                                 <p style={styles.foodWhy}>{food.why}</p>
+
+                                                <motion.button
+                                                    style={styles.recipeBtn}
+                                                    whileHover={{
+                                                        background: 'rgba(65, 152, 115, 0.08)',
+                                                    }}
+                                                    whileTap={{ scale: 0.97 }}
+                                                    onClick={() => handleRecipeClick(food)}
+                                                >
+                                                    <BookOpen size={14} />
+                                                    レシピを見る
+                                                </motion.button>
                                             </div>
                                         </div>
                                     ))}
@@ -386,6 +536,100 @@ function FoodRecommendContent() {
                             </Card>
                         ))}
                     </motion.div>
+
+                    {/* Recipe Modal */}
+                    <AnimatePresence>
+                        {recipeModal && (
+                            <motion.div
+                                style={styles.modalOverlay}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setRecipeModal(null)}
+                            >
+                                <motion.div
+                                    style={styles.modalContent}
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <button
+                                        style={styles.modalClose}
+                                        onClick={() => setRecipeModal(null)}
+                                    >
+                                        <X size={18} />
+                                    </button>
+
+                                    <h3 style={styles.modalTitle}>
+                                        {recipeModal.food.emoji} {recipeModal.food.name}のレシピ
+                                    </h3>
+
+                                    {recipeModal.loading && (
+                                        <div style={{ textAlign: 'center', padding: '30px' }}>
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{
+                                                    duration: 1,
+                                                    repeat: Infinity,
+                                                    ease: 'linear',
+                                                }}
+                                                style={{ display: 'inline-block' }}
+                                            >
+                                                <Loader2 size={28} color="#1a3d2e" />
+                                            </motion.div>
+                                            <p
+                                                style={{
+                                                    marginTop: '12px',
+                                                    color: '#7f786d',
+                                                    fontSize: '14px',
+                                                }}
+                                            >
+                                                レシピを生成中...
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {recipeModal.error && (
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '12px 16px',
+                                            background: 'rgba(239, 68, 68, 0.08)',
+                                            borderRadius: '12px',
+                                            marginBottom: '16px',
+                                            color: '#dc2626',
+                                            fontSize: '14px',
+                                        }}>
+                                            <AlertCircle size={18} />
+                                            {recipeModal.error}
+                                        </div>
+                                    )}
+
+                                    {!recipeModal.loading &&
+                                        recipeModal.recipes.map((recipe, idx) => (
+                                            <div key={idx} style={styles.recipeCard}>
+                                                <div style={styles.recipeName}>{recipe.name}</div>
+                                                <p style={styles.recipeDesc}>{recipe.description}</p>
+                                                <div style={styles.recipeIngredients}>
+                                                    {recipe.ingredients.map((ing, i) => (
+                                                        <span key={i} style={styles.ingredientTag}>
+                                                            {ing}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                {recipe.benefit && (
+                                                    <p style={styles.recipeBenefit}>
+                                                        {'🌿 '}
+                                                        {recipe.benefit}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}\n                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </Layout>
