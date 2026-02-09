@@ -59,14 +59,19 @@ def _contains_risk_keywords(message: str) -> bool:
 
 def _generate_mental_with_llm(
     message: str,
+    style: str = "balanced",
+    detail: str = "normal",
 ) -> Tuple[Optional[List[MentalShieldCard]], Optional[str]]:
     if not gemini_enabled():
         return None, None
 
+    si = _style_instruction(style, detail)
+    mt = _max_tokens_for_detail(detail)
     prompt = (
         "あなたは薄毛対策のメンタル支援エージェントです。"
         "以下の相談内容に対して、3人格（encourager/coach/doctor）の短い回答と"
         "まとめを日本語で返してください。診断はしないでください。\n"
+        f"{si}"
         "出力は必ず次のJSON形式のみ:\n"
         "{\n"
         '  "cards": [\n'
@@ -80,7 +85,7 @@ def _generate_mental_with_llm(
     )
 
     try:
-        text = generate_text(prompt)
+        text = generate_text(prompt, max_output_tokens=mt)
         data = safe_json_load(text)
     except (ValueError, json.JSONDecodeError, RuntimeError) as e:
         logger.warning(f"Failed to generate mental shield response with LLM: {e}")
@@ -108,10 +113,12 @@ def _generate_mental_with_llm(
     return cards, str(summary)
 
 
-def _compose_mental_shield(message: str) -> Tuple[List[MentalShieldCard], str]:
+def _compose_mental_shield(
+    message: str, style: str = "balanced", detail: str = "normal"
+) -> Tuple[List[MentalShieldCard], str]:
     risk = _contains_risk_keywords(message)
 
-    llm_cards, llm_summary = _generate_mental_with_llm(message)
+    llm_cards, llm_summary = _generate_mental_with_llm(message, style=style, detail=detail)
     if llm_cards and llm_summary:
         return llm_cards, llm_summary
 
@@ -147,7 +154,9 @@ def mental_shield_chat(
     payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
 ) -> MentalShieldResponse:
     thread_id = payload.threadId or "default"
-    cards, summary = _compose_mental_shield(payload.message)
+    cards, summary = _compose_mental_shield(
+        payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+    )
 
     db = get_firestore_client()
     messages_ref = (
@@ -537,10 +546,14 @@ def mental_shield_discuss(
             best_agent = result["best_agent"]
         except Exception as exc:
             logger.exception("LangGraph workflow failed, falling back: %s", exc)
-            cards, summary = _compose_mental_shield(payload.message)
+            cards, summary = _compose_mental_shield(
+                payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+            )
             best_agent = max(cards, key=lambda c: len(c.text)).agent
     else:
-        cards, summary = _compose_mental_shield(payload.message)
+        cards, summary = _compose_mental_shield(
+            payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+        )
         best_agent = max(cards, key=lambda c: len(c.text)).agent
 
     # Firestore に保存（ローカル開発時はスキップ）
