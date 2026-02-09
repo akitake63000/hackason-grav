@@ -352,6 +352,52 @@ def tendency(
     )
 
 
+class TendencyHistoryResponse(TendencyResponse):
+    updatedAt: datetime
+
+
+@router.get("/tendency/latest", response_model=TendencyHistoryResponse)
+def get_latest_tendency(
+    uid: str = Depends(get_current_uid),
+) -> TendencyHistoryResponse:
+    """
+    最新の診断結果を取得する。
+    存在しない場合は 404 を返す。
+    """
+    from fastapi import HTTPException
+
+    db = get_firestore_client()
+    doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="No tendency data found")
+
+    data = doc.to_dict()
+    
+    # Map Firestore keys back to API keys
+    # Firestore: hormonal, bloodCirculation, circadian, stress
+    # API: hormone, blood_flow, circadian, stress
+    scores = {
+        "hormone": data.get("hormonal", 0),
+        "blood_flow": data.get("bloodCirculation", 0),
+        "circadian": data.get("circadian", 0),
+        "stress": data.get("stress", 0),
+    }
+
+    # Re-calculate dominant issues (lowest 2 < 50)
+    # Ideally checking against < 50, similar to analyze_tendency logic
+    sorted_axes = sorted(scores.items(), key=lambda x: x[1])
+    dominant_issues = [axis for axis, score in sorted_axes[:2] if score < 50]
+
+    return TendencyHistoryResponse(
+        scores=scores,
+        dominant_issues=dominant_issues,
+        axis_labels=AXIS_LABELS,
+        updatedAt=data.get("updatedAt"),
+    )
+
+
 @router.get("/recommendation", response_model=RecommendationResponse)
 def recommendation(
     uid: str = Depends(get_current_uid),
