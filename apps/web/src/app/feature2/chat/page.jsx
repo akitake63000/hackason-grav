@@ -434,17 +434,38 @@ function Chat() {
     await saveMessage(threadId, newUserMessage)
 
     try {
-      const response = await apiFetch('/api/v1/mental-shield/chat/discuss', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          threadId,
-          message: inputValue,
-          mode: 'balanced',
-          style: chatStyle,
-          detail: chatDetail,
-        }),
-      })
+      // For detailed mode, use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
+      const useDirectUrl = chatDetail === 'detailed'
+      const apiUrl = useDirectUrl
+        ? 'https://agent-api-7wsihnjf7q-an.a.run.app/api/v1/mental-shield/chat/discuss'
+        : '/api/v1/mental-shield/chat/discuss'
+
+      const response = useDirectUrl
+        ? await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(user?.accessToken && { 'Authorization': `Bearer ${user.accessToken}` })
+            },
+            body: JSON.stringify({
+              threadId,
+              message: inputValue,
+              mode: 'balanced',
+              style: chatStyle,
+              detail: chatDetail,
+            }),
+          })
+        : await apiFetch('/api/v1/mental-shield/chat/discuss', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              threadId,
+              message: inputValue,
+              mode: 'balanced',
+              style: chatStyle,
+              detail: chatDetail,
+            }),
+          })
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`)

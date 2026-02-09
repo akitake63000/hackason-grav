@@ -219,9 +219,9 @@ class _DiscussState(TypedDict):
 
 
 _DETAIL_TOKEN_LIMIT = {
-    "brief": 600,
-    "normal": 2000,
-    "detailed": 3000,
+    "brief": 300,
+    "normal": 1000,
+    "detailed": 1500,
 }
 
 
