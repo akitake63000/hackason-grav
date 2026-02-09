@@ -37,10 +37,10 @@ class TendencyResult(TypedDict):
 QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     # 1. 睡眠時間 (Hormone main)
     "sleep_time": {
-        "score_100": {"hormone": 30, "circadian": 30},
-        "score_80": {"hormone": 25, "circadian": 25},
-        "score_60": {"hormone": 15, "circadian": 15},
-        "score_40": {"hormone": 5, "circadian": 5},
+        "score_100": {"hormone": 35, "circadian": 30},
+        "score_80": {"hormone": 30, "circadian": 25},
+        "score_60": {"hormone": 20, "circadian": 15},
+        "score_40": {"hormone": 10, "circadian": 5},
         "score_20": {"hormone": 0, "circadian": 0},
     },
     # 2. 起床固定 (Circadian main)
@@ -61,10 +61,10 @@ QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     },
     # 4. 運動 (Blood Flow + Stress + Hormone)
     "exercise_frequency": {
-        "score_100": {"blood_flow": 30, "stress": 20, "hormone": 15},
-        "score_80": {"blood_flow": 25, "stress": 15, "hormone": 12},
-        "score_60": {"blood_flow": 15, "stress": 10, "hormone": 8},
-        "score_40": {"blood_flow": 5, "stress": 5, "hormone": 3},
+        "score_100": {"blood_flow": 30, "stress": 20, "hormone": 20},
+        "score_80": {"blood_flow": 25, "stress": 15, "hormone": 15},
+        "score_60": {"blood_flow": 15, "stress": 10, "hormone": 10},
+        "score_40": {"blood_flow": 5, "stress": 5, "hormone": 5},
         "score_20": {"blood_flow": 0, "stress": 0, "hormone": 0},
     },
     # 5. 肩こり (Blood Flow desc)
@@ -85,10 +85,10 @@ QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     },
     # 7. 目覚めの気分 (Stress + Hormone)
     "wake_feeling": {
-        "score_100": {"stress": 30, "hormone": 15},
-        "score_80": {"stress": 25, "hormone": 12},
-        "score_60": {"stress": 15, "hormone": 8},
-        "score_40": {"stress": 5, "hormone": 3},
+        "score_100": {"stress": 30, "hormone": 20},
+        "score_80": {"stress": 25, "hormone": 15},
+        "score_60": {"stress": 15, "hormone": 10},
+        "score_40": {"stress": 5, "hormone": 5},
         "score_20": {"stress": 0, "hormone": 0},
     },
     # 8. リラックス習慣 (Stress)
@@ -101,9 +101,9 @@ QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     },
     # 9. 嗜好品 (Negative Impact) -> Base scores are deducted or low added
     "substances": {
-        "none": {"hormone": 20, "blood_flow": 15, "circadian": 0, "stress": 0},
-        "caffeine": {"hormone": 15, "blood_flow": 15, "circadian": 0, "stress": 0}, # timing check later
-        "alcohol": {"hormone": 10, "blood_flow": 10, "circadian": 0, "stress": 0}, # freq check later
+        "none": {"hormone": 25, "blood_flow": 15, "circadian": 0, "stress": 0},
+        "caffeine": {"hormone": 20, "blood_flow": 15, "circadian": 0, "stress": 0}, # timing check later
+        "alcohol": {"hormone": 15, "blood_flow": 10, "circadian": 0, "stress": 0}, # freq check later
         "smoking": {"hormone": 5, "blood_flow": 0, "circadian": 0, "stress": 0}, # amount check later
         "multiple": {"hormone": 0, "blood_flow": 0, "circadian": 0, "stress": 0},
     },

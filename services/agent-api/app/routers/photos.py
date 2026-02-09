@@ -108,12 +108,36 @@ def analyze_photo(
     # 4. Save Result
     analysis_ref = db.collection("users").document(uid).collection("analysisResults").document(payload.photoId)
     
+    # Calculate Delta (Fetch latest previous result)
+    previous_results = (
+        db.collection("users")
+        .document(uid)
+        .collection("analysisResults")
+        .order_by("analyzedAt", direction=firestore.Query.DESCENDING)
+        .limit(1)
+        .stream()
+    )
+    
+    delta = 0.0
+    for prev_doc in previous_results:
+        # Since we haven't saved the current one yet, the "latest" in DB is the previous one.
+        prev_data = prev_doc.to_dict()
+        prev_score = prev_data.get("score")
+        if isinstance(prev_score, (int, float)):
+            delta = result.score - float(prev_score)
+        break
+
     analysis_data = {
         "photoId": payload.photoId,
         "analyzedAt": admin_firestore.SERVER_TIMESTAMP,
         "score": result.score,
         "notes": result.notes,
-        "version": "v1-gemini-1.5-flash"
+        "hairType": result.hairType,
+        "pattern": result.pattern,
+        "quality": result.quality,
+        "scalpCondition": result.scalpCondition,
+        "delta": delta,
+        "version": "v1-gemini-1.5-flash-personalized"
     }
     
     analysis_ref.set(analysis_data)
@@ -126,7 +150,12 @@ def analyze_photo(
         photoId=payload.photoId,
         result={
             "score": result.score,
-            "notes": result.notes
+            "notes": result.notes,
+            "hairType": result.hairType,
+            "pattern": result.pattern,
+            "quality": result.quality,
+            "scalpCondition": result.scalpCondition,
+            "delta": delta
         }
     )
 

@@ -1,0 +1,111 @@
+.block {
+  display: grid;
+  gap: 16px;
+}
+
+.kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.kpiLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kpiValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2f3a2a;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  border-radius: 16px;
+  border: 1px dashed #d7cbb8;
+  color: #8a7f72;
+  background: #faf7f1;
+}
+
+.chart {
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border-radius: 16px;
+  border: 1px dashed var(--border);
+  background: #faf5ea;
+  padding: 16px;
+}
+
+.sparkline {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+
+.sparkline circle {
+  fill: #f2e7d4;
+  stroke: #3a3026;
+  stroke-width: 2;
+}
+
+.listBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.listBlock h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.reportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.action {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.reportCard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fffaf2;
+  font-size: 14px;
+}
+
+.reportCard h3 {
+  font-size: 15px;
+}
+
+.reportCard ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 13px;
+}

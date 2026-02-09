@@ -17,6 +17,9 @@ interface AnalysisResult {
     notes: string | null;
     hairType?: string;
     pattern?: string;
+    scalpCondition?: string;
+    delta?: number;
+    quality?: string;
 }
 
 const PATTERN_DISPLAY_MAP: Record<string, string> = {
@@ -72,35 +75,6 @@ const styles = {
         fontWeight: '600' as const,
         color: '#1a3d2e',
         marginBottom: '16px',
-    },
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '16px',
-        marginBottom: '24px',
-        width: '100%',
-    },
-    gridItem: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '4px',
-        background: 'rgba(255, 255, 255, 0.5)',
-        padding: '12px',
-        borderRadius: '8px',
-        border: '1px solid rgba(26, 61, 46, 0.05)',
-    },
-    gridLabel: {
-        fontSize: '11px',
-        color: '#7f786d',
-        fontWeight: '600',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.5px',
-    },
-    gridValue: {
-        fontSize: '15px',
-        color: '#1a3d2e',
-        fontWeight: '500',
-        fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
     },
     notesCard: {
         width: '100%',
@@ -217,6 +191,45 @@ const styles = {
         lineHeight: '1.6',
         maxWidth: '320px',
     },
+    grid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '12px',
+        width: '100%',
+        marginBottom: '24px',
+    },
+    gridItem: {
+        background: 'rgba(255, 255, 255, 0.8)',
+        borderRadius: '16px',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        border: '1px solid rgba(65, 152, 115, 0.1)',
+    },
+    gridLabel: {
+        fontSize: '12px',
+        color: '#7f786d',
+        marginBottom: '4px',
+    },
+    gridValue: {
+        fontSize: '15px',
+        fontWeight: '600' as const,
+        color: '#1a3d2e',
+        textAlign: 'center' as const,
+    },
+    deltaBadge: {
+        fontSize: '14px',
+        fontWeight: '600' as const,
+        padding: '4px 12px',
+        borderRadius: '20px',
+        marginTop: '8px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+    },
 };
 
 function ResultContent() {
@@ -275,6 +288,9 @@ function ResultContent() {
                     notes: data.notes || null,
                     hairType: data.hairType,
                     pattern: data.pattern,
+                    scalpCondition: data.scalpCondition,
+                    delta: data.delta,
+                    quality: data.quality
                 });
             } catch (err: any) {
                 console.error(err);
@@ -289,11 +305,9 @@ function ResultContent() {
 
     const handleNavigateToFoodRecommend = () => {
         if (result?.pattern) {
-            // URLエンコードしてパラメータに付与
             const encodedPattern = encodeURIComponent(result.pattern);
             router.push(`/feature3/food-recommend?hairPattern=${encodedPattern}`);
         } else {
-            // パターンがない場合はパラメータなしで遷移（もしくはデフォルト値を渡す）
             router.push('/feature3/food-recommend');
         }
     };
@@ -386,6 +400,50 @@ function ResultContent() {
                             delay={0.2}
                             unit="点"
                         />
+                        {/* Delta Display */}
+                        {typeof result?.delta === 'number' && (
+                            <motion.div
+                                style={{
+                                    ...styles.deltaBadge,
+                                    background: result.delta >= 0 ? 'rgba(65, 152, 115, 0.1)' : 'rgba(184, 84, 80, 0.1)',
+                                    color: result.delta >= 0 ? '#419873' : '#b85450',
+                                }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.4 }}
+                            >
+                                {result.delta > 0 ? '↑' : result.delta < 0 ? '↓' : '-'}
+                                {Math.abs(result.delta).toFixed(1)}点
+                                <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>(前回比)</span>
+                            </motion.div>
+                        )}
+                    </motion.div>
+
+                    {/* Detailed Analysis Grid */}
+                    <motion.div
+                        style={styles.grid}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.25 }}
+                    >
+                        <div style={styles.gridItem}>
+                            <span style={styles.gridLabel}>AI判定タイプ</span>
+                            <span style={styles.gridValue}>{result?.hairType || '---'}</span>
+                        </div>
+                        <div style={styles.gridItem}>
+                            <span style={styles.gridLabel}>パターン</span>
+                            <span style={styles.gridValue}>
+                                {result?.pattern ? (PATTERN_DISPLAY_MAP[result.pattern] || result.pattern) : '---'}
+                            </span>
+                        </div>
+                        <div style={styles.gridItem}>
+                            <span style={styles.gridLabel}>頭皮の状態</span>
+                            <span style={styles.gridValue}>{result?.scalpCondition || '---'}</span>
+                        </div>
+                        <div style={styles.gridItem}>
+                            <span style={styles.gridLabel}>判定精度</span>
+                            <span style={styles.gridValue}>{result?.quality || '---'}</span>
+                        </div>
                     </motion.div>
 
                     {/* Details Grid (New) */}
@@ -421,6 +479,25 @@ function ResultContent() {
                             </Card>
                         </motion.div>
                     )}
+
+                    {/* Feature 3 Link Button */}
+                    <motion.div
+                        style={{ width: '100%', marginBottom: '16px' }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.55 }}
+                    >
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            icon={<ChevronRight size={18} />}
+                            iconPosition="right"
+                            style={{ background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)' }}
+                            onClick={handleNavigateToFoodRecommend}
+                        >
+                            食事での改善プランを見る
+                        </Button>
+                    </motion.div>
 
                     {/* Disclaimer */}
                     <motion.div

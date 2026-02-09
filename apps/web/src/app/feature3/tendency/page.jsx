@@ -266,17 +266,6 @@ const QUESTIONS = [
     ],
   },
   {
-    id: 'substances',
-    text: '以下の嗜好品の中で、最も摂取頻度や量が多いものは？',
-    options: [
-      { label: '特になし（健康優良）', value: 'none' },
-      { label: 'カフェイン（コーヒー・紅茶）', value: 'caffeine' },
-      { label: 'アルコール（お酒）', value: 'alcohol' },
-      { label: 'タバコ（喫煙）', value: 'smoking' },
-      { label: '複数・その他', value: 'multiple' },
-    ],
-  },
-  {
     id: 'water_intake',
     text: '1日にどれくらい水分（水・お茶）を摂りますか？',
     options: [
@@ -285,6 +274,17 @@ const QUESTIONS = [
       { label: '1〜1.5リットル', value: 'score_60' },
       { label: '500ml〜1リットル', value: 'score_40' },
       { label: 'ほとんど飲まない', value: 'score_20' },
+    ],
+  },
+  {
+    id: 'substances',
+    text: '以下の嗜好品の中で、最も摂取頻度や量が多いものは？',
+    options: [
+      { label: '特になし（健康優良）', value: 'none' },
+      { label: 'カフェイン（コーヒー・紅茶）', value: 'caffeine' },
+      { label: 'アルコール（お酒）', value: 'alcohol' },
+      { label: 'タバコ（喫煙）', value: 'smoking' },
+      { label: '複数・その他', value: 'multiple' },
     ],
   },
 ]
@@ -358,7 +358,7 @@ function Tendency() {
   }, [])
 
   useEffect(() => {
-    if (currentStep >= 8 && answers.substances) {
+    if (currentStep >= 9 && answers.substances) {
       const moreQuestions = []
       if (CONDITIONAL_QUESTIONS.smoking_amount.trigger(answers)) {
         moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
