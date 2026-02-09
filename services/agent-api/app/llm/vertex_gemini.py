@@ -56,7 +56,13 @@ def generate_text(prompt: str, model: str | None = None, max_output_tokens: int 
         result_text = response.text or ""
 
         if not result_text:
+            # Log full response details to debug empty response
             logger.warning(f"Empty response from Gemini API for model={selected_model}")
+            logger.warning(f"Response object: {response}")
+            if hasattr(response, 'candidates') and response.candidates:
+                for idx, candidate in enumerate(response.candidates):
+                    logger.warning(f"Candidate {idx}: finish_reason={getattr(candidate, 'finish_reason', None)}, "
+                                 f"safety_ratings={getattr(candidate, 'safety_ratings', None)}")
         else:
             logger.info(f"Successfully generated text: length={len(result_text)}")
 
