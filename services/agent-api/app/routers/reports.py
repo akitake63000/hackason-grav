@@ -34,29 +34,34 @@ def _to_datetime(value) -> Optional[datetime]:
 
 
 def _generate_report_with_llm(
-    series: list[tuple[datetime, float]], period_days: int
+    series_data: list[dict], period_days: int
 ) -> Optional[ReportGenerateResponse]:
     model = GEMINI_MODEL_HEAVY or GEMINI_MODEL
     if not gemini_enabled(model):
         return None
 
-    payload = [
-        {"date": dt.date().isoformat(), "densityIndex": value}
-        for dt, value in series
-    ]
+    # payload is now a list of dicts with full info
+    payload = series_data
 
     prompt = (
         "あなたは薄毛対策の習慣化エージェントです。"
-        "以下のJSONデータを基に、短い週次レポートを日本語で作成してください。"
-        "医療診断はしないでください。一般的な生活改善の範囲にとどめてください。\n"
+        "以下のJSONデータ（過去の頭皮解析記録）を基に、ユーザーに向けた週次レポートを日本語で作成してください。"
+        "データに含まれる「髪密度(score)」「薄毛タイプ(hairType/pattern)」「頭皮状態(scalpCondition)」の傾向を踏まえて、"
+        "**具体的かつパーソナライズされた**アドバイスを行ってください。"
+        "医療診断は断定せず、あくまで生活習慣やケアの改善提案として記述してください。\n"
+        "入力データ詳細:\n"
+        "- score: 0-100の髪密度スコア\n"
+        "- pattern: M字, O字などの進行パターン\n"
+        "- scalpCondition: 乾燥, 脂性などの頭皮状態\n"
+        "\n"
         "出力は必ず次のJSON形式のみ:\n"
         "{\n"
         '  "highlights": ["..."],\n'
         '  "nextActions": ["..."],\n'
         '  "rawText": "..." \n'
         "}\n"
-        "highlightsは2〜3件、nextActionsは2〜3件、rawTextは要約文。\n"
-        f"入力: {{\"periodDays\": {period_days}, \"series\": {payload}}}\n"
+        "highlightsは2〜3件（数値の変化や特徴的な状態への言及）、nextActionsは2〜3件（タイプや状態に合わせた具体的な行動）、rawTextは全体のまとめ。\n"
+        f"入力: {{\"periodDays\": {period_days}, \"history\": {payload}}}\n"
     )
 
     try:
@@ -88,21 +93,26 @@ def generate_report(
     period_days = max(1, min(period_days, 30))
 
     db = get_firestore_client()
-    analysis_ref = db.collection("analysisResults").document(uid).collection("items")
+    analysis_ref = db.collection("reports").document(uid).collection("items") # CHECK: Should be analysisResults?
+    # Correcting to fetch from analysisResults based on previous logic 
+    analysis_ref = db.collection("users").document(uid).collection("analysisResults")
+
     docs = (
         analysis_ref.order_by(
-            "computedAt", direction=admin_firestore.Query.DESCENDING
+            "analyzedAt", direction=admin_firestore.Query.DESCENDING
         )
-        .limit(50)
+        .limit(20) # Limit to 20 items to avoid token limit
         .get()
     )
 
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=period_days)
-    series = []
+    series_data = [] # List of dicts for LLM
+    series_for_calc = [] # List of (date, score) for calculation
+
     for doc in docs:
         data = doc.to_dict()
-        ts = data.get("computedAt") or data.get("createdAt")
+        ts = data.get("analyzedAt") or data.get("createdAt")
         computed_at = _to_datetime(ts)
         if not computed_at:
             continue
@@ -110,44 +120,57 @@ def generate_report(
             computed_at = computed_at.replace(tzinfo=timezone.utc)
         if computed_at < cutoff:
             continue
-        density = data.get("densityIndex")
-        if isinstance(density, (int, float)):
-            series.append((computed_at, float(density)))
+        
+        score = data.get("score")
+        if isinstance(score, (int, float)):
+            # Prepare data for LLM
+            item_data = {
+                "date": computed_at.date().isoformat(),
+                "score": float(score),
+                "hairType": data.get("hairType"),
+                "pattern": data.get("pattern"),
+                "scalpCondition": data.get("scalpCondition"),
+                "notes": data.get("notes")
+            }
+            series_data.append(item_data)
+            series_for_calc.append((computed_at, float(score)))
 
-    series.sort(key=lambda item: item[0])
+    series_data.sort(key=lambda item: item["date"])
+    series_for_calc.sort(key=lambda item: item[0])
 
     highlights: List[str] = []
     next_actions: List[str] = []
     raw_text = ""
     model_label = "rule_based_v1"
 
-    llm_report = _generate_report_with_llm(series, period_days)
+    llm_report = _generate_report_with_llm(series_data, period_days)
     if llm_report:
         highlights = llm_report.highlights
         next_actions = llm_report.nextActions
         raw_text = llm_report.rawText
         model_label = f"gemini:{GEMINI_MODEL_HEAVY or GEMINI_MODEL}"
     else:
-        if not series:
+        if not series_for_calc:
             highlights.append("期間内の測定データがありません。")
-            next_actions.append("週1回の写真チェックインを続けましょう。")
-            next_actions.append("撮影条件（光・角度・距離）を揃えましょう。")
+            next_actions.append("写真チェックインを行い、あなたの髪質の記録を始めましょう。")
         else:
-            first = series[0][1]
-            latest = series[-1][1]
+            first = series_for_calc[0][1]
+            latest = series_for_calc[-1][1]
             delta = latest - first
             highlights.append(
-                f"{period_days}日で密度指数は {latest:.3f}（変化 {delta:+.3f}）でした。"
+                f"{period_days}日でスコアは {latest:.1f}（変化 {delta:+.1f}）でした。"
             )
-            if delta < 0:
-                highlights.append(
-                    "一時的なブレの可能性があるため、撮影条件を再確認してください。"
-                )
+            highlights.append("継続的な記録が精度の高いアドバイスにつながります。")
+            
+            # Simple fallback advice logic based on latest data if available
+            latest_data = series_data[-1]
+            condition = latest_data.get("scalpCondition")
+            if condition == "乾燥":
+                next_actions.append("頭皮が乾燥気味です。保湿ケアを心がけましょう。")
+            elif condition == "脂性":
+                next_actions.append("皮脂が多めです。丁寧なシャンプーを意識してください。")
             else:
-                highlights.append("安定して推移しているため、継続できています。")
-
-            next_actions.append("次回も同じ条件で撮影して比較精度を上げる。")
-            next_actions.append("睡眠時間を確保し、タンパク質を意識する。")
+                next_actions.append("バランスの良い食事と睡眠を心がけましょう。")
 
         raw_text = "\n".join(highlights + ["---"] + next_actions)
 
