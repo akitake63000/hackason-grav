@@ -1,5 +1,5 @@
 import logging
-import os  # 追加
+import os
 
 logging.warning(f"[AUTH DEBUG] ENV={os.getenv('ENV')}")
 
@@ -9,13 +9,29 @@ from ..config import DEBUG_AUTH
 from ..firebase import verify_id_token
 
 
+def _is_local_dev() -> bool:
+    """
+    Check if running in local development environment.
+    Requires multiple conditions to prevent accidental bypass in production.
+
+    Returns:
+        bool: True if all conditions are met for local development
+    """
+    is_local_env = os.getenv("ENV") == "local"
+    allow_auth_skip = os.getenv("ALLOW_LOCAL_AUTH_SKIP") == "true"
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "")
+    has_localhost = "localhost" in allowed_origins or "127.0.0.1" in allowed_origins
+
+    return is_local_env and allow_auth_skip and has_localhost
+
+
 def get_current_uid(
     authorization: str | None = Header(default=None),
     x_firebase_auth: str | None = Header(default=None),
 ) -> str:
-    # ローカル開発のみ認証スキップ（ENV=local のときだけ）
-    if os.getenv("ENV") == "local":
-        logging.info("Auth bypass enabled (ENV=local). Returning dummy UID.")
+    # ローカル開発環境でのみ認証スキップ（複数条件必須）
+    if _is_local_dev():
+        logging.warning("[LOCAL DEV] Authentication bypassed - returning dummy UID")
         return "local-user"
 
     bearer = None
