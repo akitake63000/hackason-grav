@@ -196,7 +196,8 @@ function LifestyleRecommendContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [diagnosisDate, setDiagnosisDate] = useState(null)
-  const router = useRouter() // router is available here via imports? No, need to import it.
+  const [selectedAction, setSelectedAction] = useState(null)
+  const router = useRouter()
 
   useEffect(() => {
     const fetchRecommendations = async () => {
