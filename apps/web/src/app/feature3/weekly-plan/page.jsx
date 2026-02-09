@@ -208,11 +208,15 @@ export default function WeeklyPlan() {
             const planRes = await apiFetch('/api/v1/lifestyle/plan/current')
             if (planRes.ok) {
                 const planData = await planRes.json()
+                console.log("Plan data loaded:", planData)
                 setPlan(planData)
-                setTodayLog(planData.todayLog || [])
+
+                // todayLog is an object { completedActions: [...] } or null
+                const logArray = planData.todayLog?.completedActions || []
+                setTodayLog(logArray)
 
                 // Calculate bonus scores from completed actions
-                calculateBonusScores(planData, planData.todayLog || [])
+                calculateBonusScores(planData, logArray)
             }
         } catch (error) {
             console.error('Failed to fetch data:', error)
