@@ -296,7 +296,21 @@ export default function WeeklyPlan() {
     }
 
     const handleCreateNewPlan = async () => {
-        router.push('/feature3/lifestyle-recommend')
+        setLoading(true)
+        try {
+            const res = await apiFetch('/api/v1/lifestyle/plan/generate', { method: 'POST' })
+            if (res.ok) {
+                // Refresh data to show the new plan
+                await fetchData()
+            } else {
+                alert("プラン作成に失敗しました")
+            }
+        } catch (e) {
+            console.error("Failed to regenerate plan", e)
+            alert("プラン作成に失敗しました")
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleRetakeSurvey = () => {
