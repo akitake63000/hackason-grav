@@ -291,40 +291,87 @@ function LifestyleRecommendContent() {
     }
   }
 
-  const handleCreateCheck = (action) => {
-    // Pick a random message
-    const msg = REFLECTION_MESSAGES[Math.floor(Math.random() * REFLECTION_MESSAGES.length)]
-    setReflectionMessage(msg)
-    setPendingCheckAction(action)
+  // Update handleCheck to accept isYesterday
+  const handleCheck = (action, isYesterday = false) => {
+    const targetDate = isYesterday && currentPlan.yesterdayLog
+      ? currentPlan.yesterdayLog.date
+      : new Date().toISOString().split('T')[0] // Fallback (backend handles 4AM shift for today, but specific date overrides)
+
+    // Actually, backend 4AM shift is for "GET current". 
+    // For POST check, we should send the specific date we are checking for.
+    // If checking "Today's Mission", we rely on backend's "today" or send explicit date?
+    // Let's send explicit date to be safe.
+    // But wait, "Today's mission" relies on backend 4AM Logic.
+    // So if it's 2AM, backend says it's "Yesterday(Date X)".
+    // So we should use the date from the log object if available?
+    // todayLog doesn't have date field in my previous code, let's look.
+    // No, I didn't add date to todayLog in backend.
+    // Let's trust "isYesterday" flag. 
+
+    // Logic:
+    // If isYesterday=true, use currentPlan.yesterdayLog.date
+    // If isYesterday=false, let backend decide "today" (send empty date? or handled by router?)
+    // Router expects `date` field.
+
+    // We need to know what "today" is according to backend.
+    // Hack: Send a dummy date? No.
+    // Let's calculate client-side 4AM shift to match backend.
+
+    let dateStr = ""
+    if (isYesterday && currentPlan.yesterdayLog) {
+      dateStr = currentPlan.yesterdayLog.date
+    } else {
+      const now = new Date()
+      if (now.getHours() < 4) {
+        now.setDate(now.getDate() - 1)
+      }
+      dateStr = now.toISOString().split('T')[0]
+    }
+
+    setPendingCheckAction({ ...action, date: dateStr })
+
+    // Select random message
+    setReflectionMessage(REFLECTION_MESSAGES[Math.floor(Math.random() * REFLECTION_MESSAGES.length)])
   }
 
-  const confirmCheckAction = async () => {
-    if (!currentPlan || !pendingCheckAction) return
-
+  const handleConfirmCheck = async () => {
+    if (!pendingCheckAction || !currentPlan) return
     const actionId = pendingCheckAction.id
-
-    // Optimistic update
-    const newCompleted = [...todayLog.completedActions, actionId]
-    setTodayLog({ ...todayLog, completedActions: newCompleted })
-
-    // Close modal
-    setPendingCheckAction(null)
+    const dateStr = pendingCheckAction.date
 
     try {
-      const today = new Date().toISOString().split('T')[0]
-      await apiFetch('/api/v1/lifestyle/plan/check', {
+      // Optimistic update
+      // If dateStr matches yesterdayLog.date, update yesterdayLog
+      // Else update todayLog
+      const isYesterday = currentPlan.yesterdayLog && dateStr === currentPlan.yesterdayLog.date
+
+      if (isYesterday) {
+        // Update yesterdayLog local state? 
+        // Use fetchPlan to refresh is safer/easier
+      } else {
+        const newCompleted = [...todayLog.completedActions, actionId]
+        setTodayLog({ ...todayLog, completedActions: newCompleted })
+      }
+
+      const res = await apiFetch('/api/v1/lifestyle/plan/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: currentPlan.planId,
-          actionId,
-          date: today,
+          actionId: actionId,
+          date: dateStr,
           completed: true
-        })
+        }),
       })
+
+      if (res.ok) {
+        // Refresh to get consistent state
+        fetchPlan()
+      }
     } catch (e) {
-      console.error("Check failed", e)
-      // Revert? For now, assume success or user sees error next reload
+      console.error(e)
+    } finally {
+      setPendingCheckAction(null)
     }
   }
 
@@ -336,14 +383,20 @@ function LifestyleRecommendContent() {
     setTodayLog({ ...todayLog, completedActions: newCompleted })
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      // Calculate date with 4AM shift logic
+      const now = new Date()
+      if (now.getHours() < 4) {
+        now.setDate(now.getDate() - 1)
+      }
+      const dateStr = now.toISOString().split('T')[0]
+
       await apiFetch('/api/v1/lifestyle/plan/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: currentPlan.planId,
           actionId,
-          date: today,
+          date: dateStr,
           completed: false
         })
       })
@@ -352,48 +405,56 @@ function LifestyleRecommendContent() {
     }
   }
 
+  // ... 
+
+  onClick = {() => isChecked ? handleUncheckAction(action.id) : handleCheck(action)
+}
+                  >
+  <div style={styles.actionInner}>
+
+
   const getPriorityInfo = (priority) => {
     switch (priority) {
       case 'high':
-        return { color: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)', lead: '最優先対策' }
-      case 'medium':
-        return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', lead: '推奨対策' }
-      default:
-        return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', lead: '継続推奨' }
+    return {color: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)', lead: '最優先対策' }
+    case 'medium':
+    return {color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', lead: '推奨対策' }
+    default:
+    return {color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', lead: '継続推奨' }
     }
   }
 
-  if (loading) {
+    if (loading) {
     return (
-      <Layout>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-          <Loader2 className="animate-spin" size={40} color="#419873" />
-          <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
-        </div>
-      </Layout>
+    <Layout>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Loader2 className="animate-spin" size={40} color="#419873" />
+        <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
+      </div>
+    </Layout>
     )
   }
 
-  if (error === '診断データがありません') {
+    if (error === '診断データがありません') {
     return (
-      <Layout>
-        <div style={styles.container}>
-          <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
-            <h2 style={styles.pageTitle}>診断データがありません</h2>
-            <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
-            <Button onClick={() => window.location.href = '/feature3/tendency'}>
-              傾向分析を始める
-            </Button>
-          </div>
+    <Layout>
+      <div style={styles.container}>
+        <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
+          <h2 style={styles.pageTitle}>診断データがありません</h2>
+          <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
+          <Button onClick={() => window.location.href = '/feature3/tendency'}>
+            傾向分析を始める
+          </Button>
         </div>
-      </Layout>
+      </div>
+    </Layout>
     )
   }
 
-  // Define display order for axes
-  const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
+    // Define display order for axes
+    const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
 
-  return (
+    return (
     <Layout>
       <div style={styles.container}>
         <div style={styles.content}>
@@ -434,119 +495,186 @@ function LifestyleRecommendContent() {
                   {generatingPlan ? <Loader2 className="animate-spin" /> : <><Calendar size={18} style={{ marginRight: 8 }} /> プランを作成する</>}
                 </Button>
               </Card>
-            ) : (() => {
+            ) : (() => { // Plan View (Expired or Active)
+              const stats = currentPlan.weeklyStats
               const today = new Date()
-              today.setHours(0, 0, 0, 0)
               const endDate = new Date(currentPlan.endDate)
-              endDate.setHours(0, 0, 0, 0)
-              const isExpired = today > endDate
+              endDate.setHours(23, 59, 59, 999) // Compare end of day? Or backend handles "expired" status?
+              // Use backend status or logic. If "weeklyStats" exists, it's expired/completed.
+              const isExpired = !!stats || (today > endDate && today.getDate() !== endDate.getDate())
 
-              // Check if diagnosis is old (> 14 days)
+              // Check freshness of diagnosis
               const diagDate = diagnosisDate ? new Date(diagnosisDate) : new Date(0)
-              const diffTime = Math.abs(today - diagDate)
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-              const isDiagnosisOld = diffDays > 14
+              const twoWeeksAgo = new Date()
+              twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+              const isDiagnosisOld = diagDate < twoWeeksAgo
 
               if (isExpired) {
-                return (
-                  <Card padding="lg" style={{ border: '2px solid #e5e7eb', background: '#f9fafb', textAlign: 'center' }}>
-                    <Trophy size={48} color="#f59e0b" style={{ margin: '0 auto 16px' }} />
-                    <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
-                      今週のプランが終了しました
-                    </h2>
-                    <p style={{ fontSize: '14px', color: '#4a4a4a', marginBottom: '24px' }}>
-                      お疲れ様でした！<br />
-                      {isDiagnosisOld
-                        ? "前回の診断から期間が空いています。再診断を受けて、今の状態に最適な新プランを作成しましょう。"
-                        : "継続は力なり。今の状態に合わせて、来週のプランを作成しましょう。"
-                      }
-                    </p>
+                const rate = stats ? stats.rate : 0
+                const message = stats ? stats.message : "お疲れ様でした！"
 
-                    {isDiagnosisOld ? (
-                      <Button onClick={() => router.push('/feature3/tendency')}>
-                        再診断を受ける (推奨)
-                      </Button>
-                    ) : (
-                      <Button onClick={handleGeneratePlan} disabled={generatingPlan}>
-                        {generatingPlan ? <Loader2 className="animate-spin" /> : "次週のプランを作成する"}
-                      </Button>
-                    )}
+                return (
+                  <Card padding="lg" variant="accent" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ background: '#fff', padding: '12px', borderRadius: '50%' }}>
+                      <CheckCircle2 size={32} color="#419873" />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1a3d2e', marginBottom: '8px' }}>
+                        1週間のプランが終了しました
+                      </h3>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#419873', margin: '12px 0' }}>
+                        達成率: {rate}%
+                      </div>
+                      <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6 }}>
+                        {message}<br />
+                        {isDiagnosisOld
+                          ? "今の体の状態に合わせて、プランを最適化しましょう。"
+                          : "心機一転、次の1週間を始めましょう！"}
+                      </p>
+                    </div>
+
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                      {isDiagnosisOld ? (
+                        <>
+                          <Button size="full" onClick={() => router.push('/feature3/tendency')}>
+                            再診断を受ける（推奨）
+                          </Button>
+                          <Button size="full" variant="outline" onClick={handleGeneratePlan} disabled={generatingPlan}>
+                            {generatingPlan ? <Loader2 className="animate-spin" /> : '今の診断結果で次へ'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="full" onClick={handleGeneratePlan} disabled={generatingPlan}>
+                          {generatingPlan ? <Loader2 className="animate-spin" /> : '次のプランを作成する'}
+                        </Button>
+                      )}
+                    </div>
                   </Card>
                 )
               }
 
+              // Active Plan View
               return (
-                <Card padding="lg" style={{ border: '2px solid #419873', position: 'relative', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: '#419873' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-                    <div>
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        background: '#e6f4ea', color: '#1e8e3e', fontSize: '12px', fontWeight: '700',
-                        padding: '4px 12px', borderRadius: '100px', marginBottom: '8px'
-                      }}>
-                        <Trophy size={14} /> 今週のテーマ
-                      </div>
-                      <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a3d2e' }}>
-                        {currentPlan.theme}
-                      </h2>
-                      <p style={{ fontSize: '13px', color: '#7f786d', marginTop: '4px' }}>
-                        期間: {new Date(currentPlan.startDate).toLocaleDateString()} 〜 {new Date(currentPlan.endDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '32px', fontWeight: '700', color: '#419873' }}>
-                        {todayLog.completedActions.length}/{currentPlan.targetActions.length}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#7f786d' }}>TODAY'S CLEAR</div>
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#4a4a4a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Target size={18} /> 今日のミッション
-                  </h3>
+                  {/* Yesterday's Review (If incomplete) */}
+                  {currentPlan.yesterdayLog && (() => {
+                    const completedSet = new Set(currentPlan.yesterdayLog.completedActions)
+                    const allDone = currentPlan.targetActions.every(a => completedSet.has(a.id))
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {currentPlan.targetActions.map((action) => {
-                      const isChecked = todayLog.completedActions.includes(action.id)
+                    if (!allDone) {
                       return (
-                        <motion.div
-                          key={action.id}
-                          layout
-                          initial={false}
-                          animate={{
-                            backgroundColor: isChecked ? '#f0fdf4' : '#fff',
-                            borderColor: isChecked ? '#bbf7d0' : '#e5e7eb'
-                          }}
-                          style={{
-                            border: '1px solid', borderRadius: '16px', padding: '16px',
-                            display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onClick={() => isChecked ? handleUncheckAction(action.id) : handleCreateCheck(action)}
-                        >
-                          <div style={{
-                            width: '24px', height: '24px', borderRadius: '50%',
-                            border: isChecked ? 'none' : '2px solid #d1d5db',
-                            background: isChecked ? '#419873' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                          }}>
-                            {isChecked && <CheckCircle size={16} color="#fff" />}
+                        <Card padding="md" style={{ border: '1px solid #e0dcd0', background: '#faf9f5' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <History size={18} color="#f59e0b" />
+                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#1a3d2e' }}>昨日の振り返り</h3>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '16px', fontWeight: '600', color: isChecked ? '#15803d' : '#1a3d2e', textDecoration: isChecked ? 'line-through' : 'none' }}>
-                              {action.name}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#7f786d' }}>
-                              {action.duration}
-                            </div>
+                          <p style={{ fontSize: '12px', color: '#7f786d', marginBottom: '12px' }}>
+                            昨日の分も今なら記録できます（毎朝10時まで推奨）。
+                          </p>
+                          <div style={styles.checklist}>
+                            {currentPlan.targetActions.map((action) => {
+                              const isDone = completedSet.has(action.id)
+                              return (
+                                <div
+                                  key={`yesterday-${action.id}`}
+                                  style={{
+                                    ...styles.checkItem,
+                                    opacity: isDone ? 0.6 : 1,
+                                  }}
+                                  onClick={() => !isDone && handleCheck(action, true)} // Pass isYesterday=true
+                                >
+                                  <div style={{
+                                    ...styles.checkbox,
+                                    ...(isDone ? styles.checkboxChecked : {}),
+                                  }}>
+                                    {isDone && <CheckCircle2 size={14} color="#fff" />}
+                                  </div>
+                                  <div style={styles.actionContent}>
+                                    <div style={{ ...styles.actionName, fontSize: '13px' }}>{action.name}</div>
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
-                          <div style={{ fontSize: '24px' }}>{action.emoji}</div>
-                        </motion.div>
+                        </Card>
                       )
-                    })}
+                    }
+                    return null
+                  })()
+                  }
+
+                  {/* Theme Card */}
+                  <Card variant="accent" padding="lg">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                      <div style={styles.themeIcon}>
+                        <Sparkles size={20} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={styles.cardLabel}>今週のテーマ</div>
+                        <h2 style={styles.cardTitle}>{currentPlan.theme}</h2>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div style={{ marginTop: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px', color: '#4a4a4a' }}>
+                        <span>進捗</span>
+                        <span>{Math.round((todayLog.completedActions.length / currentPlan.targetActions.length) * 100)}%</span>
+                      </div>
+                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.5)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${(todayLog.completedActions.length / currentPlan.targetActions.length) * 100}%`,
+                          height: '100%',
+                          background: '#419873',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Today's Mission */}
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1a3d2e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={20} /> 今日のミッション
+                    </h3>
+                    <div style={styles.checklist}>
+                      {currentPlan.targetActions.map((action, index) => {
+                        const isDone = todayLog.completedActions.includes(action.id)
+                        return (
+                          <motion.div
+                            key={action.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            style={{
+                              ...styles.checkItem,
+                              ...(isDone ? styles.checkItemActive : {}),
+                            }}
+                            onClick={() => !isDone && handleCheck(action)}
+                          >
+                            <div style={{
+                              ...styles.checkbox,
+                              ...(isDone ? styles.checkboxChecked : {}),
+                            }}>
+                              {isDone && <CheckCircle2 size={16} color="#fff" />}
+                            </div>
+                            <div style={styles.actionContent}>
+                              <div style={styles.actionName}>{action.name}</div>
+                              <div style={styles.actionDesc}>
+                                {action.emoji} {action.reason}
+                              </div>
+                            </div>
+                            {isDone && (
+                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ marginLeft: 'auto' }}>
+                                <span style={{ fontSize: '12px', color: '#419873', fontWeight: '600' }}>完了!</span>
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </Card>
+                </div>
               )
             })()}
           </div>
@@ -584,26 +712,55 @@ function LifestyleRecommendContent() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {actions.map((action, index) => {
                         const p = getPriorityInfo(action.priority)
+                        // Check if this reference action is done today
+                        const isChecked = todayLog.completedActions.includes(action.id)
+
                         return (
-                          <Card
+                          <motion.div
                             key={action.id}
-                            padding="sm"
-                            hoverable
-                            onClick={() => setSelectedAction(action)}
-                            style={{ ...styles.actionCard, background: '#fafafa' }}
+                            layout
+                            initial={false}
+                            animate={{
+                              backgroundColor: isChecked ? '#f0fdf4' : '#fafafa',
+                              borderColor: isChecked ? '#bbf7d0' : 'transparent'
+                            }}
+                            style={{
+                              ...styles.actionCard,
+                              border: isChecked ? '1px solid' : 'none',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => isChecked ? handleUncheckAction(action.id) : handleCheck(action)}
                           >
                             <div style={styles.actionInner}>
-                              <div style={{ ...styles.actionEmoji, width: '40px', height: '40px', fontSize: '20px', background: '#fff' }}>{action.emoji}</div>
+                              <div style={{
+                                ...styles.actionEmoji,
+                                width: '40px', height: '40px', fontSize: '20px',
+                                background: isChecked ? '#419873' : '#fff',
+                                color: isChecked ? '#fff' : '#000',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {isChecked ? <CheckCircle size={20} /> : action.emoji}
+                              </div>
                               <div style={styles.actionContent}>
                                 <div style={styles.actionHeader}>
-                                  <div style={{ ...styles.actionName, fontSize: '15px' }}>
+                                  <div style={{
+                                    ...styles.actionName,
+                                    fontSize: '15px',
+                                    color: isChecked ? '#15803d' : '#1a3d2e',
+                                    textDecoration: isChecked ? 'line-through' : 'none'
+                                  }}>
                                     {action.name}
                                   </div>
-                                  <ChevronRight size={16} color="#e0dcd0" />
+                                  {isChecked ? (
+                                    <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 'bold' }}>COMPLETED</span>
+                                  ) : (
+                                    <ChevronRight size={16} color="#e0dcd0" />
+                                  )}
                                 </div>
                               </div>
                             </div>
-                          </Card>
+                          </motion.div>
                         )
                       })}
                     </div>
@@ -721,14 +878,14 @@ function LifestyleRecommendContent() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
-    </Layout>
-  )
+        </div >
+      </div >
+    </Layout >
+    )
 }
 
-// ローディングフォールバック
-function LifestyleRecommendFallback() {
+    // ローディングフォールバック
+    function LifestyleRecommendFallback() {
   return (
     <Layout>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
@@ -736,16 +893,16 @@ function LifestyleRecommendFallback() {
         <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
       </div>
     </Layout>
-  )
+    )
 }
 
-// メインコンポーネント: Suspenseでラップする
-function LifestyleRecommend() {
+    // メインコンポーネント: Suspenseでラップする
+    function LifestyleRecommend() {
   return (
     <Suspense fallback={<LifestyleRecommendFallback />}>
       <LifestyleRecommendContent />
     </Suspense>
-  )
+    )
 }
 
-export default LifestyleRecommend
+    export default LifestyleRecommend

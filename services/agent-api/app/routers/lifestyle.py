@@ -507,6 +507,8 @@ class PlanResponse(BaseModel):
     
     # Today's status
     todayLog: dict | None = None # { completedActions: [] }
+    yesterdayLog: dict | None = None # { completedActions: [], date: "YYYY-MM-DD" }
+    weeklyStats: dict | None = None # { rate: int, message: str, totalCompleted: int }
 
 
 @router.post("/plan/generate", response_model=PlanResponse)
@@ -580,21 +582,62 @@ def get_current_plan(
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
     end_date = datetime.fromisoformat(plan_data["endDate"])
     
+    # Calculate Weekly Stats if expired
+    weekly_stats = None
     if now > end_date and now.date() > end_date.date():
-        # Plan expired
-        # Auto-complete or let frontend handle "Time to review" state?
-        # Let's verify status on frontend, but return it here.
-        # Maybe separate status "expired"
-        pass
+        # Calculate completion rate
+        total_days = 7
+        total_actions = len(plan_data["targetActions"]) * total_days
+        total_completed = 0
+        
+        # Iterate all logs (needs fetching all logs or query)
+        # For simplicity, we just fetch all logs for this plan
+        logs_ref = plan_doc.reference.collection("logs")
+        logs = logs_ref.stream()
+        for log in logs:
+            data = log.to_dict()
+            total_completed += len(data.get("completedActions", []))
+            
+        rate = int((total_completed / total_actions) * 100) if total_actions > 0 else 0
+        
+        # Feedback message
+        if rate >= 80:
+            msg = "素晴らしい達成率です！この調子で継続しましょう。"
+        elif rate >= 50:
+            msg = "よく頑張りました！次は80%を目指してみましょう。"
+        else:
+            msg = "まずは「3日に1回」など、無理のないペースから始めましょう。"
+            
+        weekly_stats = {
+            "rate": rate,
+            "message": msg,
+            "totalCompleted": total_completed
+        }
 
-    # 3. Get today's log
-    today_str = now.strftime("%Y-%m-%d")
+    # 3. Get today's log (Day Shift Logic: Day starts at 04:00)
+    # If 00:00 - 03:59, treat as previous date
+    current_date_obj = now
+    if now.hour < 4:
+        current_date_obj = now - timedelta(days=1)
+        
+    today_str = current_date_obj.strftime("%Y-%m-%d")
     log_ref = plan_doc.reference.collection("logs").document(today_str)
     log_doc = log_ref.get()
     
     today_log = {"completedActions": []}
     if log_doc.exists:
         today_log = log_doc.to_dict()
+        
+    # 4. Get Yesterday's log (for retrospective check)
+    yesterday_date_obj = current_date_obj - timedelta(days=1)
+    yesterday_str = yesterday_date_obj.strftime("%Y-%m-%d")
+    yesterday_ref = plan_doc.reference.collection("logs").document(yesterday_str)
+    yesterday_doc = yesterday_ref.get()
+    
+    yesterday_log = {"completedActions": [], "date": yesterday_str}
+    if yesterday_doc.exists:
+        data = yesterday_doc.to_dict()
+        yesterday_log["completedActions"] = data.get("completedActions", [])
         
     return PlanResponse(
         planId=plan_data["planId"],
@@ -603,7 +646,9 @@ def get_current_plan(
         startDate=plan_data["startDate"],
         endDate=plan_data["endDate"],
         status=plan_data["status"],
-        todayLog=today_log
+        todayLog=today_log,
+        yesterdayLog=yesterday_log,
+        weeklyStats=weekly_stats
     )
 
 

@@ -62,8 +62,24 @@ def generate_weekly_plan(scores: dict[str, int], answers: dict[str, str]) -> Wee
     target_actions = all_candidates[:3]
     
     # Remove internal sort key from output
+    # Remove internal sort key from output and apply variants
+    final_target_actions = []
+    
     for a in target_actions:
-        a.pop('_sort_score', None)
+        # Create a copy to avoid modifying the catalog directly
+        action_copy = a.copy()
+        action_copy.pop('_sort_score', None)
+        
+        # Randomize name if variants exist (Action Diversity)
+        if 'variants' in action_copy and action_copy['variants']:
+             variant = random.choice(action_copy['variants'])
+             # e.g. "早寝 (23時までに布団に入る)"
+             # Or just use the variant as the name for simplicity in checklist
+             action_copy['name'] = f"{action_copy['name']} ({variant})"
+        
+        final_target_actions.append(action_copy)
+    
+    target_actions = final_target_actions
         
     # 4. Generate a "Theme" based on the selected actions or weakest axis
     # Find weakest axis
