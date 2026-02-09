@@ -113,6 +113,9 @@ def analyze_photo(
         "analyzedAt": admin_firestore.SERVER_TIMESTAMP,
         "score": result.score,
         "notes": result.notes,
+        "hairType": result.hairType,
+        "pattern": result.pattern,
+        "quality": result.quality,
         "version": "v1-gemini-1.5-flash"
     }
     
@@ -126,7 +129,10 @@ def analyze_photo(
         photoId=payload.photoId,
         result={
             "score": result.score,
-            "notes": result.notes
+            "notes": result.notes,
+            "hairType": result.hairType,
+            "pattern": result.pattern,
+            "quality": result.quality
         }
     )
 
