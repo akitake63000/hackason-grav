@@ -264,6 +264,8 @@ def _encourager_node(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "不安に感じるのは自然な反応です。今ここで一緒に整理しましょう。"
@@ -290,6 +292,8 @@ def _coach_node(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "今日の最小の一手は「同条件で写真を撮る」か「睡眠を30分確保する」。"
@@ -323,6 +327,8 @@ def _doctor_node(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "一般論として、抜け毛は睡眠・ストレス・栄養の影響を受けます。"
@@ -349,6 +355,8 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "皆さんの意見を聞いて、まず気持ちを整理することが大切だと改めて感じます。"
@@ -377,6 +385,8 @@ def _coach_node_r2(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "議論を踏まえて、今日やるべきことは1つ。"
@@ -411,6 +421,8 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
     except Exception:
         text = (
             "皆さんの意見に補足すると、経過観察と生活習慣の改善が基本です。"
@@ -442,6 +454,8 @@ def _orchestrator_node(state: _DiscussState) -> dict:
     )
     try:
         text = generate_text(prompt, max_output_tokens=mt)
+        if not text.strip():
+            raise ValueError("Empty response from LLM")
         data = safe_json_load(text)
         summary = data.get("summary", "")
         if not summary:
