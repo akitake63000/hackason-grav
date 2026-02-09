@@ -626,7 +626,8 @@ function FoodRecommendContent() {
                                                     </p>
                                                 )}
                                             </div>
-                                        ))}\n                                </motion.div>
+                                        ))}
+                                </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
