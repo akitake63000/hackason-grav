@@ -173,14 +173,18 @@ function ChatSettings() {
     try {
       // localStorageに保存（常に動く）
       localStorage.setItem('feature2-chat-settings', JSON.stringify({ style, detail }))
-      // Firestoreにも保存
+      // Firestoreにも保存（失敗してもlocalStorageは保存済み）
       if (user && isFirebaseConfigured()) {
-        const db = getFirestoreDb()
-        await setDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'), {
-          style,
-          detail,
-          updatedAt: new Date().toISOString(),
-        })
+        try {
+          const db = getFirestoreDb()
+          await setDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'), {
+            style,
+            detail,
+            updatedAt: new Date().toISOString(),
+          })
+        } catch (fsErr) {
+          console.error('Firestore save failed (localStorage saved):', fsErr)
+        }
       }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
