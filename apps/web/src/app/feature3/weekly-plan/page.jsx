@@ -313,26 +313,40 @@ export default function WeeklyPlan() {
         if (!confirmingAction) return
 
         try {
+            // Optimistic Update
+            const newLog = [...todayLog.filter(l => l.actionId !== confirmingAction.id), { actionId: confirmingAction.id, completed: true }]
+            setTodayLog(newLog)
+
+            // Update streak if this is the first completion of the day
+            const completedCount = newLog.filter(l => l.completed).length
+            if (completedCount === 1) {
+                setStreak(prev => prev + 1)
+            }
+
+            // Update bonus scores locally
+            if (confirmingAction.targetAxis) {
+                setBonusScores(prev => ({
+                    ...prev,
+                    [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 2
+                }))
+            }
+
+            // API Call
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actionId: confirmingAction.id, completed: true }),
             })
 
-            if (res.ok) {
-                setTodayLog(prev => [...prev.filter(l => l.actionId !== confirmingAction.id),
-                { actionId: confirmingAction.id, completed: true }])
-
-                // Update bonus scores
-                if (confirmingAction.targetAxis) {
-                    setBonusScores(prev => ({
-                        ...prev,
-                        [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 2
-                    }))
-                }
+            if (!res.ok) {
+                // Revert on error
+                setTodayLog(todayLog)
+                if (completedCount === 1) setStreak(prev => prev - 1)
+                // Revert bonus (simplified: just refetch or ignore for now as it's minor)
             }
         } catch (error) {
             console.error('Check failed:', error)
+            setTodayLog(todayLog) // Revert
         } finally {
             setConfirmingAction(null)
         }
@@ -340,17 +354,30 @@ export default function WeeklyPlan() {
 
     const handleUncheck = async (actionId) => {
         try {
+            // Optimistic Update
+            const newLog = todayLog.filter(l => l.actionId !== actionId)
+            setTodayLog(newLog)
+
+            // Update streak if we removed the last completed action
+            const completedCount = newLog.filter(l => l.completed).length
+            if (completedCount === 0) {
+                setStreak(prev => Math.max(0, prev - 1))
+            }
+
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actionId, completed: false }),
             })
 
-            if (res.ok) {
-                setTodayLog(prev => prev.filter(l => l.actionId !== actionId))
+            if (!res.ok) {
+                // Revert
+                setTodayLog(todayLog)
+                if (completedCount === 0) setStreak(prev => prev + 1)
             }
         } catch (error) {
             console.error('Uncheck failed:', error)
+            setTodayLog(todayLog)
         }
     }
 

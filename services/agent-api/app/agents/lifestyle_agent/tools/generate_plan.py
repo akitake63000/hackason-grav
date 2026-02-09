@@ -109,7 +109,7 @@ def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], hist
     """
 
     try:
-        response_text = generate_text(prompt, model="gemini-pro")
+        response_text = generate_text(prompt)
         data = safe_json_load(response_text)
         
         if not data or "actions" not in data:
@@ -130,29 +130,27 @@ def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], hist
     except Exception as e:
         print(f"Gemini daily generation failed: {e}")
         # Fallback
+        # Fallback pool
+        fallback_pool = [
+            {"name": "コップ1杯の水を飲む", "emoji": "💧", "description": "血流を促し、水分補給を行いましょう。", "targetAxis": "blood_flow"},
+            {"name": "深呼吸を3回する", "emoji": "🧘", "description": "深く息を吸って、ストレスを軽減します。", "targetAxis": "stress"},
+            {"name": "スマホを置いて5分休む", "emoji": "👀", "description": "デジタルデトックスで目を休めましょう。", "targetAxis": "circadian"},
+            {"name": "朝日を浴びる", "emoji": "☀️", "description": "体内時計をリセットし、自律神経を整えます。", "targetAxis": "circadian"},
+            {"name": "肩を10回回す", "emoji": "💪", "description": "肩甲骨周りをほぐして血流を改善します。", "targetAxis": "blood_flow"},
+            {"name": "寝る1時間前のスマホ断ち", "emoji": "📵", "description": "睡眠の質を高めるための準備です。", "targetAxis": "hormone"},
+            {"name": "好きな音楽を聴く", "emoji": "🎵", "description": "リラックスして心拍数を落ち着けます。", "targetAxis": "stress"},
+            {"name": "階段を使う", "emoji": "🚶", "description": "日常動作の中で運動量を増やしましょう。", "targetAxis": "blood_flow"},
+        ]
+        
+        selected = random.sample(fallback_pool, 3)
         return [
             {
-                "id": f"fb_{int(datetime.now().timestamp())}_1",
-                "name": "コップ1杯の水を飲む",
-                "emoji": "💧",
-                "description": "血流を促します。",
-                "targetAxis": "blood_flow",
-                "priority": "high"
-            },
-            {
-                "id": "fb_{int(datetime.now().timestamp())}_2",
-                "name": "深呼吸を3回する",
-                "emoji": "🧘",
-                "description": "ストレスを軽減します。",
-                "targetAxis": "stress",
-                "priority": "high"
-            },
-            {
-                "id": "fb_{int(datetime.now().timestamp())}_3",
-                "name": "スマホを置いて5分休む",
-                "emoji": "👀",
-                "description": "目を休めましょう。",
-                "targetAxis": "circadian",
+                "id": f"fb_{int(datetime.now().timestamp())}_{i}",
+                "name": item["name"],
+                "emoji": item["emoji"],
+                "description": item["description"],
+                "targetAxis": item["targetAxis"],
                 "priority": "high"
             }
+            for i, item in enumerate(selected)
         ]
