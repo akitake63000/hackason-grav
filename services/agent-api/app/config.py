@@ -35,3 +35,7 @@ ALLOWED_STORAGE_EXTENSIONS = os.getenv(
     "ALLOWED_STORAGE_EXTENSIONS",
     "jpg,jpeg,png,webp"
 )
+
+# Error monitoring settings
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")  # Sentry DSN for error tracking
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # Environment name (development, staging, production)
