@@ -7,7 +7,7 @@ import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
-import { collection, doc, setDoc, getDocs, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -289,12 +289,44 @@ function Chat() {
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState(null)
   const [threadId, setThreadId] = useState('default')
+  const [chatStyle, setChatStyle] = useState('balanced')
+  const [chatDetail, setChatDetail] = useState('normal')
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
 
   useEffect(() => {
     return () => { isUnmountedRef.current = true }
   }, [])
+
+  // 設定を読み込む（Firestore → localStorage フォールバック）
+  useEffect(() => {
+    const loadSettings = async () => {
+      // まずlocalStorageから読み込む（即時反映）
+      try {
+        const local = localStorage.getItem('feature2-chat-settings')
+        if (local) {
+          const parsed = JSON.parse(local)
+          if (parsed.style) setChatStyle(parsed.style)
+          if (parsed.detail) setChatDetail(parsed.detail)
+        }
+      } catch {}
+      // Firestoreがあればそちらを優先
+      if (user && isFirebaseConfigured()) {
+        try {
+          const db = getFirestoreDb()
+          const snapshot = await getDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'))
+          if (snapshot.exists()) {
+            const data = snapshot.data()
+            if (data.style) setChatStyle(data.style)
+            if (data.detail) setChatDetail(data.detail)
+          }
+        } catch (err) {
+          console.error('Failed to load chat settings:', err)
+        }
+      }
+    }
+    if (!authLoading) loadSettings()
+  }, [user, authLoading])
 
   // Firestoreから会話履歴を読み込む
   useEffect(() => {
@@ -408,6 +440,8 @@ function Chat() {
           threadId,
           message: inputValue,
           mode: 'balanced',
+          style: chatStyle,
+          detail: chatDetail,
         }),
       })
 
