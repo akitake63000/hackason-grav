@@ -404,57 +404,48 @@ function LifestyleRecommendContent() {
       console.error("Uncheck failed", e)
     }
   }
-
-  // ... 
-
-  onClick = {() => isChecked ? handleUncheckAction(action.id) : handleCheck(action)
-}
-                  >
-  <div style={styles.actionInner}>
-
-
   const getPriorityInfo = (priority) => {
     switch (priority) {
       case 'high':
-    return {color: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)', lead: '最優先対策' }
-    case 'medium':
-    return {color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', lead: '推奨対策' }
-    default:
-    return {color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', lead: '継続推奨' }
+        return { color: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)', lead: '最優先対策' }
+      case 'medium':
+        return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', lead: '推奨対策' }
+      default:
+        return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', lead: '継続推奨' }
     }
   }
 
-    if (loading) {
+  if (loading) {
     return (
-    <Layout>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-        <Loader2 className="animate-spin" size={40} color="#419873" />
-        <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
-      </div>
-    </Layout>
-    )
-  }
-
-    if (error === '診断データがありません') {
-    return (
-    <Layout>
-      <div style={styles.container}>
-        <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
-          <h2 style={styles.pageTitle}>診断データがありません</h2>
-          <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
-          <Button onClick={() => window.location.href = '/feature3/tendency'}>
-            傾向分析を始める
-          </Button>
+      <Layout>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+          <Loader2 className="animate-spin" size={40} color="#419873" />
+          <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
         </div>
-      </div>
-    </Layout>
+      </Layout>
     )
   }
 
-    // Define display order for axes
-    const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
-
+  if (error === '診断データがありません') {
     return (
+      <Layout>
+        <div style={styles.container}>
+          <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
+            <h2 style={styles.pageTitle}>診断データがありません</h2>
+            <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
+            <Button onClick={() => window.location.href = '/feature3/tendency'}>
+              傾向分析を始める
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Define display order for axes
+  const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
+
+  return (
     <Layout>
       <div style={styles.container}>
         <div style={styles.content}>
@@ -881,11 +872,11 @@ function LifestyleRecommendContent() {
         </div >
       </div >
     </Layout >
-    )
+  )
 }
 
-    // ローディングフォールバック
-    function LifestyleRecommendFallback() {
+// ローディングフォールバック
+function LifestyleRecommendFallback() {
   return (
     <Layout>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
@@ -893,16 +884,16 @@ function LifestyleRecommendContent() {
         <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
       </div>
     </Layout>
-    )
+  )
 }
 
-    // メインコンポーネント: Suspenseでラップする
-    function LifestyleRecommend() {
+// メインコンポーネント: Suspenseでラップする
+function LifestyleRecommend() {
   return (
     <Suspense fallback={<LifestyleRecommendFallback />}>
       <LifestyleRecommendContent />
     </Suspense>
-    )
+  )
 }
 
-    export default LifestyleRecommend
+export default LifestyleRecommend
