@@ -358,7 +358,7 @@ function Tendency() {
   }, [])
 
   useEffect(() => {
-    if (currentStep >= 9 && answers.substances) {
+    if (currentStep >= 10 && answers.substances) {
       const moreQuestions = []
       if (CONDITIONAL_QUESTIONS.smoking_amount.trigger(answers)) {
         moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
