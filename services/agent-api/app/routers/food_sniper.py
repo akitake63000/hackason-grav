@@ -23,14 +23,14 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
 
 class FoodSniperRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=1000, description="User message for food recommendation")
+    message: Optional[str] = Field(None, max_length=1000, description="User message for food recommendation")
     hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
 
     @validator('message')
     def validate_message(cls, v):
-        if not v.strip():
+        if v and not v.strip():
             raise ValueError('Message cannot be empty or whitespace only')
-        return v.strip()
+        return v.strip() if v else ""
 
 
 class FoodDetail(BaseModel):
