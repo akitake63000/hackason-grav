@@ -216,18 +216,19 @@ export default function WeeklyPlan() {
             }
         } catch (error) {
             console.error('Failed to fetch data:', error)
+            // Error handling (optional: show toast)
         } finally {
             setLoading(false)
         }
     }
 
     const calculateBonusScores = (plan, log) => {
-        if (!plan || !plan.actions) return
+        if (!plan || !plan.targetActions) return
 
         const bonuses = { hormone: 0, circadian: 0, blood_flow: 0, stress: 0 }
         const completedIds = log.filter(l => l.completed).map(l => l.actionId)
 
-        plan.actions.forEach(action => {
+        plan.targetActions.forEach(action => {
             if (completedIds.includes(action.id)) {
                 // Add bonus based on action's target axis
                 if (action.targetAxis && bonuses[action.targetAxis] !== undefined) {
@@ -322,9 +323,9 @@ export default function WeeklyPlan() {
     }
 
     const getCompletionRate = () => {
-        if (!plan || !plan.actions) return 0
-        const completed = plan.actions.filter(a => isActionCompleted(a.id)).length
-        return Math.round((completed / plan.actions.length) * 100)
+        if (!plan || !plan.targetActions) return 0
+        const completed = plan.targetActions.filter(a => isActionCompleted(a.id)).length
+        return Math.round((completed / plan.targetActions.length) * 100)
     }
 
     const isPlanExpired = () => {
@@ -500,7 +501,7 @@ export default function WeeklyPlan() {
                     </Card>
 
                     {/* Mission Cards */}
-                    {plan.actions && plan.actions.map((action, index) => {
+                    {plan.targetActions && plan.targetActions.map((action, index) => {
                         const completed = isActionCompleted(action.id)
                         return (
                             <motion.div

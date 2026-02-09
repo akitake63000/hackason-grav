@@ -257,10 +257,14 @@ function LifestyleRecommendContent() {
       if (res.ok) {
         // Navigate to weekly plan page
         router.push('/feature3/weekly-plan')
+      } else {
+        const errorData = await res.json()
+        console.error("Plan generation failed:", errorData)
+        alert(`プラン作成に失敗しました: ${errorData.detail || '不明なエラー'}`)
       }
     } catch (e) {
-      console.error("Failed to generate", e)
-      alert("プラン作成に失敗しました")
+      console.error("Failed to generate plan request:", e)
+      alert(`プラン作成に失敗しました: ${e.message}`)
     } finally {
       setGeneratingPlan(false)
     }
