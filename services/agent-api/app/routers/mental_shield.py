@@ -1,20 +1,30 @@
 from typing import List, Optional, Tuple
+import logging
+import json
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/mental-shield", tags=["mental-shield"])
 
 
 class MentalShieldRequest(BaseModel):
-    threadId: Optional[str] = "default"
-    message: str
-    mode: Optional[str] = "balanced"
+    threadId: Optional[str] = Field(default="default", max_length=100, description="Thread ID for conversation history")
+    message: str = Field(..., min_length=1, max_length=2000, description="User message for mental shield agent")
+    mode: Optional[str] = Field(default="balanced", pattern="^(balanced|supportive|analytical)$", description="Response mode")
+
+    @validator('message')
+    def validate_message(cls, v):
+        if not v.strip():
+            raise ValueError('Message cannot be empty or whitespace only')
+        return v.strip()
 
 
 class MentalShieldCard(BaseModel):
@@ -69,7 +79,11 @@ def _generate_mental_with_llm(
     try:
         text = generate_text(prompt)
         data = safe_json_load(text)
-    except Exception:  # noqa: BLE001
+    except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+        logger.warning(f"Failed to generate mental shield response with LLM: {e}")
+        return None, None
+    except Exception as e:
+        logger.error(f"Unexpected error in mental shield LLM generation: {e}", exc_info=True)
         return None, None
 
     cards_data = data.get("cards")

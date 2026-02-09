@@ -1,10 +1,13 @@
 import logging
 import uuid
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel
+from firebase_admin.exceptions import FirebaseError
+from google.cloud.exceptions import GoogleCloudError
+from pydantic import BaseModel, Field, validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
@@ -20,8 +23,14 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
 
 class FoodSniperRequest(BaseModel):
-    message: str
-    hairPattern: Optional[str] = None  # M字, O字, U字, びまん性, オルセン型, ハミルトン型
+    message: str = Field(..., min_length=1, max_length=1000, description="User message for food recommendation")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+
+    @validator('message')
+    def validate_message(cls, v):
+        if not v.strip():
+            raise ValueError('Message cannot be empty or whitespace only')
+        return v.strip()
 
 
 class FoodDetail(BaseModel):
@@ -57,8 +66,14 @@ class FoodSniperResponse(BaseModel):
 
 
 class RecipeRequest(BaseModel):
-    foodName: str
-    hairPattern: Optional[str] = None
+    foodName: str = Field(..., min_length=1, max_length=100, description="Food name for recipe generation")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+
+    @validator('foodName')
+    def validate_food_name(cls, v):
+        if not v.strip():
+            raise ValueError('Food name cannot be empty or whitespace only')
+        return v.strip()
 
 
 class RecipeItem(BaseModel):
@@ -711,8 +726,10 @@ def _get_user_hair_pattern(uid: str) -> Optional[str]:
             pattern = data.get("pattern") or data.get("hairPattern")
             if pattern:
                 return pattern
-    except Exception:
-        logging.exception("Failed to fetch user hair pattern")
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.error(f"Firestore error fetching user hair pattern: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error fetching user hair pattern: {e}", exc_info=True)
     return None
 
 
@@ -810,8 +827,10 @@ def _extract_food_recommendations(
                 nutrients = _build_nutrients_response(pattern, selected)
                 shopping = selected
                 return nutrients, shopping
-        except Exception:
-            logging.exception("Gemini food recommendation failed")
+        except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+            logging.warning(f"Gemini food recommendation failed: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error in food recommendation: {e}", exc_info=True)
 
     # フォールバック: 全食材をそのまま返す
     nutrients = _build_nutrients_response(pattern)
@@ -903,8 +922,10 @@ def generate_recipe(
             ]
             if recipes:
                 return RecipeResponse(recipes=recipes)
-        except Exception:
-            logging.exception("Gemini recipe generation failed")
+        except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+            logging.warning(f"Gemini recipe generation failed: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error in recipe generation: {e}", exc_info=True)
 
     # フォールバック
     return RecipeResponse(recipes=[

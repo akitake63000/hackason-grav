@@ -1,0 +1,95 @@
+name: E2E Tests (Production)
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+  # Daily at 9:00 AM JST (00:00 UTC)
+  schedule:
+    - cron: '0 0 * * *'
+
+  # After successful deployment
+  workflow_run:
+    workflows: ["Cloud Run Deploy (agent-api)"]
+    types:
+      - completed
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+
+    # Only run if deployment was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
+
+    # Add permissions for commenting on commits
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox
+
+      - name: Run E2E tests
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: https://hackason-grab.web.app
+          API_BASE_URL: ${{ secrets.CLOUD_RUN_URL }}
+        run: npm run test:e2e -- --project=chromium --project=firefox
+        continue-on-error: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: apps/web/playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: apps/web/test-results/
+          retention-days: 30
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## E2E Test Results 🎭" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Run**: #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend URL**: https://hackason-grab.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "- **API URL**: ${{ secrets.CLOUD_RUN_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Download Reports" >> $GITHUB_STEP_SUMMARY
+          echo "- View artifacts in the workflow run for detailed HTML reports" >> $GITHUB_STEP_SUMMARY
+          echo "- Reports are retained for 30 days" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on commit (if triggered by deployment)
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runNumber = context.runNumber;
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `🎭 E2E tests completed!\n\n📊 [View detailed report](${runUrl})\n\n💡 Download Playwright HTML report from the artifacts section.`
+            });

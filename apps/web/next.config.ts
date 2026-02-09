@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   // Firebase Hosting compatibility: add trailing slash
   trailingSlash: true,
 
+  // React Strict Mode for better development experience
+  reactStrictMode: true,
+
+  // Remove X-Powered-By header for security
+  poweredByHeader: false,
+
   // 画像最適化（Static Exportでは制限あり）
   images: {
     unoptimized: true,
@@ -16,6 +22,13 @@ const nextConfig: NextConfig = {
 
   // 本番環境でソースマップを無効化（ビルドサイズ削減）
   productionBrowserSourceMaps: false,
+
+  // 本番ビルドでconsole.logを自動削除（セキュリティ対策）
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      exclude: ["error", "warn"], // console.error と console.warn は残す
+    } : false,
+  },
 
   // 実験的機能: さらなる最適化
   experimental: {
