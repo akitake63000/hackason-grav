@@ -1,9 +1,12 @@
 import logging
 import uuid
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
+from firebase_admin.exceptions import FirebaseError
+from google.cloud.exceptions import GoogleCloudError
 from pydantic import BaseModel
 
 from ..auth import get_current_uid
@@ -711,8 +714,10 @@ def _get_user_hair_pattern(uid: str) -> Optional[str]:
             pattern = data.get("pattern") or data.get("hairPattern")
             if pattern:
                 return pattern
-    except Exception:
-        logging.exception("Failed to fetch user hair pattern")
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.error(f"Firestore error fetching user hair pattern: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error fetching user hair pattern: {e}", exc_info=True)
     return None
 
 
@@ -810,8 +815,10 @@ def _extract_food_recommendations(
                 nutrients = _build_nutrients_response(pattern, selected)
                 shopping = selected
                 return nutrients, shopping
-        except Exception:
-            logging.exception("Gemini food recommendation failed")
+        except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+            logging.warning(f"Gemini food recommendation failed: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error in food recommendation: {e}", exc_info=True)
 
     # フォールバック: 全食材をそのまま返す
     nutrients = _build_nutrients_response(pattern)
@@ -903,8 +910,10 @@ def generate_recipe(
             ]
             if recipes:
                 return RecipeResponse(recipes=recipes)
-        except Exception:
-            logging.exception("Gemini recipe generation failed")
+        except (ValueError, json.JSONDecodeError, RuntimeError) as e:
+            logging.warning(f"Gemini recipe generation failed: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error in recipe generation: {e}", exc_info=True)
 
     # フォールバック
     return RecipeResponse(recipes=[

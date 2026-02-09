@@ -1,10 +1,12 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel
 from google.cloud import firestore
+from google.cloud.exceptions import GoogleCloudError
 
 from ..services.gemini_vision import analyze_image_bytes
 from ..auth import get_current_uid
@@ -76,11 +78,19 @@ def analyze_photo(
         image_bytes = download_image_bytes(storage_path)
     except ValueError as exc:
         # Path validation failed (e.g., path traversal attempt)
+        logging.warning(f"Invalid storage path detected: {storage_path}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         ) from exc
+    except GoogleCloudError as exc:
+        logging.error(f"Google Cloud Storage error for path {storage_path}: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve image from storage"
+        ) from exc
     except Exception as exc:
+        logging.error(f"Unexpected error downloading image from storage ({storage_path}): {exc}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve image from storage"
