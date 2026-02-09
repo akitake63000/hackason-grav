@@ -46,7 +46,7 @@ jobs:
         env:
           PLAYWRIGHT_TEST_BASE_URL: https://hackason-grab.web.app
           API_BASE_URL: ${{ secrets.CLOUD_RUN_URL }}
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=chromium --project=firefox
         continue-on-error: true
 
       - name: Upload Playwright report
