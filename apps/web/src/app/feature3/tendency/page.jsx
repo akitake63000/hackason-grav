@@ -357,22 +357,7 @@ function Tendency() {
     fetchLatest()
   }, [])
 
-  useEffect(() => {
-    if (currentStep >= 10 && answers.substances) {
-      const moreQuestions = []
-      if (CONDITIONAL_QUESTIONS.smoking_amount.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
-      }
-      if (CONDITIONAL_QUESTIONS.alcohol_frequency.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.alcohol_frequency)
-      }
-      if (CONDITIONAL_QUESTIONS.caffeine_timing.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.caffeine_timing)
-      }
 
-      setVisibleQuestions([...QUESTIONS, ...moreQuestions])
-    }
-  }, [answers.substances, currentStep])
 
   const handleStart = () => {
     setViewState('question')
@@ -393,6 +378,7 @@ function Tendency() {
           if (value === 'smoking' || value === 'multiple') {
             moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
           }
+          console.log("Substances selected:", value, "Adding questions:", moreQuestions)
           if (value === 'alcohol' || value === 'multiple') {
             moreQuestions.push(CONDITIONAL_QUESTIONS.alcohol_frequency)
           }
