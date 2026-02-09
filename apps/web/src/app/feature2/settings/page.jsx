@@ -24,9 +24,8 @@ const styleOptions = [
 ]
 
 const detailOptions = [
-  { value: 'brief', label: '簡潔', description: '2〜3文' },
-  { value: 'normal', label: '標準', description: '4〜5文' },
-  { value: 'detailed', label: '詳細', description: 'エビデンス付き' },
+  { value: 'flash', label: 'Flash', description: '高速・簡潔' },
+  { value: 'pro', label: 'Pro', description: '高精度・詳細' },
 ]
 
 const styles = {
@@ -128,7 +127,7 @@ const styles = {
 function ChatSettings() {
   const { user, loading: authLoading } = useAuth()
   const [style, setStyle] = useState('balanced')
-  const [detail, setDetail] = useState('normal')
+  const [detail, setDetail] = useState('flash')
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loadingSettings, setLoadingSettings] = useState(true)

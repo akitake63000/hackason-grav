@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
+from ..config import GEMINI_MODEL, GEMINI_MODEL_HEAVY
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class MentalShieldRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000, description="User message for mental shield agent")
     mode: Optional[str] = Field(default="balanced", pattern="^(balanced|supportive|analytical)$", description="Response mode")
     style: Optional[str] = "balanced"    # gentle / balanced / strict
-    detail: Optional[str] = "normal"     # brief / normal / detailed
+    detail: Optional[str] = "flash"      # flash (gemini-2.5-flash) / pro (gemini-2.5-pro)
 
     @validator('message')
     def validate_message(cls, v):
@@ -60,11 +61,12 @@ def _contains_risk_keywords(message: str) -> bool:
 def _generate_mental_with_llm(
     message: str,
     style: str = "balanced",
-    detail: str = "normal",
+    detail: str = "flash",
 ) -> Tuple[Optional[List[MentalShieldCard]], Optional[str]]:
     if not gemini_enabled():
         return None, None
 
+    model = _model_for_detail(detail)
     si = _style_instruction(style, detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -85,7 +87,7 @@ def _generate_mental_with_llm(
     )
 
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         data = safe_json_load(text)
     except (ValueError, json.JSONDecodeError, RuntimeError) as e:
         logger.warning(f"Failed to generate mental shield response with LLM: {e}")
@@ -114,7 +116,7 @@ def _generate_mental_with_llm(
 
 
 def _compose_mental_shield(
-    message: str, style: str = "balanced", detail: str = "normal"
+    message: str, style: str = "balanced", detail: str = "flash"
 ) -> Tuple[List[MentalShieldCard], str]:
     risk = _contains_risk_keywords(message)
 
@@ -155,7 +157,7 @@ def mental_shield_chat(
 ) -> MentalShieldResponse:
     thread_id = payload.threadId or "default"
     cards, summary = _compose_mental_shield(
-        payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+        payload.message, style=payload.style or "balanced", detail=payload.detail or "flash"
     )
 
     db = get_firestore_client()
@@ -228,15 +230,21 @@ class _DiscussState(TypedDict):
 
 
 _DETAIL_TOKEN_LIMIT = {
-    "brief": 300,
-    "normal": 1000,
-    "detailed": 1500,
+    "flash": 500,
+    "pro": 1500,
 }
 
 
 def _max_tokens_for_detail(detail: str) -> int:
     """detail 設定に応じた max_output_tokens を返す。"""
-    return _DETAIL_TOKEN_LIMIT.get(detail, 300)
+    return _DETAIL_TOKEN_LIMIT.get(detail, 500)
+
+
+def _model_for_detail(detail: str) -> str:
+    """detail 設定に応じた Gemini モデルを返す。"""
+    if detail == "pro":
+        return GEMINI_MODEL_HEAVY  # gemini-2.5-pro
+    return GEMINI_MODEL  # gemini-2.5-flash
 
 
 def _style_instruction(style: str, detail: str) -> str:
@@ -247,10 +255,9 @@ def _style_instruction(style: str, detail: str) -> str:
         "strict": "率直かつ的確に、甘えを許さないストレートな口調で回答してください。",
     }.get(style, "共感しつつも、必要な情報はしっかり伝えるバランスの取れた口調で回答してください。")
     length = {
-        "brief": "回答は2〜3文の簡潔なものにしてください。",
-        "normal": "回答は4〜5文程度でまとめてください。",
-        "detailed": "回答はエビデンスや具体例を交えて詳しく説明してください。",
-    }.get(detail, "回答は4〜5文程度でまとめてください。")
+        "flash": "回答は3〜4文程度で簡潔にまとめてください。",
+        "pro": "回答はエビデンスや具体例を交えて詳しく説明してください。",
+    }.get(detail, "回答は3〜4文程度で簡潔にまとめてください。")
     return f"{tone}\n{length}\n"
 
 
@@ -259,7 +266,8 @@ def _detect_risk_node(state: _DiscussState) -> dict:
 
 
 def _encourager_node(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -272,7 +280,7 @@ def _encourager_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -284,7 +292,8 @@ def _encourager_node(state: _DiscussState) -> dict:
 
 
 def _coach_node(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -300,7 +309,7 @@ def _coach_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -312,7 +321,8 @@ def _coach_node(state: _DiscussState) -> dict:
 
 
 def _doctor_node(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     risk_note = ""
@@ -335,7 +345,7 @@ def _doctor_node(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -347,7 +357,8 @@ def _doctor_node(state: _DiscussState) -> dict:
 
 
 def _encourager_node_r2(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -363,7 +374,7 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -375,7 +386,8 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
 
 
 def _coach_node_r2(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -393,7 +405,7 @@ def _coach_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -405,7 +417,8 @@ def _coach_node_r2(state: _DiscussState) -> dict:
 
 
 def _doctor_node_r2(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     risk_note = ""
@@ -429,7 +442,7 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
         f"相談内容: {state['user_message']}\n"
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
     except Exception:
@@ -441,7 +454,8 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
 
 
 def _orchestrator_node(state: _DiscussState) -> dict:
-    detail = state.get("detail", "normal")
+    detail = state.get("detail", "flash")
+    model = _model_for_detail(detail)
     si = _style_instruction(state.get("style", "balanced"), detail)
     mt = _max_tokens_for_detail(detail)
     prompt = (
@@ -462,7 +476,7 @@ def _orchestrator_node(state: _DiscussState) -> dict:
         '{"summary": "まとめテキスト"}\n'
     )
     try:
-        text = generate_text(prompt, max_output_tokens=mt)
+        text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
         data = safe_json_load(text)
@@ -522,7 +536,7 @@ def mental_shield_discuss(
             result = _discuss_workflow.invoke({
                 "user_message": payload.message,
                 "style": payload.style or "balanced",
-                "detail": payload.detail or "normal",
+                "detail": payload.detail or "flash",
                 "risk_detected": False,
                 "encourager_response": "",
                 "coach_response": "",
@@ -547,12 +561,12 @@ def mental_shield_discuss(
         except Exception as exc:
             logger.exception("LangGraph workflow failed, falling back: %s", exc)
             cards, summary = _compose_mental_shield(
-                payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+                payload.message, style=payload.style or "balanced", detail=payload.detail or "flash"
             )
             best_agent = max(cards, key=lambda c: len(c.text)).agent
     else:
         cards, summary = _compose_mental_shield(
-            payload.message, style=payload.style or "balanced", detail=payload.detail or "normal"
+            payload.message, style=payload.style or "balanced", detail=payload.detail or "flash"
         )
         best_agent = max(cards, key=lambda c: len(c.text)).agent
 
