@@ -1,111 +1,158 @@
 """
-Generate Weekly Plan Tool
+Generate Weekly Plan Tool (Gemini Integration)
 """
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import random
+import json
 from typing import TypedDict, List
-from .recommend_actions import get_recommended_actions, ACTIONS_CATALOG, RecommendedAction
+from ...llm.vertex_gemini import generate_text, safe_json_load
+
+class RecommendedAction(TypedDict):
+    id: str
+    name: str
+    emoji: str
+    description: str
+    targetAxis: str # hormone, circadian, blood_flow, stress
+    priority: str # high, medium, low
 
 class WeeklyPlan(TypedDict):
     planId: str
     startDate: str
     endDate: str
     theme: str
-    targetActions: List[RecommendedAction]
+    targetActions: List[RecommendedAction] # Initially empty or just for Day 1
     createdScores: dict
 
 def generate_weekly_plan(scores: dict[str, int], answers: dict[str, str]) -> WeeklyPlan:
     """
-    Generate a 7-day lifestyle improvement plan based on scores.
+    Generate the skeleton of a weekly plan (Theme & Dates).
+    Daily actions will be generated on demand.
     """
     
-    # 1. Get all valid recommendations first (filtered by answers)
-    grouped_actions = get_recommended_actions(scores, answers, max_actions_per_axis=5)
-    
-    # 2. Flatten and sort by priority/necessity across all axes
-    # We want to pick the absolute most critical actions, not just per axis.
-    all_candidates = []
-    seen_ids = set()
-    
-    for axis, actions in grouped_actions.items():
-        axis_score = scores.get(axis, 50)
-        weight = (100 - axis_score) # Higher weight for lower score axes
-        
-        for action in actions:
-            if action['id'] in seen_ids:
-                continue
-            
-            # Priority logic: 
-            # Action Priority (High/Med/Low) is already calculated but simplistic.
-            # Let's boost priority if it targets multiple weak axes.
-            
-            # Simple heuristic for now:
-            # Score = Weight of this axis + Bonus for "High" priority label
-            score_val = weight
-            if action['priority'] == 'high':
-                score_val += 50
-            elif action['priority'] == 'medium':
-                score_val += 20
-                
-            all_candidates.append({
-                **action,
-                '_sort_score': score_val
-            })
-            seen_ids.add(action['id'])
-            
-    # Sort candidates
-    all_candidates.sort(key=lambda x: x['_sort_score'], reverse=True)
-    
-    # 3. Pick top 3 unique actions
-    target_actions = all_candidates[:3]
-    
-    # Remove internal sort key from output
-    # Remove internal sort key from output and apply variants
-    final_target_actions = []
-    
-    for a in target_actions:
-        # Create a copy to avoid modifying the catalog directly
-        action_copy = a.copy()
-        action_copy.pop('_sort_score', None)
-        
-        # Randomize name if variants exist (Action Diversity)
-        if 'variants' in action_copy and action_copy['variants']:
-             variant = random.choice(action_copy['variants'])
-             # e.g. "早寝 (23時までに布団に入る)"
-             # Or just use the variant as the name for simplicity in checklist
-             action_copy['name'] = f"{action_copy['name']} ({variant})"
-        
-        final_target_actions.append(action_copy)
-    
-    target_actions = final_target_actions
-        
-    # 4. Generate a "Theme" based on the selected actions or weakest axis
-    # Find weakest axis
+    # 1. Identify weak points for Theme
+    weak_points = [k for k, v in scores.items() if v < 60]
     sorted_axes = sorted(scores.items(), key=lambda x: x[1])
-    weakest_axis = sorted_axes[0][0]
-    
+    weakest_axis = sorted_axes[0][0] if sorted_axes else "stress"
+
     themes = {
         "hormone": ["成長ホルモン活性化週間", "睡眠の質 徹底改善ウィーク", "細胞修復・再生チャレンジ"],
         "circadian": ["体内時計リセット週間", "朝活・リズム調整ウィーク", "自律神経整えチャレンジ"],
         "blood_flow": ["全身血流アップ週間", "巡りを良くする7日間", "冷え・コリ解消チャレンジ"],
         "stress": ["ストレスデトックス週間", "心と体の休息ウィーク", "コルチゾール抑制チャレンジ"],
     }
-    
     theme = random.choice(themes.get(weakest_axis, ["生活習慣見直し週間"]))
-    
-    # 5. Build Plan Object
+
+    # 2. Build Plan Object (Empty actions for now, user will generate daily)
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
-    end = now + timedelta(days=6) # 7 days total including today
+    end = now + timedelta(days=6)
     
     plan: WeeklyPlan = {
         "planId": f"plan_{int(now.timestamp())}",
         "startDate": now.isoformat(),
         "endDate": end.isoformat(),
         "theme": theme,
-        "targetActions": target_actions,
+        "targetActions": [], # Empty initially
         "createdScores": scores
     }
     
     return plan
+
+
+def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], history: List[str] = None) -> List[RecommendedAction]:
+    """
+    Generate 3 specific actions for TODAY using Gemini.
+    """
+    history = history or []
+    
+    # Identify weak points
+    weak_points = [k for k, v in scores.items() if v < 60]
+    if not weak_points:
+        weak_points = ["全体的な質の向上"]
+
+    # Format answers
+    substances = answers.get("substances", "なし")
+    exercise = answers.get("exercise_frequency", "なし")
+
+    prompt = f"""
+    あなたはプロの生活習慣改善アドバイザーです。
+    ユーザーの診断結果に基づき、**今日1日で行うべき3つの具体的アクション**を生成してください。
+    
+    ## ユーザー情報
+    - 診断スコア (0-100点): {json.dumps(scores, ensure_ascii=False)}
+    - 弱点項目: {", ".join(weak_points)}
+    - 嗜好品: {substances}
+    - 運動習慣: {exercise}
+    - 過去の提案（重複を避けるため）: {", ".join(history[-10:])}
+
+    ## 生成ルール
+    1. **具体的アクション**: 「運動する」ではなく「駅のエスカレーターを使わず階段を使う」のように。
+    2. **シンプルに**: アクション名は20文字以内。説明は簡潔に。
+    3. **アンケート考慮**: 喫煙しない人に禁煙を勧めないこと。
+    4. **多様性**: 3つのうち少なくとも1つは弱点項目に関連するもの。残りもバランスよく。
+    5. 出力は必ず以下の**JSON形式**のみ。
+
+    ## 出力JSON
+    {{
+      "actions": [
+        {{
+          "name": "アクション名（20文字以内）",
+          "emoji": "絵文字",
+          "description": "簡潔な理由・補足（30文字以内）",
+          "targetAxis": "hormone, circadian, blood_flow, stress のいずれか",
+          "priority": "high"
+        }}
+        ... (3つ)
+      ]
+    }}
+    """
+
+    try:
+        response_text = generate_text(prompt, model="gemini-pro")
+        data = safe_json_load(response_text)
+        
+        if not data or "actions" not in data:
+            raise ValueError("Invalid JSON from Gemini")
+            
+        actions = []
+        for i, item in enumerate(data.get("actions", [])):
+            actions.append({
+                "id": f"daily_{int(datetime.now().timestamp())}_{i}",
+                "name": item.get("name", "アクション"),
+                "emoji": item.get("emoji", "✨"),
+                "description": item.get("description", "健康のために実行しましょう。"),
+                "targetAxis": item.get("targetAxis", "stress"),
+                "priority": "high"
+            })
+        return actions
+
+    except Exception as e:
+        print(f"Gemini daily generation failed: {e}")
+        # Fallback
+        return [
+            {
+                "id": f"fb_{int(datetime.now().timestamp())}_1",
+                "name": "コップ1杯の水を飲む",
+                "emoji": "💧",
+                "description": "血流を促します。",
+                "targetAxis": "blood_flow",
+                "priority": "high"
+            },
+            {
+                "id": "fb_{int(datetime.now().timestamp())}_2",
+                "name": "深呼吸を3回する",
+                "emoji": "🧘",
+                "description": "ストレスを軽減します。",
+                "targetAxis": "stress",
+                "priority": "high"
+            },
+            {
+                "id": "fb_{int(datetime.now().timestamp())}_3",
+                "name": "スマホを置いて5分休む",
+                "emoji": "👀",
+                "description": "目を休めましょう。",
+                "targetAxis": "circadian",
+                "priority": "high"
+            }
+        ]
