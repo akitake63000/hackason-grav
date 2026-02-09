@@ -129,6 +129,14 @@
     *   機能1の結果を取得し、傾向分析の入力とする
 *   **[NEW] `services/agent-api/app/agents/lifestyle_agent/tools/recommend_actions.py`**
     *   ロジック: 各軸の低スコア→具体的アクション提案のマッピング
+133: 
+134: #### 永続化・再診断フロー (Persistence)
+135: *   **[NEW] `services/agent-api/app/routers/lifestyle.py`**
+136:     *   `GET /tendency/latest`: 最新の診断結果・日時を取得
+137: *   **[MODIFIED] `apps/web/src/app/feature3/tendency/page.tsx`**
+138:     *   前回結果の表示・再診断ボタンの実装
+139: *   **[MODIFIED] `apps/web/src/app/feature3/lifestyle-recommend/page.tsx`**
+140:     *   保存されたスコアに基づくレコメンド表示
 
 ### 6. 因果の設計（Causality）
 *   「就寝が1時以降（問診）」+「肩こりあり（問診）」→「ホルモン/血流スコア低（分析）」→「0時前に寝よう」「首回しストレッチ」（提案）
