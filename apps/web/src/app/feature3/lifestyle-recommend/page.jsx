@@ -227,11 +227,20 @@ function LifestyleRecommendContent() {
       setRecommendations(data.grouped_actions || {})
       setAxisLabels(data.axis_labels)
 
-      // Check if plan exists
+      // Check if plan exists and is active
       const planRes = await apiFetch('/api/v1/lifestyle/plan/current')
       if (planRes.ok) {
         const planData = await planRes.json()
-        setHasPlan(!!planData.planId)
+
+        let isActive = !!planData.planId
+        if (isActive && planData.endDate) {
+          const end = new Date(planData.endDate)
+          const now = new Date()
+          if (now > end) {
+            isActive = false
+          }
+        }
+        setHasPlan(isActive)
       }
 
     } catch (err) {

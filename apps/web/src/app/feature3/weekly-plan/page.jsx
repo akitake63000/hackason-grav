@@ -208,11 +208,11 @@ export default function WeeklyPlan() {
             const planRes = await apiFetch('/api/v1/lifestyle/plan/current')
             if (planRes.ok) {
                 const planData = await planRes.json()
-                setPlan(planData.plan)
+                setPlan(planData)
                 setTodayLog(planData.todayLog || [])
 
                 // Calculate bonus scores from completed actions
-                calculateBonusScores(planData.plan, planData.todayLog || [])
+                calculateBonusScores(planData, planData.todayLog || [])
             }
         } catch (error) {
             console.error('Failed to fetch data:', error)
@@ -296,7 +296,21 @@ export default function WeeklyPlan() {
     }
 
     const handleCreateNewPlan = async () => {
-        router.push('/feature3/lifestyle-recommend')
+        setLoading(true)
+        try {
+            const res = await apiFetch('/api/v1/lifestyle/plan/generate', { method: 'POST' })
+            if (res.ok) {
+                // Refresh data to show the new plan
+                await fetchData()
+            } else {
+                alert("プラン作成に失敗しました")
+            }
+        } catch (e) {
+            console.error("Failed to regenerate plan", e)
+            alert("プラン作成に失敗しました")
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleRetakeSurvey = () => {
