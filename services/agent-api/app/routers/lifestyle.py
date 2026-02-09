@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import logging
 import random
@@ -542,8 +542,13 @@ def generate_plan(
     plan_data["status"] = "active"
     
     # 3. Save to Firestore
-    # Invalidate old active plans?
-    # Simply set new one.
+    # Invalidate old active plans
+    plans_ref = db.collection("users").document(uid).collection("plans")
+    active_plans = plans_ref.where("status", "==", "active").stream()
+    for active_plan in active_plans:
+        active_plan.reference.update({"status": "completed"})
+
+    # Set new one
     db.collection("users").document(uid).collection("plans").document(plan_data["planId"]).set(plan_data)
     
     # Mark as current plan in user doc or just query by active status?

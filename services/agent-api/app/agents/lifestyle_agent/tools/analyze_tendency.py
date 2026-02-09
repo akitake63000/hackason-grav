@@ -117,7 +117,8 @@ QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     },
     # 詳細: 喫煙本数 (Hormone, Blood Flow adjustment)
     "smoking_amount": {
-        "score_80": {"hormone": 0, "blood_flow": 0}, # 吸わない
+        "score_100": {"hormone": 0, "blood_flow": 0},  # 吸わない
+        "score_80": {"hormone": 0, "blood_flow": 0},  # 過去に吸っていた
         "score_60": {"hormone": -5, "blood_flow": -5},
         "score_40": {"hormone": -10, "blood_flow": -10},
         "score_20": {"hormone": -20, "blood_flow": -20},
@@ -125,11 +126,11 @@ QUESTION_WEIGHTS: dict[str, dict[str, dict[str, int]]] = {
     },
     # 詳細: 飲酒頻度 (Hormone, Blood Flow adjustment)
     "alcohol_frequency": {
+        "score_100": {"hormone": 0, "blood_flow": 0},  # 飲まない
         "score_80": {"hormone": 0, "blood_flow": 0},
         "score_60": {"hormone": -5, "blood_flow": -5},
         "score_40": {"hormone": -10, "blood_flow": -10},
         "score_20": {"hormone": -15, "blood_flow": -15},
-        "score_0": {"hormone": -25, "blood_flow": -25},
     },
     # 詳細: カフェインタイミング (Circadian adjustment)
     "caffeine_timing": {

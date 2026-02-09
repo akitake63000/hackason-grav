@@ -308,11 +308,11 @@ const CONDITIONAL_QUESTIONS = {
     text: 'お酒を飲む頻度と量は？',
     trigger: (ans) => ans.substances === 'alcohol' || ans.substances === 'multiple',
     options: [
+      { label: '飲まない', value: 'score_100' },
       { label: '機会飲酒程度（月数回）', value: 'score_80' },
       { label: '週1〜2回・適量', value: 'score_60' },
       { label: '週3〜4回・適量', value: 'score_40' },
-      { label: 'ほぼ毎日・適量', value: 'score_20' },
-      { label: '毎日・多量', value: 'score_0' },
+      { label: 'ほぼ毎日〜毎日', value: 'score_20' },
     ],
   },
   // カフェインは「タイミング」を重視
@@ -321,11 +321,11 @@ const CONDITIONAL_QUESTIONS = {
     text: 'コーヒーや紅茶などを飲むタイミングは？（睡眠への影響）',
     trigger: (ans) => ans.substances === 'caffeine' || ans.substances === 'multiple',
     options: [
+      { label: '飲まない', value: 'score_100' },
       { label: '午前中のみ', value: 'score_100' },
       { label: 'ランチ後まで（13時頃）', value: 'score_80' },
       { label: 'おやつ時まで（15時頃）', value: 'score_60' },
-      { label: '夕食後も飲む', value: 'score_40' },
-      { label: '就寝直前まで飲む', value: 'score_20' },
+      { label: '夕食後〜就寝前も飲む', value: 'score_20' },
     ],
   },
 }
@@ -357,32 +357,42 @@ function Tendency() {
     fetchLatest()
   }, [])
 
-  useEffect(() => {
-    if (currentStep >= 9 && answers.substances) {
-      const moreQuestions = []
-      if (CONDITIONAL_QUESTIONS.smoking_amount.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
-      }
-      if (CONDITIONAL_QUESTIONS.alcohol_frequency.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.alcohol_frequency)
-      }
-      if (CONDITIONAL_QUESTIONS.caffeine_timing.trigger(answers)) {
-        moreQuestions.push(CONDITIONAL_QUESTIONS.caffeine_timing)
-      }
 
-      setVisibleQuestions([...QUESTIONS, ...moreQuestions])
-    }
-  }, [answers.substances, currentStep])
 
   const handleStart = () => {
     setViewState('question')
   }
 
   const handleOptionSelect = (qId, value) => {
-    setAnswers((prev) => ({ ...prev, [qId]: value }))
+    const newAnswers = { ...answers, [qId]: value }
+    setAnswers(newAnswers)
 
     // 自動遷移 (少し遅延させてアニメーションを見せる)
     setTimeout(() => {
+      // Check if this is the substances question and needs conditional questions
+      if (qId === 'substances') {
+        const needsConditional = value === 'smoking' || value === 'alcohol' || value === 'caffeine' || value === 'multiple'
+        if (needsConditional) {
+          // Add conditional questions first, then advance
+          const moreQuestions = []
+          if (value === 'smoking' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.smoking_amount)
+          }
+          console.log("Substances selected:", value, "Adding questions:", moreQuestions)
+          if (value === 'alcohol' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.alcohol_frequency)
+          }
+          if (value === 'caffeine' || value === 'multiple') {
+            moreQuestions.push(CONDITIONAL_QUESTIONS.caffeine_timing)
+          }
+          if (moreQuestions.length > 0) {
+            setVisibleQuestions([...QUESTIONS, ...moreQuestions])
+            setCurrentStep((prev) => prev + 1)
+            return
+          }
+        }
+      }
+
       if (currentStep < visibleQuestions.length - 1) {
         setCurrentStep((prev) => prev + 1)
       } else {
@@ -491,25 +501,80 @@ function Tendency() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
             >
-              {resultList.map((t, index) => (
-                <Card key={t.id} style={styles.matrixCard} delay={0.2 + index * 0.1}>
-                  <div style={{ ...styles.matrixIcon, background: t.bg }}>
-                    <t.icon size={24} color={t.color} />
-                  </div>
-                  <div style={styles.matrixLabel}>{t.name}</div>
-                  <div style={{ ...styles.matrixScore, color: t.color }}>
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
-                    >
-                      {t.score}
-                    </motion.span>
-                    <span style={{ fontSize: '14px', marginLeft: '2px' }}>pts</span>
-                  </div>
-                  <div style={styles.matrixDesc}>{t.desc}</div>
-                </Card>
-              ))}
+              {resultList.map((t, index) => {
+                const average = 60;
+                const getGaugeColor = (score) => {
+                  if (score >= 70) return '#22c55e';  // green
+                  if (score >= 50) return '#f59e0b';  // yellow
+                  return '#ef4444';  // red
+                };
+                return (
+                  <Card key={t.id} style={styles.matrixCard} delay={0.2 + index * 0.1}>
+                    <div style={{ ...styles.matrixIcon, background: t.bg }}>
+                      <t.icon size={24} color={t.color} />
+                    </div>
+                    <div style={styles.matrixLabel}>{t.name}</div>
+                    <div style={{ ...styles.matrixScore, color: t.color }}>
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 + index * 0.1, duration: 1 }}
+                      >
+                        {t.score}
+                      </motion.span>
+                      <span style={{ fontSize: '14px', marginLeft: '2px' }}>pts</span>
+                    </div>
+
+                    {/* Score Gauge Bar */}
+                    <div style={{
+                      width: '100%',
+                      height: '12px',
+                      background: '#f3f4f6',
+                      borderRadius: '6px',
+                      position: 'relative',
+                      marginTop: '8px',
+                      marginBottom: '4px',
+                      overflow: 'visible'
+                    }}>
+                      {/* Filled portion */}
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, t.score)}%` }}
+                        transition={{ delay: 0.3 + index * 0.1, duration: 0.8, ease: 'easeOut' }}
+                        style={{
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${getGaugeColor(t.score)}, ${getGaugeColor(t.score)}dd)`,
+                          borderRadius: '6px'
+                        }}
+                      />
+                      {/* Average marker line */}
+                      <div style={{
+                        position: 'absolute',
+                        left: `${average}%`,
+                        top: '-4px',
+                        width: '2px',
+                        height: '20px',
+                        background: '#6b7280',
+                        borderRadius: '1px'
+                      }} />
+                      {/* Average label */}
+                      <div style={{
+                        position: 'absolute',
+                        left: `${average}%`,
+                        top: '18px',
+                        transform: 'translateX(-50%)',
+                        fontSize: '9px',
+                        color: '#6b7280',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        平均
+                      </div>
+                    </div>
+
+                    <div style={{ ...styles.matrixDesc, marginTop: '12px' }}>{t.desc}</div>
+                  </Card>
+                );
+              })}
             </motion.div>
 
             <div style={{ marginTop: '24px' }}>

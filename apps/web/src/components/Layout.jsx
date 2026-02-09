@@ -35,7 +35,8 @@ const navItems = [
     id: 'feature3', icon: Leaf, label: '生活アドバイス', path: '/feature3/tendency',
     subItems: [
       { label: '傾向分析', path: '/feature3/tendency' },
-      { label: '週間アクションプラン', path: '/feature3/lifestyle-recommend' },
+      { label: '生活習慣改善レコメンド', path: '/feature3/lifestyle-recommend' },
+      { label: '週間アクションプラン', path: '/feature3/weekly-plan' },
       { label: '食材レコメンド', path: '/feature3/food-recommend' },
       // { label: '運動レコメンド', path: '/feature3/exercise-recommend' }, // 廃止
     ]
