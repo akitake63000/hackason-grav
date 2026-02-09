@@ -482,3 +482,153 @@ def recommendation(
         grouped_actions=grouped_actions,
         axis_labels=AXIS_LABELS,
     )
+
+
+# ============================================================
+# Weekly Action Plan API
+# ============================================================
+
+from ..agents.lifestyle_agent.tools.generate_plan import generate_weekly_plan
+
+class ActionCheckRequest(BaseModel):
+    planId: str
+    actionId: str
+    date: str  # YYYY-MM-DD
+    completed: bool
+
+class PlanResponse(BaseModel):
+    # Plan info
+    planId: str | None
+    theme: str | None
+    targetActions: list[dict] = []
+    startDate: str | None
+    endDate: str | None
+    status: str = "none" # none, active, completed
+    
+    # Today's status
+    todayLog: dict | None = None # { completedActions: [] }
+
+
+@router.post("/plan/generate", response_model=PlanResponse)
+def generate_plan(
+    uid: str = Depends(get_current_uid),
+) -> PlanResponse:
+    """最新の診断結果から週間プランを作成する"""
+    db = get_firestore_client()
+    
+    # 1. Fetch latest tendency
+    doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
+    doc = doc_ref.get()
+    
+    if not doc.exists:
+        # No diagnosis yet, return empty
+        # Or raise error? Frontend should handle this.
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Diagnosis required before generating plan")
+        
+    data = doc.to_dict()
+    scores = {
+        "hormone": data.get("hormonal", 0),
+        "blood_flow": data.get("bloodCirculation", 0),
+        "circadian": data.get("circadian", 0),
+        "stress": data.get("stress", 0),
+    }
+    answers = data.get("answers", {})
+
+    # 2. Generate Plan
+    plan_data = generate_weekly_plan(scores, answers)
+    plan_data["status"] = "active"
+    
+    # 3. Save to Firestore
+    # Invalidate old active plans?
+    # Simply set new one.
+    db.collection("users").document(uid).collection("plans").document(plan_data["planId"]).set(plan_data)
+    
+    # Mark as current plan in user doc or just query by active status?
+    # Querying is better.
+    
+    return PlanResponse(
+        planId=plan_data["planId"],
+        theme=plan_data["theme"],
+        targetActions=plan_data["targetActions"],
+        startDate=plan_data["startDate"],
+        endDate=plan_data["endDate"],
+        status="active",
+        todayLog={"completedActions": []}
+    )
+
+
+@router.get("/plan/current", response_model=PlanResponse)
+def get_current_plan(
+    uid: str = Depends(get_current_uid),
+) -> PlanResponse:
+    """現在進行中のプランと本日のログを取得"""
+    db = get_firestore_client()
+    
+    # 1. Find active plan
+    plans_ref = db.collection("users").document(uid).collection("plans")
+    query = plans_ref.where("status", "==", "active").limit(1)
+    docs = query.get()
+    
+    if not docs:
+        return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
+    
+    plan_doc = docs[0]
+    plan_data = plan_doc.to_dict()
+    
+    # 2. Check if expired
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    end_date = datetime.fromisoformat(plan_data["endDate"])
+    
+    if now > end_date and now.date() > end_date.date():
+        # Plan expired
+        # Auto-complete or let frontend handle "Time to review" state?
+        # Let's verify status on frontend, but return it here.
+        # Maybe separate status "expired"
+        pass
+
+    # 3. Get today's log
+    today_str = now.strftime("%Y-%m-%d")
+    log_ref = plan_doc.reference.collection("logs").document(today_str)
+    log_doc = log_ref.get()
+    
+    today_log = {"completedActions": []}
+    if log_doc.exists:
+        today_log = log_doc.to_dict()
+        
+    return PlanResponse(
+        planId=plan_data["planId"],
+        theme=plan_data["theme"],
+        targetActions=plan_data["targetActions"],
+        startDate=plan_data["startDate"],
+        endDate=plan_data["endDate"],
+        status=plan_data["status"],
+        todayLog=today_log
+    )
+
+
+@router.post("/plan/check")
+def check_action(
+    req: ActionCheckRequest,
+    uid: str = Depends(get_current_uid),
+):
+    """アクションの実行状態を保存"""
+    db = get_firestore_client()
+    
+    plan_ref = db.collection("users").document(uid).collection("plans").document(req.planId)
+    log_ref = plan_ref.collection("logs").document(req.date)
+    
+    # Transaction might be better but simple update for now
+    # We need to add or remove from list
+    
+    # Use array_union / array_remove
+    if req.completed:
+        log_ref.set({"completedActions": firestore.ArrayUnion([req.actionId])}, merge=True)
+    else:
+        log_ref.set({"completedActions": firestore.ArrayRemove([req.actionId])}, merge=True)
+        
+    return {"status": "updated"}
+
+# Need firestore symbol for ArrayUnion
+from firebase_admin import firestore
+
