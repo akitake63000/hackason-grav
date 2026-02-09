@@ -308,11 +308,11 @@ const CONDITIONAL_QUESTIONS = {
     text: 'お酒を飲む頻度と量は？',
     trigger: (ans) => ans.substances === 'alcohol' || ans.substances === 'multiple',
     options: [
+      { label: '飲まない', value: 'score_100' },
       { label: '機会飲酒程度（月数回）', value: 'score_80' },
       { label: '週1〜2回・適量', value: 'score_60' },
       { label: '週3〜4回・適量', value: 'score_40' },
-      { label: 'ほぼ毎日・適量', value: 'score_20' },
-      { label: '毎日・多量', value: 'score_0' },
+      { label: 'ほぼ毎日〜毎日', value: 'score_20' },
     ],
   },
   // カフェインは「タイミング」を重視
@@ -321,11 +321,11 @@ const CONDITIONAL_QUESTIONS = {
     text: 'コーヒーや紅茶などを飲むタイミングは？（睡眠への影響）',
     trigger: (ans) => ans.substances === 'caffeine' || ans.substances === 'multiple',
     options: [
+      { label: '飲まない', value: 'score_100' },
       { label: '午前中のみ', value: 'score_100' },
       { label: 'ランチ後まで（13時頃）', value: 'score_80' },
       { label: 'おやつ時まで（15時頃）', value: 'score_60' },
-      { label: '夕食後も飲む', value: 'score_40' },
-      { label: '就寝直前まで飲む', value: 'score_20' },
+      { label: '夕食後〜就寝前も飲む', value: 'score_20' },
     ],
   },
 }
