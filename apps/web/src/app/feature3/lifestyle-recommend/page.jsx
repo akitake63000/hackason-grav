@@ -279,7 +279,7 @@ function LifestyleRecommendContent() {
             生活習慣改善レコメンド
           </motion.h1>
 
-          {diagnosisDate && (
+          {diagnosisDate && !isNaN(new Date(diagnosisDate).getTime()) && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

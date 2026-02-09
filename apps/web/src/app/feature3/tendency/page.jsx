@@ -469,7 +469,7 @@ function Tendency() {
 
             <Card variant="accent" padding="lg" style={styles.summaryCard}>
               <h2 style={styles.summaryTitle}>分析スコアの総括</h2>
-              {resultData.updatedAt && (
+              {resultData.updatedAt && !isNaN(new Date(resultData.updatedAt).getTime()) && (
                 <p style={{ fontSize: '13px', color: '#7f786d', marginBottom: '8px' }}>
                   前回の診断日時: {new Date(resultData.updatedAt).toLocaleString('ja-JP')}
                 </p>

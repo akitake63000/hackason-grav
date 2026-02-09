@@ -15,7 +15,8 @@ import { hasUserProfile } from '@/lib/profile'
 
 const navItems = [
   { id: 'home', icon: Home, label: 'ホーム', path: '/home' },
-  { id: 'feature1', icon: Camera, label: 'AIチェック', path: '/feature1/capture',
+  {
+    id: 'feature1', icon: Camera, label: 'AIチェック', path: '/feature1/capture',
     subItems: [
       { label: '撮影ガイド＆撮影', path: '/feature1/capture' },
       { label: '解析結果', path: '/feature1/result' },
@@ -23,18 +24,20 @@ const navItems = [
       { label: 'レポート詳細', path: '/feature1/report' },
     ]
   },
-  { id: 'feature2', icon: MessageCircle, label: 'お悩み相談', path: '/feature2/chat',
+  {
+    id: 'feature2', icon: MessageCircle, label: 'お悩み相談', path: '/feature2/chat',
     subItems: [
       { label: 'チャット', path: '/feature2/chat' },
       { label: 'チーム会議', path: '/feature2/team-meeting' },
       { label: '設定', path: '/feature2/settings' },
     ]
   },
-  { id: 'feature3', icon: Leaf, label: '生活アドバイス', path: '/feature3/tendency',
+  {
+    id: 'feature3', icon: Leaf, label: '生活アドバイス', path: '/feature3/tendency',
     subItems: [
       { label: '傾向分析', path: '/feature3/tendency' },
       { label: '食材レコメンド', path: '/feature3/food-recommend' },
-      { label: '運動レコメンド', path: '/feature3/exercise-recommend' },
+      // { label: '運動レコメンド', path: '/feature3/exercise-recommend' }, // 廃止
     ]
   },
   { id: 'settings', icon: Settings, label: '設定', path: '/settings' },
