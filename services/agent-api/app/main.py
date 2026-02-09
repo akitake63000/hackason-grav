@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import food_sniper, health, lifestyle, mental_shield, photos, reports
 from .config import ALLOWED_ORIGINS
+from .middleware import ResponseTimeMiddleware
 
 app = FastAPI(title="HairGuard Agent API")
 
@@ -24,6 +25,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],  # Only allow actually used methods
     allow_headers=["Content-Type", "Authorization", "X-Firebase-Auth"],  # Only allow necessary headers
 )
+
+# Add response time monitoring
+app.add_middleware(ResponseTimeMiddleware)
 
 app.include_router(health.router)
 app.include_router(photos.router)
