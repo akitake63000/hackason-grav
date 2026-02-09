@@ -6,7 +6,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from google.cloud import storage as gcs
 
 from ..auth import get_current_uid
@@ -34,7 +34,20 @@ class TipResponse(BaseModel):
 
 class TendencyRequest(BaseModel):
     """問診回答リクエスト"""
-    answers: dict[str, str]
+    answers: dict[str, str] = Field(..., description="Questionnaire answers (max 50 keys, max 500 chars per value)")
+
+    @validator('answers')
+    def validate_answers(cls, v):
+        if not v:
+            raise ValueError('Answers cannot be empty')
+        if len(v) > 50:
+            raise ValueError('Too many answer keys (max 50)')
+        for key, value in v.items():
+            if not isinstance(value, str):
+                raise ValueError(f'Answer value for key {key} must be a string')
+            if len(value) > 500:
+                raise ValueError(f'Answer value for key {key} is too long (max 500 chars)')
+        return v
 
 
 class TendencyResponse(BaseModel):
@@ -151,7 +164,16 @@ def tip(_: str = Depends(get_current_uid)) -> TipResponse:
 # ---------------------------------------------------------------------------
 
 class MealAnalyzeRequest(BaseModel):
-    storagePath: str  # Firebase Storage パス (users/{uid}/meals/xxx.jpg)
+    storagePath: str = Field(..., min_length=1, max_length=500, description="Firebase Storage path (users/{uid}/meals/xxx.jpg)")
+
+    @validator('storagePath')
+    def validate_storage_path(cls, v):
+        if not v.strip():
+            raise ValueError('Storage path cannot be empty or whitespace only')
+        # Basic format check (detailed validation happens in storage.validate_storage_path)
+        if '..' in v or v.startswith('/'):
+            raise ValueError('Invalid storage path format')
+        return v.strip()
 
 
 class NutrientInfo(BaseModel):

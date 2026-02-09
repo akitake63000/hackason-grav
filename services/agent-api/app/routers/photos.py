@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from google.cloud import firestore
 
 from ..services.gemini_vision import analyze_image_bytes
@@ -15,7 +15,13 @@ router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
 
 
 class AnalyzePhotoRequest(BaseModel):
-    photoId: str
+    photoId: str = Field(..., min_length=1, max_length=100, pattern="^[a-zA-Z0-9_-]+$", description="Photo ID to analyze")
+
+    @validator('photoId')
+    def validate_photo_id(cls, v):
+        if not v.strip():
+            raise ValueError('Photo ID cannot be empty or whitespace only')
+        return v.strip()
 
 
 class AnalyzePhotoResponse(BaseModel):

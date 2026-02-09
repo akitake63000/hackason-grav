@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
@@ -20,8 +20,14 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
 
 class FoodSniperRequest(BaseModel):
-    message: str
-    hairPattern: Optional[str] = None  # M字, O字, U字, びまん性, オルセン型, ハミルトン型
+    message: str = Field(..., min_length=1, max_length=1000, description="User message for food recommendation")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+
+    @validator('message')
+    def validate_message(cls, v):
+        if not v.strip():
+            raise ValueError('Message cannot be empty or whitespace only')
+        return v.strip()
 
 
 class FoodDetail(BaseModel):
@@ -57,8 +63,14 @@ class FoodSniperResponse(BaseModel):
 
 
 class RecipeRequest(BaseModel):
-    foodName: str
-    hairPattern: Optional[str] = None
+    foodName: str = Field(..., min_length=1, max_length=100, description="Food name for recipe generation")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+
+    @validator('foodName')
+    def validate_food_name(cls, v):
+        if not v.strip():
+            raise ValueError('Food name cannot be empty or whitespace only')
+        return v.strip()
 
 
 class RecipeItem(BaseModel):
