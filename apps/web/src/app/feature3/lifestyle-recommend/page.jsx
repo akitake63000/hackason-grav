@@ -404,6 +404,7 @@ function LifestyleRecommendContent() {
       console.error("Uncheck failed", e)
     }
   }
+
   const getPriorityInfo = (priority) => {
     switch (priority) {
       case 'high':

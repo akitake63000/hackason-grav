@@ -41,7 +41,7 @@ steps:
       - '--concurrency'
       - '80'
       - '--timeout'
-      - '60s'
+      - '300s'
       - '--set-env-vars'
       - 'ENVIRONMENT=production,GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=hackason-grab,GOOGLE_CLOUD_LOCATION=asia-northeast1,GEMINI_MODEL=gemini-2.5-flash,GEMINI_MODEL_LIGHT=gemini-2.5-flash,GEMINI_MODEL_HEAVY=gemini-2.5-pro,GEMINI_MODEL_VISION=gemini-2.5-pro,GEMINI_ENABLED=true'
 
