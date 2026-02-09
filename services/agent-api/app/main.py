@@ -21,8 +21,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # Only allow actually used methods
+    allow_headers=["Content-Type", "Authorization", "X-Firebase-Auth"],  # Only allow necessary headers
 )
 
 app.include_router(health.router)
