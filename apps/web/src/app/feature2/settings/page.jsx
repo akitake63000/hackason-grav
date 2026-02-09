@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Save, MessageSquare, Microscope, Users, Loader2 } from 'lucide-react'
+import { Save, MessageSquare, Microscope, Loader2 } from 'lucide-react'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
@@ -16,6 +16,18 @@ const colors = {
   cream: '#f8f6f2',
   gold: '#c9a962',
 }
+
+const styleOptions = [
+  { value: 'gentle', label: '優しい', description: '寄り添い重視' },
+  { value: 'balanced', label: 'バランス', description: '共感＋的確' },
+  { value: 'strict', label: '厳しい', description: 'ストレート' },
+]
+
+const detailOptions = [
+  { value: 'brief', label: '簡潔', description: '2〜3文' },
+  { value: 'normal', label: '標準', description: '4〜5文' },
+  { value: 'detailed', label: '詳細', description: 'エビデンス付き' },
+]
 
 const styles = {
   container: {
@@ -63,92 +75,35 @@ const styles = {
     color: '#7f786d',
     marginTop: '2px',
   },
-  sliderContainer: {
-    padding: '0 4px',
-  },
-  sliderLabels: {
+  optionGroup: {
     display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '10px',
-    fontSize: '13px',
-    color: '#635d54',
-    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    gap: '8px',
   },
-  sliderLabelActive: {
-    color: colors.deepForest,
-    fontWeight: '600',
-  },
-  sliderTrack: {
-    position: 'relative',
-    height: '8px',
-    background: `linear-gradient(90deg, ${colors.sage}40 0%, ${colors.deepForest}40 100%)`,
-    borderRadius: '4px',
-    cursor: 'pointer',
-  },
-  sliderFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    background: `linear-gradient(90deg, ${colors.sage} 0%, ${colors.deepForest} 100%)`,
-    borderRadius: '4px',
-    transition: 'width 0.2s ease',
-  },
-  sliderThumb: {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '24px',
-    height: '24px',
-    background: '#ffffff',
-    borderRadius: '50%',
-    boxShadow: '0 2px 8px rgba(26, 61, 46, 0.2)',
-    border: `2px solid ${colors.deepForest}`,
-    cursor: 'grab',
-    transition: 'left 0.2s ease',
-  },
-  sliderValue: {
-    textAlign: 'center',
-    marginTop: '12px',
-    fontSize: '14px',
-    color: colors.deepForest,
-    fontWeight: '500',
-  },
-  toggleContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-  },
-  toggleInfo: {
+  optionButton: {
     flex: 1,
-  },
-  toggle: {
-    width: '56px',
-    height: '32px',
-    borderRadius: '16px',
-    background: '#e5e5e5',
-    position: 'relative',
+    padding: '12px 8px',
+    borderRadius: '12px',
+    border: `1.5px solid rgba(124, 154, 124, 0.25)`,
+    background: 'rgba(255, 255, 255, 0.6)',
     cursor: 'pointer',
-    transition: 'background 0.3s ease',
-    flexShrink: 0,
+    textAlign: 'center',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    transition: 'all 0.2s ease',
   },
-  toggleActive: {
-    background: `linear-gradient(90deg, ${colors.sage} 0%, ${colors.deepForest} 100%)`,
+  optionButtonActive: {
+    border: `2px solid ${colors.deepForest}`,
+    background: `linear-gradient(135deg, rgba(124, 154, 124, 0.15) 0%, rgba(26, 61, 46, 0.08) 100%)`,
+    boxShadow: `0 2px 8px rgba(26, 61, 46, 0.15)`,
   },
-  toggleKnob: {
-    position: 'absolute',
-    top: '3px',
-    left: '3px',
-    width: '26px',
-    height: '26px',
-    borderRadius: '50%',
-    background: '#ffffff',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)',
-    transition: 'transform 0.3s ease',
+  optionLabel: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: colors.deepForest,
   },
-  toggleKnobActive: {
-    transform: 'translateX(24px)',
+  optionDesc: {
+    fontSize: '11px',
+    color: '#7f786d',
+    marginTop: '4px',
   },
   saveButtonContainer: {
     padding: '16px',
@@ -172,60 +127,64 @@ const styles = {
 
 function ChatSettings() {
   const { user, loading: authLoading } = useAuth()
-  const [styleValue, setStyleValue] = useState(50) // 0=優しい, 100=厳しい
-  const [detailValue, setDetailValue] = useState(30) // 0=簡潔, 100=詳細
-  const [autoTeamMeeting, setAutoTeamMeeting] = useState(true)
+  const [style, setStyle] = useState('balanced')
+  const [detail, setDetail] = useState('normal')
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loadingSettings, setLoadingSettings] = useState(true)
   const [error, setError] = useState(null)
 
-  // Firestoreから設定を読み込み
+  // 設定を読み込み（localStorage → Firestore）
   useEffect(() => {
     const loadSettings = async () => {
-      if (!user || !isFirebaseConfigured()) {
-        setLoadingSettings(false)
-        return
-      }
+      // localStorageから即時読み込み
       try {
-        const db = getFirestoreDb()
-        const snapshot = await getDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'))
-        if (snapshot.exists()) {
-          const data = snapshot.data()
-          if (data.styleValue !== undefined) setStyleValue(data.styleValue)
-          if (data.detailValue !== undefined) setDetailValue(data.detailValue)
-          if (data.autoTeamMeeting !== undefined) setAutoTeamMeeting(data.autoTeamMeeting)
+        const local = localStorage.getItem('feature2-chat-settings')
+        if (local) {
+          const parsed = JSON.parse(local)
+          if (parsed.style) setStyle(parsed.style)
+          if (parsed.detail) setDetail(parsed.detail)
         }
-      } catch (err) {
-        console.error('Failed to load chat settings:', err)
-      } finally {
-        setLoadingSettings(false)
+      } catch {}
+      // Firestoreがあればそちらを優先
+      if (user && isFirebaseConfigured()) {
+        try {
+          const db = getFirestoreDb()
+          const snapshot = await getDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'))
+          if (snapshot.exists()) {
+            const data = snapshot.data()
+            if (data.style) setStyle(data.style)
+            if (data.detail) setDetail(data.detail)
+          }
+        } catch (err) {
+          console.error('Failed to load chat settings:', err)
+        }
       }
+      setLoadingSettings(false)
     }
     if (!authLoading) {
       loadSettings()
     }
   }, [user, authLoading])
 
-  const handleSliderClick = (setter) => (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
-    setter(Math.round(percentage))
-  }
-
   const handleSave = async () => {
     setSaving(true)
     setError(null)
     try {
+      // localStorageに保存（常に動く）
+      localStorage.setItem('feature2-chat-settings', JSON.stringify({ style, detail }))
+      // Firestoreにも保存（失敗してもlocalStorageは保存済み）
       if (user && isFirebaseConfigured()) {
-        const db = getFirestoreDb()
-        await setDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'), {
-          styleValue,
-          detailValue,
-          autoTeamMeeting,
-          updatedAt: new Date().toISOString(),
-        })
+        try {
+          const db = getFirestoreDb()
+          await setDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'), {
+            style,
+            detail,
+            updatedAt: new Date().toISOString(),
+          })
+        } catch (fsErr) {
+          console.error('Firestore save failed (localStorage saved):', fsErr)
+        }
       }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -236,18 +195,6 @@ function ChatSettings() {
     } finally {
       setSaving(false)
     }
-  }
-
-  const getStyleLabel = (value) => {
-    if (value < 33) return '優しめ'
-    if (value < 66) return 'バランス'
-    return '厳しめ'
-  }
-
-  const getDetailLabel = (value) => {
-    if (value < 33) return '簡潔'
-    if (value < 66) return '標準'
-    return '詳細'
   }
 
   if (authLoading || loadingSettings) {
@@ -261,11 +208,31 @@ function ChatSettings() {
     )
   }
 
+  const renderOptionGroup = (options, currentValue, setter) => (
+    <div style={styles.optionGroup}>
+      {options.map((opt) => (
+        <motion.div
+          key={opt.value}
+          style={{
+            ...styles.optionButton,
+            ...(currentValue === opt.value ? styles.optionButtonActive : {}),
+          }}
+          onClick={() => setter(opt.value)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <div style={styles.optionLabel}>{opt.label}</div>
+          <div style={styles.optionDesc}>{opt.description}</div>
+        </motion.div>
+      ))}
+    </div>
+  )
+
   return (
     <Layout>
       <div style={styles.container}>
         <div style={styles.scrollArea}>
-          {/* Style Slider */}
+          {/* Style Selector */}
           <Card variant="default" padding="lg" style={styles.settingCard}>
             <div style={styles.settingHeader}>
               <div style={styles.settingIcon}>
@@ -276,95 +243,21 @@ function ChatSettings() {
                 <div style={styles.settingDescription}>AIの話し方を調整</div>
               </div>
             </div>
-            <div style={styles.sliderContainer}>
-              <div style={styles.sliderLabels}>
-                <span style={styleValue < 33 ? styles.sliderLabelActive : {}}>優しい</span>
-                <span style={styleValue >= 33 && styleValue < 66 ? styles.sliderLabelActive : {}}>バランス</span>
-                <span style={styleValue >= 66 ? styles.sliderLabelActive : {}}>厳しい</span>
-              </div>
-              <motion.div
-                style={styles.sliderTrack}
-                onClick={handleSliderClick(setStyleValue)}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div style={{ ...styles.sliderFill, width: `${styleValue}%` }} />
-                <motion.div
-                  style={{ ...styles.sliderThumb, left: `${styleValue}%` }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                />
-              </motion.div>
-              <div style={styles.sliderValue}>
-                現在: {getStyleLabel(styleValue)}
-              </div>
-            </div>
+            {renderOptionGroup(styleOptions, style, setStyle)}
           </Card>
 
-          {/* Detail Slider */}
+          {/* Detail Selector */}
           <Card variant="default" padding="lg" style={styles.settingCard}>
             <div style={styles.settingHeader}>
               <div style={styles.settingIcon}>
                 <Microscope size={20} color={colors.deepForest} />
               </div>
               <div>
-                <div style={styles.settingTitle}>科学情報の詳細度</div>
+                <div style={styles.settingTitle}>回答の詳細度</div>
                 <div style={styles.settingDescription}>説明の詳しさを調整</div>
               </div>
             </div>
-            <div style={styles.sliderContainer}>
-              <div style={styles.sliderLabels}>
-                <span style={detailValue < 33 ? styles.sliderLabelActive : {}}>簡潔</span>
-                <span style={detailValue >= 33 && detailValue < 66 ? styles.sliderLabelActive : {}}>標準</span>
-                <span style={detailValue >= 66 ? styles.sliderLabelActive : {}}>詳細</span>
-              </div>
-              <motion.div
-                style={styles.sliderTrack}
-                onClick={handleSliderClick(setDetailValue)}
-                whileTap={{ scale: 0.99 }}
-              >
-                <div style={{ ...styles.sliderFill, width: `${detailValue}%` }} />
-                <motion.div
-                  style={{ ...styles.sliderThumb, left: `${detailValue}%` }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                />
-              </motion.div>
-              <div style={styles.sliderValue}>
-                現在: {getDetailLabel(detailValue)}
-              </div>
-            </div>
-          </Card>
-
-          {/* Auto Team Meeting Toggle */}
-          <Card variant="default" padding="lg" style={styles.settingCard}>
-            <div style={styles.toggleContainer}>
-              <div style={styles.settingHeader}>
-                <div style={styles.settingIcon}>
-                  <Users size={20} color={colors.deepForest} />
-                </div>
-                <div style={styles.toggleInfo}>
-                  <div style={styles.settingTitle}>チーム会議の自動発動</div>
-                  <div style={styles.settingDescription}>
-                    深刻な相談時に自動で<br />チーム会議を提案
-                  </div>
-                </div>
-              </div>
-              <motion.div
-                style={{
-                  ...styles.toggle,
-                  ...(autoTeamMeeting ? styles.toggleActive : {}),
-                }}
-                onClick={() => setAutoTeamMeeting(!autoTeamMeeting)}
-                whileTap={{ scale: 0.95 }}
-              >
-                <div
-                  style={{
-                    ...styles.toggleKnob,
-                    ...(autoTeamMeeting ? styles.toggleKnobActive : {}),
-                  }}
-                />
-              </motion.div>
-            </div>
+            {renderOptionGroup(detailOptions, detail, setDetail)}
           </Card>
         </div>
 

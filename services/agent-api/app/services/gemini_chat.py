@@ -10,8 +10,8 @@ def gemini_enabled(model: str | None = None) -> bool:
     return _gemini_enabled() and bool(target_model)
 
 
-def generate_text(prompt: str, model: str | None = None) -> str:
-    return _generate_text(prompt, model=model)
+def generate_text(prompt: str, model: str | None = None, max_output_tokens: int | None = None) -> str:
+    return _generate_text(prompt, model=model, max_output_tokens=max_output_tokens)
 
 
 def safe_json_load(text: str) -> dict:

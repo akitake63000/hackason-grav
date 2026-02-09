@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, Upload, RefreshCcw } from 'lucide-react';
+import { Camera, Upload, RefreshCcw, AlertCircle } from 'lucide-react';
 
 interface CameraCaptureProps {
     onCapture: (file: File) => void;
@@ -16,6 +16,7 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
     const webcamRef = useRef<Webcam>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [cameraError, setCameraError] = useState<string | null>(null);
 
     const capture = useCallback(() => {
         if (webcamRef.current) {
@@ -47,10 +48,50 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
 
     const retake = () => {
         setCapturedImage(null);
+        setCameraError(null);
+    };
+
+    const handleUserMedia = () => {
+        console.log("Camera started successfully");
+        setCameraError(null);
+    };
+
+    const handleUserMediaError = (error: any) => {
+        console.error("Camera error:", error);
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        setIsCameraOpen(false);
+
+        let errorMessage = "カメラの起動に失敗しました";
+
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMessage = "カメラへのアクセスが拒否されました。ブラウザの設定でカメラの使用を許可してください。";
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+            errorMessage = "カメラが見つかりませんでした。デバイスにカメラが接続されているか確認してください。";
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+            errorMessage = "カメラは他のアプリケーションで使用中の可能性があります。";
+        } else if (error.name === 'OverconstrainedError') {
+            errorMessage = "カメラの設定に問題があります。";
+        } else if (error.name === 'TypeError') {
+            errorMessage = "カメラへのアクセスにはHTTPS接続が必要です。";
+        }
+
+        setCameraError(errorMessage);
     };
 
     return (
         <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 gap-4">
+            {/* Camera Error Message */}
+            {cameraError && (
+                <div className="w-full p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                    <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="text-red-800 text-sm font-medium mb-1">カメラエラー</p>
+                        <p className="text-red-700 text-sm">{cameraError}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300">
                 {!capturedImage ? (
                     isCameraOpen ? (
@@ -60,6 +101,8 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
                             screenshotFormat="image/jpeg"
                             videoConstraints={videoConstraints}
                             className="w-full h-full object-cover"
+                            onUserMedia={handleUserMedia}
+                            onUserMediaError={handleUserMediaError}
                         />
                     ) : (
                         <div className="text-gray-400 flex flex-col items-center">
@@ -77,7 +120,12 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
                 {!capturedImage ? (
                     <>
                         <button
-                            onClick={() => setIsCameraOpen(!isCameraOpen)}
+                            onClick={() => {
+                                if (!isCameraOpen) {
+                                    setCameraError(null);
+                                }
+                                setIsCameraOpen(!isCameraOpen);
+                            }}
                             className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition"
                         >
                             <Camera size={20} />

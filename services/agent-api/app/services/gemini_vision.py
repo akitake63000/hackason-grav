@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 class VisionResult:
     score: float
     notes: Optional[str] = None
+    hairType: Optional[str] = None
+    pattern: Optional[str] = None
+    scalpCondition: Optional[str] = None
+    quality: Optional[str] = None
 
 def vision_enabled() -> bool:
     if GOOGLE_GENAI_USE_VERTEXAI:
@@ -32,7 +36,7 @@ def vision_enabled() -> bool:
 def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
     """
     Analyzes the image bytes using Gemini Vision via Vertex AI.
-    Returns a score (0-100) and notes.
+    Returns a score (0-100) and notes, plus detailed analysis fields (hair type, pattern, scalp condition, quality).
     """
     if not vision_enabled():
         if GOOGLE_GENAI_USE_VERTEXAI:
@@ -55,15 +59,25 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             client = genai.Client(http_options=HttpOptions(api_version="v1"))
 
         prompt = """
-        あなたは専門的な毛髪診断士です。
-        この頭皮・髪の画像を分析してください。
+        You are an expert trichologist (hair and scalp specialist).
+        Analyze this image of a scalp/hair.
 
-        以下をJSON形式で提供してください：
-        - "score": 0.0から100.0の間の浮動小数点数で、髪の密度と健康状態を表します（100が最良）。
-        - "notes": 状態の簡潔で専門的な要約を日本語で記述してください（例: "密度は良好、軽度の赤みが見られます"、"頭頂部に薄毛が観察されます"）。
+        Provide the following in JSON format:
+        - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
+        - "hairType": Norwood-Hamilton scale classification (e.g., "Type II", "Type III-Vertex") or "Normal".
+        - "pattern": Hair loss pattern. MUST be one of the following exact Japanese strings:
+            - "M字": Receding hairline at the temples (M-shaped).
+            - "O字": Thinning at the vertex/crown (O-shaped).
+            - "U字": Receding hairline and vertex thinning merging (U-shaped).
+            - "びまん性": Diffuse thinning over the entire scalp (common in females).
+            - "オルセン型": christmas tree pattern, widening of the part line (common in females).
+            - "ハミルトン型": Male-pattern thinning but occurring in females (due to hormonal issues).
+            - "None": If no significant hair loss is observed.
+        - "quality": Image quality for analysis ("good", "fair", "poor").
+        - "scalpCondition": 文字列。以下のいずれかを選択してください: "良好", "乾燥", "脂性", "炎症", "フケが多い"。
+        - "notes": A brief, professional summary of the condition in Japanese (approx 50 chars).
 
-        出力はマークダウン形式を使わず、生のJSONとしてください。
-        notesフィールドは必ず日本語で記述してください。
+        Ensure the output is raw JSON without markdown formatting.
         """
 
         response = client.models.generate_content(
@@ -101,12 +115,20 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
                 return VisionResult(score=0.0, notes=f"Invalid score value: {score_value}")
 
             notes = data.get("notes", "")
+            hair_type = data.get("hairType")
+            pattern = data.get("pattern")
+            quality = data.get("quality")
+            scalp_condition = data.get("scalpCondition")
 
             logger.info(f"Extracted score: {score}, notes: {notes}")
 
             return VisionResult(
                 score=score,
-                notes=notes
+                notes=notes,
+                hairType=hair_type,
+                pattern=pattern,
+                scalpCondition=scalp_condition,
+                quality=quality
             )
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON from Gemini: {response.text}, error: {e}")

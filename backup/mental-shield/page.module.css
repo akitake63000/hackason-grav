@@ -1,0 +1,70 @@
+.block {
+  display: grid;
+  gap: 14px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  resize: vertical;
+}
+
+.action {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.action:disabled {
+  opacity: 0.6;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 13px;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fffaf2;
+  display: grid;
+  gap: 6px;
+}
+
+.card h3 {
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.summary {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  gap: 6px;
+}
+
+.summary h3 {
+  font-size: 14px;
+}

@@ -1,0 +1,126 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(47, 74, 58, 0.12), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(192, 124, 59, 0.14), transparent 45%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-alt) 100%);
+  color: var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+
+.card {
+  width: 100%;
+  max-width: 760px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 30px 30px 34px;
+  box-shadow: 0 16px 40px rgba(29, 27, 22, 0.12);
+  position: relative;
+  animation: floatIn 0.5s ease-out;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+  font-size: 14px;
+}
+
+.nav a {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #f9f5ee;
+  transition: background 0.15s ease, border 0.15s ease, color 0.15s ease;
+}
+
+.nav a:hover {
+  background: var(--accent-soft);
+  border-color: #d4c2a7;
+  color: var(--accent-strong);
+}
+
+.title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  font-family: var(--font-display), serif;
+  letter-spacing: -0.3px;
+}
+
+.description {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.body {
+  display: grid;
+  gap: 14px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  width: fit-content;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 22px 20px 26px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

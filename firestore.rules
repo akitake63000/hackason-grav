@@ -24,6 +24,10 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /chatSettings/{settingId} {
+        allow read, write: if isOwner(uid);
+      }
+
       match /conversations/{threadId} {
         allow read, write: if isOwner(uid);
 

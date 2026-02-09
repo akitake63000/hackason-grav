@@ -3,7 +3,7 @@ import json
 from typing import Any
 
 from google import genai
-from google.genai.types import HttpOptions
+from google.genai.types import GenerateContentConfig, HttpOptions
 
 from ..config import (
     GEMINI_ENABLED,
@@ -37,10 +37,11 @@ def gemini_enabled() -> bool:
     return GEMINI_ENABLED and bool(GEMINI_MODEL)
 
 
-def generate_text(prompt: str, model: str | None = None) -> str:
+def generate_text(prompt: str, model: str | None = None, max_output_tokens: int | None = None) -> str:
     client = _get_client()
     selected_model = model or GEMINI_MODEL
-    response = client.models.generate_content(model=selected_model, contents=prompt)
+    config = GenerateContentConfig(max_output_tokens=max_output_tokens) if max_output_tokens else None
+    response = client.models.generate_content(model=selected_model, contents=prompt, config=config)
     return response.text or ""
 
 
