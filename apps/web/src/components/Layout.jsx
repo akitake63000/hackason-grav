@@ -28,7 +28,6 @@ const navItems = [
     id: 'feature2', icon: MessageCircle, label: 'お悩み相談', path: '/feature2/chat',
     subItems: [
       { label: 'チャット', path: '/feature2/chat' },
-      { label: 'チーム会議', path: '/feature2/team-meeting' },
       { label: '設定', path: '/feature2/settings' },
     ]
   },

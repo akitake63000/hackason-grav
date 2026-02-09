@@ -192,61 +192,107 @@ ACTIONS_CATALOG: list[dict] = [
 ]
 
 
+def _should_recommend(action_id: str, answers: dict[str, str]) -> bool:
+    """
+    Check if an action is appropriate based on user answers.
+    """
+    if not answers:
+        return True
+
+    substances = answers.get("substances", "none")
+
+    if action_id == "quit_smoking":
+        # Recommend only if user smokes
+        if substances not in ("smoking", "multiple"):
+            return False
+    
+    if action_id == "limit_alcohol":
+        # Recommend only if user drinks
+        if substances not in ("alcohol", "multiple"):
+            return False
+
+    if action_id == "limit_caffeine":
+        # Recommend only if user takes caffeine
+        if substances not in ("caffeine", "multiple"):
+            return False
+
+    return True
+
+
 def get_recommended_actions(
     scores: dict[str, int],
-    max_actions: int = 5,
-) -> list[RecommendedAction]:
+    answers: dict[str, str] = None,
+    max_actions_per_axis: int = 3,
+) -> dict[str, list[RecommendedAction]]:
     """
-    低スコアの軸に基づいて、推奨アクションを優先度順に返す。
+    低スコアの軸に基づいて、推奨アクションを軸ごとにグルーピングして返す。
 
     Args:
         scores: 4軸スコア { "hormone": 45, "circadian": 60, ... }
-        max_actions: 返すアクション数の上限
+        answers: 問診回答 { "substances": "none", ... }
+        max_actions_per_axis: 各軸で返すアクション数の上限
 
     Returns:
-        優先度順の推奨アクションリスト
+        { "hormone": [Action1, ...], "circadian": [...], ... }
     """
-    # Calculate priority score for each action based on how much it helps low-scoring axes
-    action_priorities: list[tuple[dict, float, list]] = []
+    answers = answers or {}
+    grouped_actions: dict[str, list[RecommendedAction]] = {
+        "hormone": [],
+        "circadian": [],
+        "blood_flow": [],
+        "stress": [],
+    }
 
-    for action in ACTIONS_CATALOG:
-        priority_score = 0.0
-        target_axes = []
+    # Iterate over each axis to find relevant actions
+    for axis in grouped_actions.keys():
+        axis_score = scores.get(axis, 50)
+        
+        # If score is high (e.g. > 80), maybe we don't need many recommendations?
+        # But user might still want to see what is good.
+        # We prioritize actions that have high weight for this axis.
 
-        for axis, weight in action["targets"].items():
-            axis_score = scores.get(axis, 50)
-            # Lower axis score = higher need for improvement
-            # Priority = (100 - axis_score) * weight
-            need = (100 - axis_score) / 100.0
-            priority_score += need * weight
-            if axis_score < 60:  # Include as target if below threshold
-                target_axes.append(axis)
+        relevant_actions = []
+        for action in ACTIONS_CATALOG:
+            # 1. Check answer compatibility
+            if not _should_recommend(action["id"], answers):
+                continue
 
-        if priority_score > 0.3:  # Threshold to include action
-            action_priorities.append((action, priority_score, target_axes))
+            # 2. Check if action targets this axis
+            if axis in action["targets"]:
+                weight = action["targets"][axis]
+                
+                # Calculate priority for this specific axis
+                # Priority = weight * (Need based on score?)
+                # For grouping, we just want the most effective actions for this axis.
+                priority = weight
+                
+                relevant_actions.append((action, priority))
 
-    # Sort by priority (descending)
-    action_priorities.sort(key=lambda x: x[1], reverse=True)
+        # Sort by priority (descending)
+        relevant_actions.sort(key=lambda x: x[1], reverse=True)
 
-    # Build result list
-    result: list[RecommendedAction] = []
-    for action, priority, targets in action_priorities[:max_actions]:
-        priority_label = "high" if priority > 0.6 else "medium" if priority > 0.4 else "low"
-        result.append(
-            RecommendedAction(
-                id=action["id"],
-                name=action["name"],
-                emoji=action["emoji"],
-                duration=action["duration"],
-                reason=action["reason"],
-                explanation=action["explanation"],
-                tips=action.get("tips", []),
-                targets=targets if targets else list(action["targets"].keys())[:2],
-                priority=priority_label,
+        # Convert to RecommendedAction model
+        for action_dict, _ in relevant_actions[:max_actions_per_axis]:
+            # Determine overall priority label
+            # (Just reusing high/medium/low logic or static based on weight)
+            p_val = action_dict["targets"][axis]
+            priority_label = "high" if p_val >= 0.8 else "medium" if p_val >= 0.5 else "low"
+
+            grouped_actions[axis].append(
+                RecommendedAction(
+                    id=action_dict["id"],
+                    name=action_dict["name"],
+                    emoji=action_dict["emoji"],
+                    duration=action_dict["duration"],
+                    reason=action_dict["reason"],
+                    explanation=action_dict["explanation"],
+                    tips=action_dict.get("tips", []),
+                    targets=list(action_dict["targets"].keys()), # Show all targets
+                    priority=priority_label,
+                )
             )
-        )
 
-    return result
+    return grouped_actions
 
 
 # Axis labels for frontend display

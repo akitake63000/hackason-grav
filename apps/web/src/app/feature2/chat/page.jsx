@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Send, Loader2, Trash2 } from 'lucide-react'
+import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
-import { collection, doc, setDoc, getDocs, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -198,6 +197,74 @@ const styles = {
     fontSize: '14px',
     margin: '8px 16px',
   },
+  discussionResultContainer: {
+    background: 'rgba(124, 154, 124, 0.06)',
+    borderRadius: '20px',
+    padding: '16px',
+    border: '1px solid rgba(124, 154, 124, 0.15)',
+  },
+  bestLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: colors.gold,
+    marginBottom: '8px',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+  },
+  bestBubble: {
+    padding: '14px 16px',
+    borderRadius: '16px',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: colors.deepForest,
+    background: 'rgba(255, 255, 255, 0.8)',
+    border: '1px solid rgba(201, 169, 98, 0.3)',
+    marginBottom: '12px',
+  },
+  summaryBubble: {
+    padding: '14px 16px',
+    borderRadius: '16px',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: colors.deepForest,
+    background: `linear-gradient(135deg, rgba(124, 154, 124, 0.15) 0%, rgba(26, 61, 46, 0.08) 100%)`,
+    border: '1px solid rgba(124, 154, 124, 0.2)',
+    marginBottom: '12px',
+  },
+  discussionToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
+    color: colors.sage,
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    padding: '4px 0',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    fontWeight: '500',
+  },
+  discussionCard: {
+    padding: '10px 14px',
+    borderRadius: '12px',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    color: colors.deepForest,
+    background: 'rgba(255, 255, 255, 0.6)',
+    border: '1px solid rgba(124, 154, 124, 0.12)',
+    marginTop: '8px',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+  },
+  discussionCardLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    marginBottom: '4px',
+    color: '#7f786d',
+  },
 }
 
 const initialMessages = [
@@ -211,15 +278,55 @@ const initialMessages = [
 ]
 
 function Chat() {
-  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isRevealing, setIsRevealing] = useState(false)
+  const [revealingAgent, setRevealingAgent] = useState(null)
+  const [discussionMessages, setDiscussionMessages] = useState([])
+  const [expandedDiscussions, setExpandedDiscussions] = useState({})
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState(null)
   const [threadId, setThreadId] = useState('default')
+  const [chatStyle, setChatStyle] = useState('balanced')
+  const [chatDetail, setChatDetail] = useState('normal')
   const chatAreaRef = useRef(null)
+  const isUnmountedRef = useRef(false)
+
+  useEffect(() => {
+    return () => { isUnmountedRef.current = true }
+  }, [])
+
+  // 設定を読み込む（Firestore → localStorage フォールバック）
+  useEffect(() => {
+    const loadSettings = async () => {
+      // まずlocalStorageから読み込む（即時反映）
+      try {
+        const local = localStorage.getItem('feature2-chat-settings')
+        if (local) {
+          const parsed = JSON.parse(local)
+          if (parsed.style) setChatStyle(parsed.style)
+          if (parsed.detail) setChatDetail(parsed.detail)
+        }
+      } catch {}
+      // Firestoreがあればそちらを優先
+      if (user && isFirebaseConfigured()) {
+        try {
+          const db = getFirestoreDb()
+          const snapshot = await getDoc(doc(db, 'users', user.uid, 'chatSettings', 'default'))
+          if (snapshot.exists()) {
+            const data = snapshot.data()
+            if (data.style) setChatStyle(data.style)
+            if (data.detail) setChatDetail(data.detail)
+          }
+        } catch (err) {
+          console.error('Failed to load chat settings:', err)
+        }
+      }
+    }
+    if (!authLoading) loadSettings()
+  }, [user, authLoading])
 
   // Firestoreから会話履歴を読み込む
   useEffect(() => {
@@ -236,6 +343,18 @@ function Chat() {
         if (!snapshot.empty) {
           const history = snapshot.docs.map((docSnap) => {
             const d = docSnap.data()
+            if (d.type === 'discussion-result') {
+              return {
+                id: docSnap.id,
+                type: 'discussion-result',
+                bestCard: d.bestCard ? JSON.parse(d.bestCard) : null,
+                summary: d.summary || '',
+                allCards: d.allCards ? JSON.parse(d.allCards) : [],
+                time: d.timestamp?.toDate
+                  ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                  : '',
+              }
+            }
             return {
               id: docSnap.id,
               type: d.role === 'user' ? 'user' : 'ai',
@@ -264,10 +383,10 @@ function Chat() {
     if (chatAreaRef.current) {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, discussionMessages, revealingAgent])
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return
+    if (!inputValue.trim() || isLoading || isRevealing) return
 
     const now = new Date()
     const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
@@ -284,18 +403,29 @@ function Chat() {
     setIsLoading(true)
     setError(null)
 
-    // ユーザーメッセージをFirestoreに保存
+    // Firestoreにメッセージを保存
     const saveMessage = async (tid, msg) => {
       if (!user || !isFirebaseConfigured()) return
       try {
         const db = getFirestoreDb()
         const msgRef = doc(collection(db, 'users', user.uid, 'conversations', tid, 'messages'))
-        await setDoc(msgRef, {
-          role: msg.type === 'user' ? 'user' : 'ai',
-          content: msg.text,
-          ...(msg.agent && { agent: msg.agent }),
-          timestamp: serverTimestamp(),
-        })
+        if (msg.type === 'discussion-result') {
+          const saveData = {
+            type: 'discussion-result',
+            summary: msg.summary,
+            allCards: JSON.stringify(msg.allCards),
+            timestamp: serverTimestamp(),
+          }
+          if (msg.bestCard) saveData.bestCard = JSON.stringify(msg.bestCard)
+          await setDoc(msgRef, saveData)
+        } else {
+          await setDoc(msgRef, {
+            role: msg.type === 'user' ? 'user' : 'ai',
+            content: msg.text,
+            ...(msg.agent && { agent: msg.agent }),
+            timestamp: serverTimestamp(),
+          })
+        }
       } catch (e) {
         console.error('Failed to save message:', e)
       }
@@ -304,13 +434,15 @@ function Chat() {
     await saveMessage(threadId, newUserMessage)
 
     try {
-      const response = await apiFetch('/api/v1/mental-shield/chat', {
+      const response = await apiFetch('/api/v1/mental-shield/chat/discuss', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           threadId,
           message: inputValue,
           mode: 'balanced',
+          style: chatStyle,
+          detail: chatDetail,
         }),
       })
 
@@ -327,35 +459,62 @@ function Chat() {
         setThreadId(data.threadId)
       }
 
-      // 3人格の応答をメッセージに追加
-      const agentMessages = data.cards.map((card, index) => ({
-        id: Date.now() + index + 1,
-        type: 'ai',
-        agent: card.agent,
-        text: card.text,
-        time: responseTime,
-      }))
+      // 順次表示開始
+      setIsLoading(false)
+      setIsRevealing(true)
 
-      // サマリーを追加
-      const summaryMessage = {
-        id: Date.now() + data.cards.length + 1,
-        type: 'ai',
-        agent: 'orchestrator',
-        text: data.summary,
+      // 3人の議論を順番に表示
+      for (const card of data.cards) {
+        if (isUnmountedRef.current) return
+
+        setRevealingAgent(card.agent)
+        await new Promise(resolve => setTimeout(resolve, 1200))
+        if (isUnmountedRef.current) return
+
+        setRevealingAgent(null)
+        setDiscussionMessages(prev => [...prev, {
+          id: `disc-${Date.now()}-${card.agent}`,
+          agent: card.agent,
+          text: card.text,
+          time: responseTime,
+        }])
+
+        await new Promise(resolve => setTimeout(resolve, 600))
+      }
+
+      if (isUnmountedRef.current) return
+
+      // 議論メッセージをフェードアウト
+      setRevealingAgent('orchestrator')
+      await new Promise(resolve => setTimeout(resolve, 1200))
+      if (isUnmountedRef.current) return
+
+      setRevealingAgent(null)
+      setDiscussionMessages([])
+
+      // まとめ + 折り畳みをメッセージに追加
+      const resultMessage = {
+        id: Date.now() + 100,
+        type: 'discussion-result',
+        summary: data.summary,
+        allCards: data.cards.map(c => ({ agent: c.agent, text: c.text })),
         time: responseTime,
       }
 
-      setMessages(prev => [...prev, ...agentMessages, summaryMessage])
+      setMessages(prev => [...prev, resultMessage])
+      setIsRevealing(false)
 
-      // AI応答をFirestoreに保存
-      for (const msg of [...agentMessages, summaryMessage]) {
-        await saveMessage(currentThreadId, msg)
-      }
+      // Firestoreに保存
+      await saveMessage(currentThreadId, resultMessage)
+
     } catch (err) {
       console.error('Chat API error:', err)
       setError('メッセージの送信に失敗しました。もう一度お試しください。')
     } finally {
       setIsLoading(false)
+      setIsRevealing(false)
+      setRevealingAgent(null)
+      setDiscussionMessages([])
     }
   }
 
@@ -385,6 +544,68 @@ function Chat() {
     }
   }
 
+  const toggleDiscussion = (messageId) => {
+    setExpandedDiscussions(prev => ({
+      ...prev,
+      [messageId]: !prev[messageId],
+    }))
+  }
+
+  // discussion-result メッセージの描画
+  const renderDiscussionResult = (message) => {
+    const isExpanded = expandedDiscussions[message.id]
+
+    return (
+      <div style={styles.discussionResultContainer}>
+        {/* まとめ */}
+        <div style={styles.agentLabel}>
+          🌿 まとめ
+        </div>
+        <div style={styles.summaryBubble}>
+          {message.summary}
+        </div>
+
+        {/* 議論の過程（折り畳み） */}
+        {message.allCards && message.allCards.length > 0 && (
+          <>
+            <button
+              style={styles.discussionToggle}
+              onClick={() => toggleDiscussion(message.id)}
+            >
+              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              議論の過程を見る
+            </button>
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  {message.allCards.map((card, idx) => {
+                    const cardAgent = agentConfig[card.agent]
+                    return (
+                      <div key={idx} style={styles.discussionCard}>
+                        <div style={styles.discussionCardLabel}>
+                          {cardAgent?.emoji} {cardAgent?.name}
+                        </div>
+                        {card.text}
+                      </div>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  const isBusy = isLoading || isRevealing
+
   return (
     <Layout>
       <style>{`
@@ -406,6 +627,24 @@ function Chat() {
           ) : (
           <AnimatePresence>
             {messages.map((message, index) => {
+              // discussion-result タイプの描画
+              if (message.type === 'discussion-result') {
+                return (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                  >
+                    {renderDiscussionResult(message)}
+                    <div style={styles.timestamp}>
+                      {message.time}
+                    </div>
+                  </motion.div>
+                )
+              }
+
+              // 通常メッセージの描画
               const agent = message.agent ? agentConfig[message.agent] : null
               return (
               <motion.div
@@ -456,7 +695,45 @@ function Chat() {
           </AnimatePresence>
           )}
 
-          {/* ローディング表示 */}
+          {/* 議論中の一時メッセージ */}
+          <AnimatePresence>
+            {discussionMessages.map((msg) => {
+              const agent = agentConfig[msg.agent]
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div style={styles.agentLabel}>
+                    {agent?.emoji} {agent?.name}
+                  </div>
+                  <div style={styles.messageRow}>
+                    <div style={{
+                      ...styles.avatar,
+                      background: agent?.color || styles.avatar.background,
+                    }}>
+                      <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
+                    </div>
+                    <div
+                      style={{
+                        ...styles.messageBubble,
+                        ...styles.aiMessage,
+                        opacity: 0.7,
+                        borderStyle: 'dashed',
+                      }}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+
+          {/* ローディング表示（API呼び出し中） */}
           {isLoading && (
             <motion.div
               style={styles.loadingContainer}
@@ -470,6 +747,52 @@ function Chat() {
             </motion.div>
           )}
 
+          {/* エージェント考え中インジケーター */}
+          <AnimatePresence>
+            {isRevealing && revealingAgent && (
+              <motion.div
+                style={styles.loadingContainer}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                key={`thinking-${revealingAgent}`}
+              >
+                <div style={{
+                  ...styles.avatar,
+                  background: agentConfig[revealingAgent]?.color || styles.avatar.background,
+                }}>
+                  <motion.span
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                  >
+                    {agentConfig[revealingAgent]?.emoji || '🌿'}
+                  </motion.span>
+                </div>
+                <span style={styles.loadingText}>
+                  {revealingAgent === 'orchestrator'
+                    ? 'まとめを作成中...'
+                    : `${agentConfig[revealingAgent]?.name || ''}が考え中...`
+                  }
+                </span>
+                <div style={{ display: 'flex', gap: '4px', marginLeft: '4px' }}>
+                  {[0, 1, 2].map(i => (
+                    <motion.div
+                      key={i}
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: colors.sage,
+                      }}
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* エラー表示 */}
           {error && (
             <motion.div
@@ -482,16 +805,7 @@ function Chat() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', margin: '8px 16px' }}>
-          <motion.button
-            style={{ ...styles.teamMeetingButton, flex: 1, margin: 0 }}
-            onClick={() => router.push('/feature2/team-meeting')}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Users size={18} />
-            チーム会議を開く
-          </motion.button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 16px' }}>
           <motion.button
             style={{
               width: '48px',
@@ -503,7 +817,6 @@ function Chat() {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              flexShrink: 0,
             }}
             onClick={handleDeleteHistory}
             whileHover={{ scale: 1.05, background: 'rgba(239, 68, 68, 0.2)' }}
@@ -528,15 +841,15 @@ function Chat() {
           <motion.button
             style={{
               ...styles.sendButton,
-              opacity: isLoading ? 0.6 : 1,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isBusy ? 0.6 : 1,
+              cursor: isBusy ? 'not-allowed' : 'pointer',
             }}
             onClick={handleSend}
-            disabled={isLoading}
-            whileHover={isLoading ? {} : { scale: 1.05 }}
-            whileTap={isLoading ? {} : { scale: 0.95 }}
+            disabled={isBusy}
+            whileHover={isBusy ? {} : { scale: 1.05 }}
+            whileTap={isBusy ? {} : { scale: 0.95 }}
           >
-            {isLoading ? (
+            {isBusy ? (
               <Loader2 size={18} color="#ffffff" style={{ animation: 'spin 1s linear infinite' }} />
             ) : (
               <Send size={18} color="#ffffff" />
