@@ -74,9 +74,15 @@ def analyze_photo(
     # 2. Download Image
     try:
         image_bytes = download_image_bytes(storage_path)
+    except ValueError as exc:
+        # Path validation failed (e.g., path traversal attempt)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        ) from exc
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve image from storage"
         ) from exc
 
