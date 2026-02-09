@@ -109,7 +109,7 @@ def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], hist
     """
 
     try:
-        response_text = generate_text(prompt, model="gemini-pro")
+        response_text = generate_text(prompt)
         data = safe_json_load(response_text)
         
         if not data or "actions" not in data:
