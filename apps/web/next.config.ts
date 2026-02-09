@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   // Firebase Hosting compatibility: add trailing slash
   trailingSlash: true,
 
+  // React Strict Mode for better development experience
+  reactStrictMode: true,
+
+  // Remove X-Powered-By header for security
+  poweredByHeader: false,
+
   // 画像最適化（Static Exportでは制限あり）
   images: {
     unoptimized: true,
