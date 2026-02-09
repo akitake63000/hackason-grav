@@ -14,7 +14,7 @@ import {
     TrendingUp,
     AlertCircle,
     ArrowRight,
-    Fire,
+    Flame,
     ChevronDown,
     ChevronUp
 } from 'lucide-react'
@@ -541,7 +541,7 @@ export default function WeeklyPlan() {
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 10 }}
                         >
-                            <Fire size={16} style={{ marginRight: '6px' }} />
+                            <Flame size={16} style={{ marginRight: '6px' }} />
                             {streak}日連続達成中！
                         </motion.div>
                     </div>
