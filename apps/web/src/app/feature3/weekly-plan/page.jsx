@@ -44,19 +44,28 @@ export default function WeeklyPlan() {
     const fetchData = async () => {
         try {
             // Check tendency data freshness
-            const tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
-            if (tendencyRes.ok) {
-                const data = await tendencyRes.json()
-                setTendencyData(data)
+            // Note: 404 is expected when user hasn't completed tendency survey
+            try {
+                const tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
+                if (tendencyRes.ok) {
+                    const data = await tendencyRes.json()
+                    setTendencyData(data)
 
-                // Check if 2+ weeks since last update
-                if (data.updatedAt) {
-                    const lastUpdate = new Date(data.updatedAt)
-                    const twoWeeksAgo = new Date()
-                    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-                    if (lastUpdate < twoWeeksAgo) {
-                        setShowInactivityWarning(true)
+                    // Check if 2+ weeks since last update
+                    if (data.updatedAt) {
+                        const lastUpdate = new Date(data.updatedAt)
+                        const twoWeeksAgo = new Date()
+                        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+                        if (lastUpdate < twoWeeksAgo) {
+                            setShowInactivityWarning(true)
+                        }
                     }
+                }
+            } catch (tendencyError) {
+                // 404 means user hasn't completed tendency survey yet - this is normal
+                // Only log non-404 errors
+                if (tendencyError?.statusCode !== 404 && tendencyError?.status !== 404) {
+                    console.error('Failed to fetch tendency data:', tendencyError)
                 }
             }
 
