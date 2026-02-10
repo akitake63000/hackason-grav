@@ -10,202 +10,6 @@ import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { getFirebaseAuth } from '@/lib/firebase'
 
-const styles = {
-  container: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-  },
-  content: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '24px',
-    gap: '24px',
-    maxWidth: '1000px',
-    width: '100%',
-    margin: '0 auto',
-    boxSizing: 'border-box',
-    overflowX: 'hidden',
-  },
-  title: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: 'clamp(24px, 4vw, 32px)',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#7f786d',
-    textAlign: 'center',
-    marginTop: '4px',
-  },
-  filterSection: {
-    display: 'flex',
-    gap: '8px',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  filterButton: {
-    padding: '10px 20px',
-    fontSize: '13px',
-    fontWeight: '600',
-    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
-    color: '#635d54',
-    background: 'rgba(255, 255, 255, 0.8)',
-    border: '1px solid rgba(26, 61, 46, 0.1)',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    textAlign: 'center',
-    minWidth: '80px',
-  },
-  filterButtonActive: {
-    background: 'linear-gradient(135deg, #1a3d2e 0%, #275c45 100%)',
-    color: '#ffffff',
-    border: '1px solid #1a3d2e',
-    boxShadow: '0 4px 12px rgba(26, 61, 46, 0.2)',
-  },
-  filterButtonDisabled: {
-    opacity: 0.4,
-    cursor: 'not-allowed',
-    background: 'rgba(200, 200, 200, 0.3)',
-    color: '#999',
-  },
-  sectionTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    marginBottom: '12px',
-  },
-  chartContainer: {
-    height: '220px',
-    position: 'relative',
-    width: '100%',
-    overflow: 'hidden',
-  },
-  chartSvg: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbnailGrid: {
-    display: 'flex',
-    gap: '12px',
-    overflowX: 'auto',
-    paddingBottom: '8px',
-    scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(65, 152, 115, 0.3) rgba(0, 0, 0, 0.1)',
-  },
-  thumbnail: {
-    minWidth: '100px',
-    width: '100px',
-    height: '100px',
-    flexShrink: 0,
-    background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
-    borderRadius: '16px',
-    position: 'relative',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbnailOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-    padding: '8px',
-  },
-  thumbnailDate: {
-    fontSize: '10px',
-    color: '#ffffff',
-    fontWeight: '500',
-  },
-  thumbnailScore: {
-    fontSize: '12px',
-    color: '#c9a962',
-    fontWeight: '600',
-    marginTop: '2px',
-  },
-  silhouetteCircle: {
-    width: '50%',
-    height: '60%',
-    background: 'radial-gradient(ellipse at center, rgba(80, 80, 80, 0.5) 0%, rgba(40, 40, 40, 0.3) 100%)',
-    borderRadius: '50%',
-    opacity: 0.7,
-  },
-  buttonWrapper: {
-    marginTop: 'auto',
-    paddingTop: '8px',
-    maxWidth: '400px',
-    width: '100%',
-    alignSelf: 'center',
-  },
-  loadingContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '300px',
-    color: '#7f786d',
-    fontSize: '14px',
-  },
-  errorContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '16px',
-    background: 'rgba(184, 84, 80, 0.08)',
-    borderRadius: '16px',
-    color: '#b85450',
-    fontSize: '14px',
-    border: '1px solid rgba(184, 84, 80, 0.2)',
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 24px',
-    textAlign: 'center',
-    gap: '16px',
-  },
-  emptyStateIcon: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '40px',
-  },
-  emptyStateTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-  },
-  emptyStateDescription: {
-    fontSize: '14px',
-    color: '#7f786d',
-    lineHeight: '1.6',
-    maxWidth: '320px',
-  },
-}
-
 function Dashboard() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState('1ヶ月')
@@ -488,8 +292,8 @@ function Dashboard() {
   if (loading) {
     return (
       <Layout>
-        <div style={styles.container}>
-          <div style={styles.loadingContainer}>
+        <div className={styles.container}>
+          <div className={styles.loadingContainer}>
             データを読み込んでいます...
           </div>
         </div>
@@ -501,19 +305,19 @@ function Dashboard() {
   if (chartData.length === 0 && thumbnails.length === 0) {
     return (
       <Layout>
-        <div style={styles.container}>
-          <div style={styles.content}>
+        <div className={styles.container}>
+          <div className={styles.content}>
             <motion.div
-              style={styles.emptyState}
+              className={styles.emptyState}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <div style={styles.emptyStateIcon}>
+              <div className={styles.emptyStateIcon}>
                 <Camera size={40} color="#419873" />
               </div>
-              <h2 style={styles.emptyStateTitle}>まだ解析結果がありません</h2>
-              <p style={styles.emptyStateDescription}>
+              <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
+              <p className={styles.emptyStateDescription}>
                 まずは写真を撮影して、AIによる髪密度の解析を始めましょう。
               </p>
               <Button
@@ -533,37 +337,21 @@ function Dashboard() {
 
   return (
     <Layout>
-      <style jsx>{`
-        .thumbnail-scroll::-webkit-scrollbar {
-          height: 8px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 4px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-thumb {
-          background: rgba(65, 152, 115, 0.3);
-          border-radius: 4px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(65, 152, 115, 0.5);
-        }
-      `}</style>
-      <div style={styles.container}>
-        <div style={styles.content}>
+      <div className={styles.container}>
+        <div className={styles.content}>
         {/* Title Section */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 style={styles.title}>ダッシュボード</h1>
-          <p style={styles.subtitle}>進捗トラッキング</p>
+          <h1 className={styles.title}>ダッシュボード</h1>
+          <p className={styles.subtitle}>進捗トラッキング</p>
         </motion.div>
 
         {/* Period Filter */}
         <motion.div
-          style={styles.filterSection}
+          className={styles.filterSection}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
@@ -575,11 +363,7 @@ function Dashboard() {
             return (
               <motion.button
                 key={filter}
-                style={{
-                  ...styles.filterButton,
-                  ...(isActive ? styles.filterButtonActive : {}),
-                  ...(!isAvailable ? styles.filterButtonDisabled : {}),
-                }}
+                className={`${styles.filterButton} ${isActive ? styles.filterButtonActive : ''}`}
                 onClick={() => isAvailable && setActiveFilter(filter)}
                 whileTap={isAvailable ? { scale: 0.97 } : {}}
                 disabled={!isAvailable}
@@ -593,9 +377,9 @@ function Dashboard() {
 
         {/* Chart Card */}
         <Card variant="default" padding="md" delay={0.2}>
-          <span style={styles.sectionTitle}>髪密度推移</span>
-          <div style={styles.chartContainer}>
-            <svg style={styles.chartSvg} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="xMidYMid meet" overflow="hidden">
+          <span className={styles.sectionTitle}>髪密度推移</span>
+          <div className={styles.chartContainer}>
+            <svg className={styles.chartSvg} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="xMidYMid meet" overflow="hidden">
               <defs>
                 <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#419873" stopOpacity="0.3" />
@@ -743,12 +527,12 @@ function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <span style={styles.sectionTitle}>過去の写真</span>
-          <div style={styles.thumbnailGrid} className="thumbnail-scroll">
+          <span className={styles.sectionTitle}>過去の写真</span>
+          <div className={styles.thumbnailGrid}>
             {thumbnails.map((thumb, i) => (
               <motion.div
                 key={thumb.photoId || i}
-                style={styles.thumbnail}
+                className={styles.thumbnail}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: Math.min(0.5 + i * 0.02, 1.5) }}
@@ -760,15 +544,15 @@ function Dashboard() {
                   <img
                     src={thumb.downloadUrl}
                     alt={`Photo from ${thumb.date}`}
-                    style={styles.thumbnailImage}
+                    className={styles.thumbnailImage}
                     loading="lazy"
                   />
                 ) : (
-                  <div style={styles.silhouetteCircle} />
+                  <div className={styles.silhouetteCircle} />
                 )}
-                <div style={styles.thumbnailOverlay}>
-                  <div style={styles.thumbnailDate}>{thumb.date}</div>
-                  <div style={styles.thumbnailScore}>{thumb.score}点</div>
+                <div className={styles.thumbnailOverlay}>
+                  <div className={styles.thumbnailDate}>{thumb.date}</div>
+                  <div className={styles.thumbnailScore}>{thumb.score}点</div>
                 </div>
               </motion.div>
             ))}
@@ -777,7 +561,7 @@ function Dashboard() {
 
         {/* Report Button */}
         <motion.div
-          style={styles.buttonWrapper}
+          className={styles.buttonWrapper}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}

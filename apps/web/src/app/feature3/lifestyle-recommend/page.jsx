@@ -20,157 +20,6 @@ import Layout from '@/components/Layout'
 import Button from '@/components/Button'
 import { apiFetch } from '@/lib/api'
 
-const styles = {
-  container: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    width: '100%',
-    paddingBottom: '40px',
-  },
-  content: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    width: '100%',
-  },
-  pageTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: 'clamp(24px, 4vw, 32px)',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    textAlign: 'center',
-    marginBottom: '12px',
-  },
-  introText: {
-    fontSize: 'clamp(14px, 2vw, 16px)',
-    color: '#7f786d',
-    lineHeight: 1.6,
-    textAlign: 'center',
-    marginBottom: '32px',
-  },
-  axisSection: {
-    marginBottom: '32px',
-  },
-  axisHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '16px',
-    padding: '12px 16px',
-    background: 'rgba(255,255,255,0.8)',
-    borderRadius: '16px',
-    border: '1px solid #e0dcd0',
-  },
-  axisIcon: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  axisTitle: {
-    fontFamily: "'Noto Serif JP', serif",
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a3d2e',
-  },
-  axisScore: {
-    marginLeft: 'auto',
-    fontSize: '24px',
-    fontWeight: '700',
-  },
-  actionCard: {
-    cursor: 'pointer',
-    marginBottom: '12px',
-    transition: 'transform 0.2s ease',
-  },
-  actionInner: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-  },
-  actionEmoji: {
-    fontSize: '24px',
-    width: '40px',
-    textAlign: 'center',
-  },
-  actionContent: {
-    flex: 1,
-  },
-  actionName: {
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#1a3d2e',
-    marginBottom: '2px',
-  },
-  actionReason: {
-    fontSize: '12px',
-    color: '#7f786d',
-  },
-  priorityBadge: {
-    fontSize: '10px',
-    fontWeight: '700',
-    padding: '2px 8px',
-    borderRadius: '99px',
-    textTransform: 'uppercase',
-  },
-  // Modal
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(26, 61, 46, 0.4)',
-    backdropFilter: 'blur(4px)',
-    zIndex: 1000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: '24px',
-    width: '100%',
-    maxWidth: '500px',
-    maxHeight: '80vh',
-    overflowY: 'auto',
-    padding: '32px 24px',
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    padding: '8px',
-    borderRadius: '50%',
-    background: '#f5f5f5',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#7f786d',
-  },
-  // Plan CTA section
-  planCTA: {
-    marginTop: '48px',
-    textAlign: 'center',
-    padding: '32px 24px',
-    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.05) 0%, rgba(245, 158, 11, 0.05) 100%)',
-    borderRadius: '24px',
-    border: '1px solid rgba(65, 152, 115, 0.2)',
-  },
-}
-
-const AXIS_CONFIG = {
-  hormone: { icon: Heart, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)', name: 'ホルモンバランス' },
-  circadian: { icon: Activity, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', name: '体内時計' },
-  blood_flow: { icon: Droplets, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', name: '血流' },
-  stress: { icon: Brain, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', name: 'ストレス' },
-}
-
-const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
-
 function LifestyleRecommendContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -295,10 +144,10 @@ function LifestyleRecommendContent() {
   if (error === '診断データがありません') {
     return (
       <Layout>
-        <div style={styles.container}>
+        <div className={styles.container}>
           <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
-            <h2 style={styles.pageTitle}>診断データがありません</h2>
-            <p style={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
+            <h2 className={styles.pageTitle}>診断データがありません</h2>
+            <p className={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
             <Button onClick={() => router.push('/feature3/tendency')}>
               傾向分析を始める
             </Button>
@@ -310,9 +159,9 @@ function LifestyleRecommendContent() {
 
   return (
     <Layout>
-      <div style={styles.container}>
-        <div style={styles.content}>
-          <motion.h1 style={styles.pageTitle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+      <div className={styles.container}>
+        <div className={styles.content}>
+          <motion.h1 className={styles.pageTitle} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             生活習慣改善レコメンド
           </motion.h1>
 
@@ -326,7 +175,7 @@ function LifestyleRecommendContent() {
             </motion.p>
           )}
 
-          <motion.p style={styles.introText} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <motion.p className={styles.introText} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
             4つのメカニズム軸の分析結果に基づき、<br />
             今のあなたに必要なアクションを全て表示しています。
           </motion.p>
@@ -343,18 +192,18 @@ function LifestyleRecommendContent() {
             return (
               <motion.div
                 key={axisKey}
-                style={styles.axisSection}
+                className={styles.axisSection}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: axisIndex * 0.1 }}
               >
                 {/* Axis Header */}
-                <div style={styles.axisHeader}>
+                <div className={styles.axisHeader}>
                   <div style={{ ...styles.axisIcon, background: config.bg }}>
                     <Icon size={24} color={config.color} />
                   </div>
                   <div>
-                    <div style={styles.axisTitle}>{config.name}</div>
+                    <div className={styles.axisTitle}>{config.name}</div>
                     <div style={{ fontSize: '12px', color: '#7f786d' }}>
                       {actions.length}件のアクション
                     </div>
@@ -370,14 +219,14 @@ function LifestyleRecommendContent() {
                   return (
                     <Card
                       key={action.id}
-                      style={styles.actionCard}
+                      className={styles.actionCard}
                       onClick={() => setSelectedAction(action)}
                     >
-                      <div style={styles.actionInner}>
-                        <div style={styles.actionEmoji}>{action.emoji}</div>
-                        <div style={styles.actionContent}>
-                          <div style={styles.actionName}>{action.name}</div>
-                          <div style={styles.actionReason}>{action.reason}</div>
+                      <div className={styles.actionInner}>
+                        <div className={styles.actionEmoji}>{action.emoji}</div>
+                        <div className={styles.actionContent}>
+                          <div className={styles.actionName}>{action.name}</div>
+                          <div className={styles.actionReason}>{action.reason}</div>
                         </div>
                         <span style={{
                           ...styles.priorityBadge,
@@ -397,7 +246,7 @@ function LifestyleRecommendContent() {
 
           {/* AI Plan Creation CTA */}
           <motion.div
-            style={styles.planCTA}
+            className={styles.planCTA}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -434,14 +283,14 @@ function LifestyleRecommendContent() {
 
       {/* Action Detail Modal */}
       {selectedAction && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedAction(null)}>
+        <div className={styles.modalOverlay} onClick={() => setSelectedAction(null)}>
           <motion.div
-            style={styles.modalContent}
+            className={styles.modalContent}
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button style={styles.closeButton} onClick={() => setSelectedAction(null)}>
+            <button className={styles.closeButton} onClick={() => setSelectedAction(null)}>
               <X size={20} />
             </button>
 

@@ -1,0 +1,301 @@
+/* Container */
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--spacing-lg) var(--spacing-lg);
+}
+
+@media (max-width: 767px) {
+  .scrollArea {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+  }
+}
+
+/* Section */
+.section {
+  margin-bottom: clamp(20px, 5vw, 28px);
+}
+
+.sectionTitle {
+  font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.required {
+  font-size: 11px;
+  color: #c9a962;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Gender Selection */
+.genderGrid {
+  display: grid;
+  gap: var(--spacing-md);
+  /* Responsive grid: 1 column on small, 2 on medium, 3 on large */
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 400px) {
+  .genderGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 640px) {
+  .genderGrid {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 374px) {
+  .genderGrid {
+    gap: var(--spacing-sm);
+  }
+}
+
+.genderCard {
+  position: relative;
+  padding: clamp(18px, 5vw, 24px) var(--spacing-md);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  /* Touch target size */
+  min-height: var(--touch-target-min);
+}
+
+/* Progressive enhancement: backdrop-filter */
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .genderCard {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+@media (hover: hover) {
+  .genderCard:hover {
+    transform: scale(1.02);
+  }
+}
+
+.genderCard:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 767px) {
+  .genderCard {
+    border-radius: 16px;
+  }
+}
+
+.genderCardSelected {
+  border: 2px solid #419873;
+  background: linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(124, 154, 124, 0.04) 100%);
+}
+
+.genderIcon {
+  width: clamp(56px, 15vw, 64px);
+  height: clamp(56px, 15vw, 64px);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(28px, 8vw, 32px);
+}
+
+@media (max-width: 374px) {
+  .genderIcon {
+    border-radius: 16px;
+  }
+}
+
+.genderLabel {
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: #1a3d2e;
+}
+
+.checkmark {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.3);
+}
+
+/* Age Input */
+.ageInputContainer {
+  position: relative;
+  max-width: 200px;
+}
+
+.ageInput {
+  width: 100%;
+  padding: var(--spacing-md) 60px var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: #1a3d2e;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(26, 61, 46, 0.12);
+  border-radius: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+  font-family: 'DM Sans', sans-serif;
+  box-sizing: border-box;
+  /* Touch target size */
+  min-height: var(--touch-target-min);
+}
+
+.ageInput:focus {
+  border: 1.5px solid #419873;
+  box-shadow: 0 0 0 4px rgba(65, 152, 115, 0.1);
+}
+
+.ageSuffix {
+  position: absolute;
+  right: var(--spacing-lg);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-base);
+  color: #7f786d;
+}
+
+/* Concerns Selection */
+.tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tag {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: 20px;
+  font-size: var(--font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid rgba(26, 61, 46, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  color: #635d54;
+  transition: all 0.3s ease;
+  font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+  /* Touch target size */
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+}
+
+@media (hover: hover) {
+  .tag:hover {
+    transform: scale(1.05);
+  }
+}
+
+.tag:active {
+  transform: scale(0.95);
+}
+
+.tagSelected {
+  border: 1.5px solid #419873;
+  background: linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.08) 100%);
+  color: #1a3d2e;
+  font-weight: 600;
+}
+
+/* Footer */
+.footer {
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-sm);
+  background: linear-gradient(180deg, transparent 0%, rgba(248, 246, 242, 1) 20%);
+}
+
+.hint {
+  font-size: var(--font-xs);
+  color: #9c958a;
+  text-align: center;
+  margin-top: var(--spacing-md);
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .footer {
+    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-xs);
+  }
+}
+
+@media (max-width: 374px) {
+  .section {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .genderCard {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Gender Icon Gradients */
+.genderIconMale {
+  background: linear-gradient(135deg, rgba(90, 139, 184, 0.15) 0%, rgba(90, 139, 184, 0.05) 100%);
+}
+
+.genderIconFemale {
+  background: linear-gradient(135deg, rgba(196, 122, 90, 0.15) 0%, rgba(196, 122, 90, 0.05) 100%);
+}
+
+.genderIconPreferNotToSay {
+  background: linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 150, 0.05) 100%);
+}
+
+/* Tag Emoji */
+.tagEmoji {
+  margin-right: 6px;
+}
+
+/* Button reset and accessibility */
+.genderCard {
+  border: none;
+  text-align: center;
+  width: 100%;
+}
+
+.genderCard:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+  border-color: #419873;
+}
+
+.tag {
+  border: none;
+  text-align: center;
+}
+
+.tag:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+}

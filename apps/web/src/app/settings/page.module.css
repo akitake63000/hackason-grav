@@ -1,0 +1,245 @@
+/* Container */
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+.scrollArea {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--spacing-lg) var(--spacing-lg);
+}
+
+@media (max-width: 767px) {
+  .scrollArea {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+  }
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.sectionTitle {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: #9c958a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-md);
+  padding-left: 4px;
+}
+
+/* Card */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 20px rgba(26, 61, 46, 0.06);
+}
+
+/* Progressive enhancement: backdrop-filter */
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .card {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+@media (max-width: 767px) {
+  .card {
+    border-radius: 16px;
+  }
+}
+
+/* Item */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid rgba(26, 61, 46, 0.05);
+  /* Touch target size */
+  min-height: var(--touch-target-min);
+}
+
+@media (hover: hover) {
+  .item:hover {
+    background: rgba(65, 152, 115, 0.04);
+  }
+}
+
+.item:active {
+  transform: scale(0.98);
+}
+
+.itemLast {
+  border-bottom: none;
+}
+
+.itemIconWrapper {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 374px) {
+  .itemIconWrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 10px;
+  }
+}
+
+.itemContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: var(--font-base);
+  font-weight: 500;
+  color: #1a3d2e;
+  margin-bottom: 2px;
+}
+
+.itemDescription {
+  font-size: var(--font-xs);
+  color: #9c958a;
+}
+
+.itemAction {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.danger {
+  color: #b85450;
+}
+
+/* Toggle */
+.toggle {
+  width: 50px;
+  height: 28px;
+  border-radius: 14px;
+  padding: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  /* Touch target size */
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.toggleOn {
+  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  justify-content: flex-end;
+}
+
+.toggleOff {
+  background: #d6d1c9;
+}
+
+.toggle:active {
+  transform: scale(0.95);
+}
+
+.toggleKnob {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+/* Logout Button Container */
+.logoutContainer {
+  margin-top: var(--spacing-sm);
+}
+
+/* Version Info */
+.version {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: #b9b3a9;
+  font-size: var(--font-xs);
+}
+
+.version p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .item {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .section {
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+@media (max-width: 374px) {
+  .itemTitle {
+    font-size: var(--font-sm);
+  }
+
+  .itemDescription {
+    font-size: 10px;
+  }
+}
+
+/* Improved contrast for accessibility (WCAG AA) */
+.sectionTitle {
+  color: #7f786d; /* Improved from #9c958a for better contrast */
+}
+
+.itemDescription {
+  color: #7f786d; /* Improved from #9c958a for better contrast */
+}
+
+.version {
+  color: #9c958a; /* Improved from #b9b3a9 for better contrast */
+}
+
+/* Focus visible for interactive elements */
+.item:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: -2px;
+  background: rgba(65, 152, 115, 0.08);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+}
+
+/* Button accessibility for clickable items */
+.item {
+  border: none;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+}

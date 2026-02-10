@@ -1,8 +1,6 @@
 import logging
 import os
 
-logging.warning(f"[AUTH DEBUG] ENV={os.getenv('ENV')}")
-
 from fastapi import Header, HTTPException
 
 from ..config import DEBUG_AUTH
@@ -31,7 +29,7 @@ def get_current_uid(
 ) -> str:
     # ローカル開発環境でのみ認証スキップ（複数条件必須）
     if _is_local_dev():
-        logging.warning("[LOCAL DEV] Authentication bypassed - returning dummy UID")
+        logging.error("[LOCAL DEV] Authentication bypassed - returning dummy UID. This should ONLY happen in local development!")
         return "local-user"
 
     bearer = None
