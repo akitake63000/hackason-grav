@@ -162,3 +162,41 @@
   font-size: var(--font-sm);
   color: #7f786d;
 }
+
+/* Focus visible for interactive elements */
+.uploadButton:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Improved fluid typography */
+.tipsTitle {
+  font-size: clamp(14px, 3.5vw, 16px);
+}
+
+.tipsList {
+  font-size: clamp(12px, 3vw, 14px);
+}
+
+.infoMessage {
+  font-size: clamp(12px, 3vw, 14px);
+}
+
+.errorMessage {
+  font-size: clamp(12px, 3vw, 14px);
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 374px) {
+  .tipsCard {
+    padding: clamp(10px, 3vw, 12px);
+  }
+  
+  .tipsHeader {
+    gap: clamp(6px, 2vw, 8px);
+  }
+  
+  .tipsList {
+    padding-left: clamp(16px, 4vw, 20px);
+  }
+}

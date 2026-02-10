@@ -337,22 +337,6 @@ function Dashboard() {
 
   return (
     <Layout>
-      <style jsx>{`
-        .thumbnail-scroll::-webkit-scrollbar {
-          height: 8px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 4px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-thumb {
-          background: rgba(65, 152, 115, 0.3);
-          border-radius: 4px;
-        }
-        .thumbnail-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(65, 152, 115, 0.5);
-        }
-      `}</style>
       <div className={styles.container}>
         <div className={styles.content}>
         {/* Title Section */}
@@ -379,11 +363,7 @@ function Dashboard() {
             return (
               <motion.button
                 key={filter}
-                style={{
-                  ...styles.filterButton,
-                  ...(isActive ? styles.filterButtonActive : {}),
-                  ...(!isAvailable ? styles.filterButtonDisabled : {}),
-                }}
+                className={`${styles.filterButton} ${isActive ? styles.filterButtonActive : ''}`}
                 onClick={() => isAvailable && setActiveFilter(filter)}
                 whileTap={isAvailable ? { scale: 0.97 } : {}}
                 disabled={!isAvailable}
@@ -548,7 +528,7 @@ function Dashboard() {
           transition={{ duration: 0.4, delay: 0.4 }}
         >
           <span className={styles.sectionTitle}>過去の写真</span>
-          <div className={styles.thumbnailGrid} className="thumbnail-scroll">
+          <div className={styles.thumbnailGrid}>
             {thumbnails.map((thumb, i) => (
               <motion.div
                 key={thumb.photoId || i}

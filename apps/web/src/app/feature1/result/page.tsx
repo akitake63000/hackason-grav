@@ -204,18 +204,14 @@ function ResultContent() {
                         {/* Delta Display */}
                         {typeof result?.delta === 'number' && (
                             <motion.div
-                                style={{
-                                    ...styles.deltaBadge,
-                                    background: result.delta >= 0 ? 'rgba(65, 152, 115, 0.1)' : 'rgba(184, 84, 80, 0.1)',
-                                    color: result.delta >= 0 ? '#419873' : '#b85450',
-                                }}
+                                className={`${styles.deltaBadge} ${result.delta >= 0 ? styles.deltaBadgePositive : styles.deltaBadgeNegative}`}
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.4 }}
                             >
                                 {result.delta > 0 ? '↑' : result.delta < 0 ? '↓' : '-'}
                                 {Math.abs(result.delta).toFixed(1)}点
-                                <span style={{ fontSize: '10px', opacity: 0.8, marginLeft: '4px' }}>(前回比)</span>
+                                <span className={styles.deltaLabel}>(前回比)</span>
                             </motion.div>
                         )}
                     </motion.div>

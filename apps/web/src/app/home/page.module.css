@@ -284,3 +284,31 @@
 .gradientLeaf {
   background: linear-gradient(135deg, #7c9a7c 0%, #a8dcc5 100%);
 }
+
+/* Button reset for feature cards */
+.featureCard {
+  text-align: left;
+  border: 1.5px solid transparent;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.featureCard:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+  border-color: #419873;
+}
+
+/* Improved fluid typography */
+@media (max-width: 374px) {
+  .greetingText {
+    font-size: clamp(20px, 6vw, 24px);
+  }
+  
+  .featureTitle {
+    font-size: clamp(13px, 3.5vw, 14px);
+  }
+  
+  .featureDescription {
+    font-size: clamp(10px, 2.5vw, 12px);
+  }
+}

@@ -103,9 +103,8 @@ function ChatSettings() {
   if (authLoading || loadingSettings) {
     return (
       <Layout>
-        <div style={{ ...styles.container, alignItems: 'center', justifyContent: 'center' }}>
-          <Loader2 size={28} color={colors.sage} style={{ animation: 'spin 1s linear infinite' }} />
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <div className={`${styles.container} ${styles.loadingContainer}`}>
+          <Loader2 size={28} color={colors.sage} className={styles.spinner} />
         </div>
       </Layout>
     )
@@ -116,10 +115,7 @@ function ChatSettings() {
       {options.map((opt) => (
         <motion.div
           key={opt.value}
-          style={{
-            ...styles.optionButton,
-            ...(currentValue === opt.value ? styles.optionButtonActive : {}),
-          }}
+          className={`${styles.optionButton} ${currentValue === opt.value ? styles.optionButtonActive : ''}`}
           onClick={() => setter(opt.value)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -169,13 +165,12 @@ function ChatSettings() {
           <Button
             variant="primary"
             size="full"
-            icon={saving ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={18} />}
+            icon={saving ? <Loader2 size={18} className={styles.spinner} /> : <Save size={18} />}
             onClick={handleSave}
             disabled={saving}
           >
             {saving ? '保存中...' : '設定を保存'}
           </Button>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           {saved && (
             <motion.div
               className={styles.successMessage}
@@ -188,7 +183,7 @@ function ChatSettings() {
           )}
           {error && (
             <motion.div
-              style={{ ...styles.successMessage, background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' }}
+              className={styles.errorMessage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >

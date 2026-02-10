@@ -258,3 +258,44 @@
     padding: var(--spacing-md);
   }
 }
+
+/* Gender Icon Gradients */
+.genderIconMale {
+  background: linear-gradient(135deg, rgba(90, 139, 184, 0.15) 0%, rgba(90, 139, 184, 0.05) 100%);
+}
+
+.genderIconFemale {
+  background: linear-gradient(135deg, rgba(196, 122, 90, 0.15) 0%, rgba(196, 122, 90, 0.05) 100%);
+}
+
+.genderIconPreferNotToSay {
+  background: linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 150, 0.05) 100%);
+}
+
+/* Tag Emoji */
+.tagEmoji {
+  margin-right: 6px;
+}
+
+/* Button reset and accessibility */
+.genderCard {
+  border: none;
+  text-align: center;
+  width: 100%;
+}
+
+.genderCard:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+  border-color: #419873;
+}
+
+.tag {
+  border: none;
+  text-align: center;
+}
+
+.tag:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+}

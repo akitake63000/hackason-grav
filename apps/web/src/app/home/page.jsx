@@ -161,11 +161,14 @@ function Home() {
           <div className={styles.featuresGrid}>
             {features.map((feature, index) => {
               const Icon = feature.icon
+              const gradientClass = feature.id === 'check' ? styles.gradientGreen : feature.id === 'chat' ? styles.gradientGold : styles.gradientLeaf
               return (
-                <motion.div
+                <motion.button
                   key={feature.id}
+                  type="button"
                   className={styles.featureCard}
                   onClick={() => router.push(feature.path)}
+                  aria-label={`${feature.title} - ${feature.description}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + index * 0.1 }}
@@ -176,22 +179,19 @@ function Home() {
                   }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div
-                    className={styles.featureIconWrapper}
-                    style={{ background: feature.gradient }}
-                  >
+                  <div className={`${styles.featureIconWrapper} ${gradientClass}`}>
                     <div className={styles.featureIconShine} />
                     <Icon size={26} color="#ffffff" strokeWidth={1.8} />
                     {feature.badge && (
-                      <span className={styles.featureBadge}>{feature.badge}</span>
+                      <span className={styles.featureBadge} aria-label="新機能">{feature.badge}</span>
                     )}
                   </div>
                   <div className={styles.featureContent}>
                     <h3 className={styles.featureTitle}>{feature.title}</h3>
                     <p className={styles.featureDescription}>{feature.description}</p>
                   </div>
-                  <ChevronRight size={20} className={styles.featureArrow} />
-                </motion.div>
+                  <ChevronRight size={20} className={styles.featureArrow} aria-hidden="true" />
+                </motion.button>
               )
             })}
           </div>

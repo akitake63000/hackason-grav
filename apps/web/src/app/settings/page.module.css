@@ -210,3 +210,36 @@
     font-size: 10px;
   }
 }
+
+/* Improved contrast for accessibility (WCAG AA) */
+.sectionTitle {
+  color: #7f786d; /* Improved from #9c958a for better contrast */
+}
+
+.itemDescription {
+  color: #7f786d; /* Improved from #9c958a for better contrast */
+}
+
+.version {
+  color: #9c958a; /* Improved from #b9b3a9 for better contrast */
+}
+
+/* Focus visible for interactive elements */
+.item:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: -2px;
+  background: rgba(65, 152, 115, 0.08);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+}
+
+/* Button accessibility for clickable items */
+.item {
+  border: none;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+}

@@ -130,3 +130,183 @@
     font-size: 10px;
   }
 }
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+/* Option Group */
+.optionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 640px) {
+  .optionGroup {
+    flex-direction: row;
+    gap: var(--spacing-md);
+  }
+}
+
+.optionButton {
+  flex: 1;
+  padding: var(--spacing-md);
+  border-radius: 12px;
+  border: 1.5px solid rgba(26, 61, 46, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  /* Touch target size */
+  min-height: var(--touch-target-min);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .optionButton:hover {
+    border-color: #419873;
+    background: rgba(65, 152, 115, 0.05);
+  }
+}
+
+.optionButton:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+}
+
+.optionButton:active {
+  transform: scale(0.98);
+}
+
+.optionButtonActive {
+  border-color: #419873;
+  background: linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.08) 100%);
+}
+
+.optionLabel {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: 4px;
+}
+
+.optionDesc {
+  font-size: var(--font-xs);
+  color: #7f786d;
+}
+
+/* Setting Card */
+.settingCard {
+  margin-bottom: var(--spacing-lg);
+}
+
+.settingHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.settingIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(65, 152, 115, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.settingTitle {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: #1a3d2e;
+}
+
+/* Save Button Container */
+.saveButtonContainer {
+  padding: var(--spacing-md);
+  border-top: 1px solid rgba(26, 61, 46, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .saveButtonContainer {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+@media (max-width: 767px) {
+  .saveButtonContainer {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Messages */
+.successMessage {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 8px;
+  background: rgba(65, 152, 115, 0.1);
+  color: #1a3d2e;
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.errorMessage {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .optionButton {
+    padding: var(--spacing-sm);
+  }
+
+  .optionLabel {
+    font-size: var(--font-sm);
+  }
+
+  .optionDesc {
+    font-size: 10px;
+  }
+
+  .settingIcon {
+    width: 36px;
+    height: 36px;
+  }
+}

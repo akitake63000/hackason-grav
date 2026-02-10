@@ -38,7 +38,7 @@
 
 .subtitle {
   font-size: var(--font-sm);
-  color: #7f786d);
+  color: #7f786d;
 }
 
 /* Section */
@@ -147,4 +147,141 @@
   line-height: 1.6;
   max-width: 400px;
   margin: 0 auto;
+}
+
+/* Report Header */
+.reportHeader {
+  background: linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%);
+  border-radius: 16px;
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  border: 1px solid rgba(65, 152, 115, 0.15);
+}
+
+.aiIcon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.reportHeaderText {
+  flex: 1;
+}
+
+.reportTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: 4px;
+}
+
+.reportDate {
+  font-size: var(--font-xs);
+  color: #7f786d;
+}
+
+/* Grid Container */
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+@media (max-width: 767px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section Header */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionIconWrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(65, 152, 115, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Lists */
+.bulletList {
+  margin: 0 0 var(--spacing-md);
+  padding-left: var(--spacing-lg);
+}
+
+.bulletItem {
+  font-size: var(--font-sm);
+  color: #635d54;
+  line-height: 1.7;
+  margin-bottom: var(--spacing-xs);
+}
+
+.reportText {
+  font-size: var(--font-sm);
+  color: #7f786d;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* Tip Card */
+.tipCard {
+  background: linear-gradient(135deg, rgba(201, 169, 98, 0.08) 0%, rgba(201, 169, 98, 0.02) 100%);
+  border-radius: 16px;
+  padding: var(--spacing-lg);
+  border: 1px solid rgba(201, 169, 98, 0.2);
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.tipIcon {
+  font-size: 32px;
+}
+
+.tipContent {
+  flex: 1;
+}
+
+.tipTitle {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: var(--spacing-sm);
+}
+
+.tipText {
+  font-size: var(--font-sm);
+  color: #635d54;
+  line-height: 1.7;
+}
+
+/* Button Row */
+.buttonRow {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+@media (max-width: 767px) {
+  .buttonRow {
+    flex-direction: column;
+  }
 }

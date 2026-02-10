@@ -100,9 +100,12 @@ function Profile() {
           </div>
           <div className={styles.genderGrid}>
             {/* Male */}
-            <motion.div
+            <motion.button
+              type="button"
               className={`${styles.genderCard} ${gender === 'male' ? styles.genderCardSelected : ''}`}
               onClick={() => setGender('male')}
+              aria-label="性別: 男性"
+              aria-pressed={gender === 'male'}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -118,19 +121,19 @@ function Profile() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div
-                className={styles.genderIcon}
-                style={{ background: genderIconGradients.male }}
-              >
+              <div className={`${styles.genderIcon} ${styles.genderIconMale}`}>
                 👨
               </div>
               <span className={styles.genderLabel}>男性</span>
-            </motion.div>
+            </motion.button>
 
             {/* Female */}
-            <motion.div
+            <motion.button
+              type="button"
               className={`${styles.genderCard} ${gender === 'female' ? styles.genderCardSelected : ''}`}
               onClick={() => setGender('female')}
+              aria-label="性別: 女性"
+              aria-pressed={gender === 'female'}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -146,19 +149,19 @@ function Profile() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div
-                className={styles.genderIcon}
-                style={{ background: genderIconGradients.female }}
-              >
+              <div className={`${styles.genderIcon} ${styles.genderIconFemale}`}>
                 👩
               </div>
               <span className={styles.genderLabel}>女性</span>
-            </motion.div>
+            </motion.button>
 
             {/* Prefer not to say */}
-            <motion.div
+            <motion.button
+              type="button"
               className={`${styles.genderCard} ${gender === 'prefer-not-to-say' ? styles.genderCardSelected : ''}`}
               onClick={() => setGender('prefer-not-to-say')}
+              aria-label="性別: 回答なし"
+              aria-pressed={gender === 'prefer-not-to-say'}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -174,14 +177,11 @@ function Profile() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div
-                className={styles.genderIcon}
-                style={{ background: genderIconGradients.preferNotToSay }}
-              >
+              <div className={`${styles.genderIcon} ${styles.genderIconPreferNotToSay}`}>
                 ❓
               </div>
               <span className={styles.genderLabel}>回答なし</span>
-            </motion.div>
+            </motion.button>
           </div>
         </motion.div>
 
@@ -223,19 +223,22 @@ function Profile() {
           </div>
           <div className={styles.tagsContainer}>
             {concerns.map((concern, index) => (
-              <motion.div
+              <motion.button
+                type="button"
                 key={concern.id}
                 className={`${styles.tag} ${selectedConcerns.includes(concern.id) ? styles.tagSelected : ''}`}
                 onClick={() => toggleConcern(concern.id)}
+                aria-label={`お悩み: ${concern.label}`}
+                aria-pressed={selectedConcerns.includes(concern.id)}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + index * 0.03 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <span style={{ marginRight: '6px' }}>{concern.emoji}</span>
+                <span className={styles.tagEmoji}>{concern.emoji}</span>
                 {concern.label}
-              </motion.div>
+              </motion.button>
             ))}
           </div>
         </motion.div>

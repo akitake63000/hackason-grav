@@ -278,3 +278,38 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Delta Badge Variants */
+.deltaBadgePositive {
+  background: rgba(65, 152, 115, 0.1);
+  color: #419873;
+}
+
+.deltaBadgeNegative {
+  background: rgba(184, 84, 80, 0.1);
+  color: #b85450;
+}
+
+.deltaLabel {
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+/* Improved Responsive Breakpoints */
+@media (min-width: 375px) and (max-width: 767px) {
+  .content {
+    padding: var(--spacing-md);
+  }
+  
+  .grid {
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+}
