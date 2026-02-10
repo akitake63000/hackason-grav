@@ -107,7 +107,7 @@ const styles = {
     boxSizing: 'border-box',
   },
   ageInputFocused: {
-    borderColor: '#419873',
+    border: '1.5px solid #419873',
     boxShadow: '0 0 0 4px rgba(65, 152, 115, 0.1)',
   },
   ageSuffix: {
@@ -136,7 +136,7 @@ const styles = {
     fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
   },
   tagSelected: {
-    borderColor: '#419873',
+    border: '1.5px solid #419873',
     background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.08) 100%)',
     color: '#1a3d2e',
     fontWeight: '600',
