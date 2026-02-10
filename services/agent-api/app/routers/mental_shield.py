@@ -283,7 +283,8 @@ def _encourager_node(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[encourager] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "不安に感じるのは自然な反応です。今ここで一緒に整理しましょう。"
             "継続できている点を思い出せていますか？"
@@ -312,7 +313,8 @@ def _coach_node(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[coach] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "今日の最小の一手は「同条件で写真を撮る」か「睡眠を30分確保する」。"
             "1つだけやり切ろう。"
@@ -348,7 +350,8 @@ def _doctor_node(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[doctor] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "一般論として、抜け毛は睡眠・ストレス・栄養の影響を受けます。"
             "ただし診断はできません。変化が急でなければ、同条件での経過観察が有効です。"
@@ -377,7 +380,8 @@ def _encourager_node_r2(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[encourager_r2] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "皆さんの意見を聞いて、まず気持ちを整理することが大切だと改めて感じます。"
             "焦らず一歩ずつ進みましょう。"
@@ -408,7 +412,8 @@ def _coach_node_r2(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[coach_r2] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "議論を踏まえて、今日やるべきことは1つ。"
             "「同条件で写真を撮って記録する」これだけやりましょう。"
@@ -445,7 +450,8 @@ def _doctor_node_r2(state: _DiscussState) -> dict:
         text = generate_text(prompt, model=model, max_output_tokens=mt)
         if not text.strip():
             raise ValueError("Empty response from LLM")
-    except Exception:
+    except Exception as e:
+        logger.error(f"[doctor_r2] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         text = (
             "皆さんの意見に補足すると、経過観察と生活習慣の改善が基本です。"
             "急な変化がある場合は専門医への相談をお勧めします。"
@@ -479,7 +485,8 @@ def _orchestrator_node(state: _DiscussState) -> dict:
         if not summary.strip():
             raise ValueError("Empty response from LLM")
         summary = summary.strip()
-    except Exception:
+    except Exception as e:
+        logger.error(f"[orchestrator] LLM failed: model={model}, mt={mt}, error={type(e).__name__}: {e}")
         summary = "今日の最小の一手: 「同条件の写真チェックイン」か「睡眠の確保」。"
     return {"best_agent": "encourager", "summary": summary}
 
@@ -609,3 +616,35 @@ def mental_shield_discuss(
     return MentalShieldDiscussResponse(
         cards=cards, summary=summary, threadId=thread_id, bestAgent=best_agent
     )
+
+
+# ---------------------------------------------------------------------------
+# /debug/test-models - デバッグ用: モデルの動作確認エンドポイント
+# ---------------------------------------------------------------------------
+
+@router.get("/debug/test-models")
+def debug_test_models():
+    """各モデルで短いテキスト生成を試み、成功/失敗を返す。"""
+    results = {}
+    test_prompt = "「こんにちは」と一言だけ返してください。"
+
+    for label, model_name in [("flash", GEMINI_MODEL), ("heavy", GEMINI_MODEL_HEAVY)]:
+        try:
+            text = generate_text(test_prompt, model=model_name, max_output_tokens=50)
+            results[label] = {"model": model_name, "ok": True, "response": text[:100]}
+        except Exception as e:
+            results[label] = {"model": model_name, "ok": False, "error": f"{type(e).__name__}: {e}"}
+
+    # max_output_tokens なしでも試す
+    try:
+        text = generate_text(test_prompt, model=GEMINI_MODEL)
+        results["flash_no_token_limit"] = {"model": GEMINI_MODEL, "ok": True, "response": text[:100]}
+    except Exception as e:
+        results["flash_no_token_limit"] = {"model": GEMINI_MODEL, "ok": False, "error": f"{type(e).__name__}: {e}"}
+
+    results["config"] = {
+        "GEMINI_MODEL": GEMINI_MODEL,
+        "GEMINI_MODEL_HEAVY": GEMINI_MODEL_HEAVY,
+        "gemini_enabled": gemini_enabled(),
+    }
+    return results
