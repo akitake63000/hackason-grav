@@ -434,8 +434,9 @@ function Chat() {
     await saveMessage(threadId, newUserMessage)
 
     try {
-      // For detailed mode, use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
-      const useDirectUrl = chatDetail === 'pro'
+      // Use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
+      // The discuss endpoint makes 7 sequential LLM calls, so it needs the full 300s timeout
+      const useDirectUrl = true
       const apiUrl = useDirectUrl
         ? 'https://agent-api-7wsihnjf7q-an.a.run.app/api/v1/mental-shield/chat/discuss'
         : '/api/v1/mental-shield/chat/discuss'
