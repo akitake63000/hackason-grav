@@ -140,12 +140,35 @@ function Chat() {
   const [threadId, setThreadId] = useState('default')
   const [chatStyle, setChatStyle] = useState('balanced')
   const [chatDetail, setChatDetail] = useState('flash')
+  const [pendingTaskId, setPendingTaskId] = useState(null)
+  const [pollingIntervalId, setPollingIntervalId] = useState(null)
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
 
   useEffect(() => {
     return () => { isUnmountedRef.current = true }
   }, [])
+
+  // ページ読み込み時に未完了タスクをチェック
+  useEffect(() => {
+    const pendingTask = localStorage.getItem('pending_chat_task')
+    const pendingThread = localStorage.getItem('pending_chat_thread')
+
+    if (pendingTask && pendingThread) {
+      console.log('Resuming pending task:', pendingTask)
+      setPendingTaskId(pendingTask)
+      setThreadId(pendingThread)
+      setIsLoading(true)
+      startPolling(pendingTask, pendingThread)
+    }
+
+    // クリーンアップ: ポーリング停止
+    return () => {
+      if (pollingIntervalId) {
+        clearInterval(pollingIntervalId)
+      }
+    }
+  }, []) // 空の依存配列で初回のみ実行
 
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
@@ -233,6 +256,134 @@ function Chat() {
       chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight
     }
   }, [messages, discussionMessages, revealingAgent])
+
+  // ポーリング開始
+  const startPolling = (taskId, tid) => {
+    const interval = setInterval(async () => {
+      try {
+        // タスク状態を取得
+        const DIRECT_API_URL = process.env.NEXT_PUBLIC_DIRECT_API_URL || DEFAULT_DIRECT_API_URL
+        const validatedDirectUrl = validateDirectApiUrl(DIRECT_API_URL)
+        const token = await getIdToken()
+
+        const response = await fetch(`${validatedDirectUrl}/api/v1/mental-shield/tasks/${taskId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          }
+        })
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.warn('Task not found:', taskId)
+            clearInterval(interval)
+            setPollingIntervalId(null)
+            setPendingTaskId(null)
+            localStorage.removeItem('pending_chat_task')
+            setIsLoading(false)
+          }
+          return
+        }
+
+        const taskStatus = await response.json()
+
+        if (taskStatus.status === 'succeeded') {
+          // 完了：メッセージを再読み込み
+          console.log('Task succeeded, reloading messages')
+          await loadMessagesFromFirestore(tid)
+
+          // ポーリング停止
+          clearInterval(interval)
+          setPollingIntervalId(null)
+          setPendingTaskId(null)
+          localStorage.removeItem('pending_chat_task')
+          setIsLoading(false)
+
+        } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          // 失敗：エラー表示
+          console.error('Task failed:', taskStatus.error)
+          setError(`回答の生成に失敗しました: ${taskStatus.error || '不明なエラー'}`)
+
+          clearInterval(interval)
+          setPollingIntervalId(null)
+          setPendingTaskId(null)
+          localStorage.removeItem('pending_chat_task')
+          setIsLoading(false)
+        }
+        // queued/running の場合は継続
+
+      } catch (error) {
+        console.error('Polling error:', error)
+      }
+    }, 3000) // 3秒間隔
+
+    setPollingIntervalId(interval)
+  }
+
+  // 非同期チャット送信
+  const handleSendAsync = async () => {
+    if (!inputValue.trim() || isLoading || isRevealing || pendingTaskId) return
+
+    const now = new Date()
+    const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+
+    const newUserMessage = {
+      id: Date.now(),
+      type: 'user',
+      text: inputValue,
+      time,
+    }
+
+    setMessages(prev => [...prev, newUserMessage])
+    const userMessageText = inputValue
+    setInputValue('')
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // タスク作成API呼び出し
+      const DIRECT_API_URL = process.env.NEXT_PUBLIC_DIRECT_API_URL || DEFAULT_DIRECT_API_URL
+      const validatedDirectUrl = validateDirectApiUrl(DIRECT_API_URL)
+      const apiUrl = `${validatedDirectUrl}/api/v1/mental-shield/chat/discuss-async`
+      const token = await getIdToken()
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          threadId,
+          message: userMessageText,
+          mode: 'balanced',
+          style: chatStyle,
+          detail: chatDetail,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const taskId = data.taskId
+
+      // タスクIDを保存（LocalStorage + state）
+      setPendingTaskId(taskId)
+      localStorage.setItem('pending_chat_task', taskId)
+      localStorage.setItem('pending_chat_thread', threadId)
+
+      // ポーリング開始
+      startPolling(taskId, threadId)
+
+    } catch (error) {
+      console.error('Failed to send async chat:', error)
+      setError('メッセージの送信に失敗しました。もう一度お試しください。')
+      setIsLoading(false)
+    }
+  }
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading || isRevealing) return
@@ -480,7 +631,7 @@ function Chat() {
     )
   }
 
-  const isBusy = isLoading || isRevealing
+  const isBusy = isLoading || isRevealing || pendingTaskId !== null
 
   return (
     <Layout>
@@ -687,6 +838,12 @@ function Chat() {
       </div>
 
       <div className={styles.inputArea}>
+        {pendingTaskId && (
+          <div className={styles.processingIndicator}>
+            <span className={styles.spinner}>⏳</span>
+            <span>回答を生成しています。画面を離れても処理は継続されます。</span>
+          </div>
+        )}
         <div className={styles.inputContainer}>
           <input
             type="text"
@@ -702,10 +859,11 @@ function Chat() {
               opacity: isBusy ? 0.6 : 1,
               cursor: isBusy ? 'not-allowed' : 'pointer',
             }}
-            onClick={handleSend}
+            onClick={handleSendAsync}
             disabled={isBusy}
             whileHover={isBusy ? {} : { scale: 1.05 }}
             whileTap={isBusy ? {} : { scale: 0.95 }}
+            title={pendingTaskId ? '回答生成中...' : '送信'}
           >
             {isBusy ? (
               <Loader2 size={18} color="#ffffff" style={{ animation: 'spin 1s linear infinite' }} />

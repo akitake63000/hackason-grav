@@ -43,6 +43,12 @@ service cloud.firestore {
       match /foodRequests/{requestId} {
         allow read, write: if isOwner(uid);
       }
+
+      match /chatTasks/{taskId} {
+        // ユーザーは自分のタスクのみ読み取り可能、書き込みはバックエンドのみ
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
     }
   }
 }

@@ -1,9 +1,13 @@
+import asyncio
 import json
 import logging
 import os
+import threading
+import uuid
+from datetime import datetime, timedelta
 from typing import List, Optional, Tuple, TypedDict
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel, Field, field_validator
 
@@ -646,3 +650,252 @@ def debug_test_models():
         "gemini_enabled": gemini_enabled(),
     }
     return results
+
+
+# ---------------------------------------------------------------------------
+# 非同期チャット処理エンドポイント
+# ---------------------------------------------------------------------------
+
+
+class AsyncTaskResponse(BaseModel):
+    taskId: str
+    status: str
+
+
+class TaskStatusResponse(BaseModel):
+    userId: str
+    conversationId: str
+    status: str  # queued, running, succeeded, failed, timeout
+    mode: str
+    createdAt: Optional[str] = None
+    startedAt: Optional[str] = None
+    finishedAt: Optional[str] = None
+    messageId: Optional[str] = None
+    error: Optional[str] = None
+
+
+def _execute_discuss_workflow_sync(
+    task_id: str,
+    uid: str,
+    message: str,
+    style: str,
+    detail: str,
+    thread_id: str
+):
+    """
+    非同期タスクの実際の処理（バックグラウンドスレッドで実行）
+    """
+    db = get_firestore_client()
+    task_ref = db.collection("users").document(uid).collection("chatTasks").document(task_id)
+
+    try:
+        # ステータスを running に更新
+        task_ref.update({
+            "status": "running",
+            "startedAt": admin_firestore.SERVER_TIMESTAMP,
+        })
+
+        logger.info(f"Starting async task {task_id} for user {uid}")
+
+        # LangGraph ワークフローで議論を実行
+        if _discuss_workflow and gemini_enabled():
+            try:
+                result = _discuss_workflow.invoke({
+                    "user_message": message,
+                    "style": style,
+                    "detail": detail,
+                    "risk_detected": False,
+                    "encourager_response": "",
+                    "coach_response": "",
+                    "doctor_response": "",
+                    "encourager_response_r2": "",
+                    "coach_response_r2": "",
+                    "doctor_response_r2": "",
+                    "best_agent": "",
+                    "summary": "",
+                })
+
+                cards = [
+                    MentalShieldCard(agent="encourager", text=result["encourager_response"]),
+                    MentalShieldCard(agent="coach", text=result["coach_response"]),
+                    MentalShieldCard(agent="doctor", text=result["doctor_response"]),
+                    MentalShieldCard(agent="encourager", text=result["encourager_response_r2"]),
+                    MentalShieldCard(agent="coach", text=result["coach_response_r2"]),
+                    MentalShieldCard(agent="doctor", text=result["doctor_response_r2"]),
+                ]
+                summary = result["summary"]
+                best_agent = result["best_agent"]
+            except Exception as exc:
+                logger.exception("LangGraph workflow failed, falling back: %s", exc)
+                cards, summary = _compose_mental_shield(message, style=style, detail=detail)
+                best_agent = max(cards, key=lambda c: len(c.text)).agent
+        else:
+            cards, summary = _compose_mental_shield(message, style=style, detail=detail)
+            best_agent = max(cards, key=lambda c: len(c.text)).agent
+
+        # Firestore に結果を保存
+        messages_ref = (
+            db.collection("conversations")
+            .document(uid)
+            .collection("threads")
+            .document(thread_id)
+            .collection("messages")
+        )
+
+        # ユーザーメッセージ
+        messages_ref.add({
+            "role": "user",
+            "agent": "user",
+            "text": message,
+            "createdAt": admin_firestore.SERVER_TIMESTAMP,
+            "taskId": task_id,
+        })
+
+        # AIレスポンスカード
+        for card in cards:
+            messages_ref.add({
+                "role": "agent",
+                "agent": card.agent,
+                "text": card.text,
+                "createdAt": admin_firestore.SERVER_TIMESTAMP,
+                "taskId": task_id,
+            })
+
+        # サマリーメッセージID
+        message_doc = messages_ref.add({
+            "role": "agent",
+            "agent": "orchestrator",
+            "text": summary,
+            "bestAgent": best_agent,
+            "createdAt": admin_firestore.SERVER_TIMESTAMP,
+            "taskId": task_id,
+        })
+
+        # タスクを succeeded に更新
+        task_ref.update({
+            "status": "succeeded",
+            "finishedAt": admin_firestore.SERVER_TIMESTAMP,
+            "messageId": message_doc[1].id,  # message_doc is (timestamp, DocumentReference)
+        })
+
+        logger.info(f"Task {task_id} completed successfully")
+
+    except Exception as e:
+        logger.error(f"Task {task_id} failed with error: {e}", exc_info=True)
+        # エラー時は failed に更新
+        task_ref.update({
+            "status": "failed",
+            "finishedAt": admin_firestore.SERVER_TIMESTAMP,
+            "error": str(e)[:500],  # エラーメッセージは500文字まで
+        })
+
+
+@router.post("/chat/discuss-async", response_model=AsyncTaskResponse)
+@limiter.limit("10/minute")
+def mental_shield_discuss_async(
+    request: Request, payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
+) -> AsyncTaskResponse:
+    """
+    非同期チャット処理を開始（タスクID即座返却）
+
+    開発環境（ENV=local, ENV=development）では、Cloud Tasksの代わりに
+    バックグラウンドスレッドで処理を実行します。
+
+    本番環境では、Cloud Tasksにタスクをenqueueする必要があります（未実装）。
+    """
+    thread_id = payload.threadId or "default"
+    task_id = str(uuid.uuid4())
+
+    # Firestore にタスクを作成
+    db = get_firestore_client()
+    task_ref = db.collection("users").document(uid).collection("chatTasks").document(task_id)
+
+    # TTLは10分後
+    ttl_time = datetime.utcnow() + timedelta(minutes=10)
+
+    task_ref.set({
+        "userId": uid,
+        "conversationId": thread_id,
+        "status": "queued",
+        "mode": payload.detail or "flash",
+        "input": {
+            "message": payload.message,
+            "character": "default",  # 今回はcharacterは使用しない
+            "detailLevel": payload.detail or "flash",
+            "style": payload.style or "balanced",
+        },
+        "createdAt": admin_firestore.SERVER_TIMESTAMP,
+        "ttl": ttl_time,
+    })
+
+    # 環境変数で開発環境かどうか判定
+    env = os.getenv("ENV", "production")
+
+    if env in ("local", "development"):
+        # 開発環境: バックグラウンドスレッドで直接実行
+        logger.info(f"Development mode: executing task {task_id} in background thread")
+
+        thread = threading.Thread(
+            target=_execute_discuss_workflow_sync,
+            args=(
+                task_id,
+                uid,
+                payload.message,
+                payload.style or "balanced",
+                payload.detail or "flash",
+                thread_id
+            )
+        )
+        thread.daemon = True
+        thread.start()
+    else:
+        # 本番環境: Cloud Tasks にenqueue（未実装）
+        # TODO: 本番環境でのCloud Tasks連携を実装
+        logger.warning("Production mode: Cloud Tasks not yet implemented, using background thread")
+        thread = threading.Thread(
+            target=_execute_discuss_workflow_sync,
+            args=(
+                task_id,
+                uid,
+                payload.message,
+                payload.style or "balanced",
+                payload.detail or "flash",
+                thread_id
+            )
+        )
+        thread.daemon = True
+        thread.start()
+
+    return AsyncTaskResponse(taskId=task_id, status="queued")
+
+
+@router.get("/tasks/{task_id}", response_model=TaskStatusResponse)
+def get_task_status(task_id: str, uid: str = Depends(get_current_uid)) -> TaskStatusResponse:
+    """
+    タスク状態取得（フロントエンドのポーリング用）
+    """
+    db = get_firestore_client()
+    task_ref = db.collection("users").document(uid).collection("chatTasks").document(task_id)
+    task_doc = task_ref.get()
+
+    if not task_doc.exists:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_data = task_doc.to_dict()
+
+    # Timestampをstr変換
+    created_at = task_data.get("createdAt")
+    started_at = task_data.get("startedAt")
+    finished_at = task_data.get("finishedAt")
+
+    return TaskStatusResponse(
+        userId=task_data["userId"],
+        conversationId=task_data["conversationId"],
+        status=task_data["status"],
+        mode=task_data["mode"],
+        createdAt=created_at.isoformat() if created_at else None,
+        startedAt=started_at.isoformat() if started_at else None,
+        finishedAt=finished_at.isoformat() if finished_at else None,
+        messageId=task_data.get("messageId"),
+        error=task_data.get("error"),
+    )
