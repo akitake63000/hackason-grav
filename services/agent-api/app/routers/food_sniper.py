@@ -66,7 +66,7 @@ def validate_hair_pattern(pattern: Optional[str]) -> Optional[str]:
 
 class FoodSniperRequest(BaseModel):
     message: Optional[str] = Field(None, max_length=1000, description="User message for food recommendation")
-    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型|None)$", description="Hair loss pattern")
 
     @validator('message')
     def validate_message(cls, v):
@@ -109,7 +109,7 @@ class FoodSniperResponse(BaseModel):
 
 class RecipeRequest(BaseModel):
     foodName: str = Field(..., min_length=1, max_length=100, description="Food name for recipe generation")
-    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型|None)$", description="Hair loss pattern")
 
     @validator('foodName')
     def validate_food_name(cls, v):
