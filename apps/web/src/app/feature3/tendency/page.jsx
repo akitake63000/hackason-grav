@@ -18,6 +18,8 @@ import {
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
+import styles from './page.module.css'
+import { QUESTIONS, CONDITIONAL_QUESTIONS } from './questions'
 import { apiFetch } from '@/lib/api'
 
 function Tendency() {
