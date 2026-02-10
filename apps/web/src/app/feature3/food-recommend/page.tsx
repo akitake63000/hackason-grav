@@ -8,6 +8,7 @@ import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { apiFetch } from '@/lib/api';
+import styles from './page.module.css';
 
 // Types based on backend Pydantic models
 interface FoodDetail {
@@ -151,7 +152,7 @@ function FoodRecommendContent() {
                 <div className={styles.container}>
                     <div className={styles.errorContainer}>
                         <p style={{ color: '#e53e3e', marginBottom: '16px' }}>{error}</p>
-                        <Button variant="secondary" onClick={() => router.back()} size="medium" icon={undefined}>
+                        <Button variant="secondary" onClick={() => router.back()} size="medium" icon={undefined} style={{}}>
                             戻る
                         </Button>
                     </div>
@@ -219,11 +220,11 @@ function FoodRecommendContent() {
                         </h2>
 
                         {data?.nutrients.map((nutrient, idx) => (
-                            <Card key={idx} variant="default" padding="lg" className={styles.nutrientCard} onClick={undefined}>
+                            <Card key={idx} variant="default" padding="lg" className={styles.nutrientCard} onClick={undefined} style={{}}>
                                 <div className={styles.nutrientHeader}>
                                     <div>
                                         <span className={styles.nutrientName}>{nutrient.name}</span>
-                                        <div style={{ ...styles.nutrientRole, marginTop: '4px' }}>{nutrient.role}</div>
+                                        <div className={styles.nutrientRole} style={{ marginTop: '4px' }}>{nutrient.role}</div>
                                     </div>
                                     {nutrient.dailyRecommended && (
                                         <div style={{ fontSize: '12px', background: '#f0f0f0', padding: '4px 8px', borderRadius: '4px' }}>

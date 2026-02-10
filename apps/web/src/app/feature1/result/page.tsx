@@ -118,7 +118,7 @@ function ResultContent() {
             <Layout>
                 <div className={styles.container}>
                     <div className={styles.loadingContainer}>
-                        <Card variant="default" padding="lg" onClick={undefined}>
+                        <Card variant="default" padding="lg" onClick={undefined} style={{}}>
                             <div className={styles.loadingCard}>
                                 <div className={styles.loadingSpinner}>⏳</div>
                                 <h2 className={styles.errorTitle}>読み込み中...</h2>
@@ -154,7 +154,7 @@ function ResultContent() {
                                 variant="primary"
                                 size="medium"
                                 icon={<Camera size={18} />}
-                               
+                                style={{}}
                                 onClick={() => router.push('/feature1/capture')}
                             >
                                 写真を撮影する
@@ -251,7 +251,7 @@ function ResultContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                            <Card variant="default" padding="lg" onClick={undefined}>
+                            <Card variant="default" padding="lg" onClick={undefined} style={{}}>
                                 <span className={styles.cardTitle}>分析コメント</span>
                                 <p className={styles.notesText}>{result.notes}</p>
                             </Card>
@@ -307,7 +307,7 @@ function ResultContent() {
                             size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
-                           
+                            style={{}}
                             onClick={() => router.push('/feature1/capture')}
                         >
                             新しく撮影する

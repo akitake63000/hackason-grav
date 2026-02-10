@@ -375,7 +375,7 @@ function Report() {
                 variant="secondary"
                 size="full"
                 icon={<Share2 size={16} />}
-               
+                style={{}}
                 onClick={() => {
                   if (navigator.share) {
                     navigator.share({
