@@ -293,10 +293,10 @@ function Profile() {
               <div
                 style={{
                   ...styles.genderIcon,
-                  background: 'linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 150, 0.05) 100%)',
+                  background: 'linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 0.05) 100%)',
                 }}
               >
-                🤐
+                ❓
               </div>
               <span style={styles.genderLabel}>回答なし</span>
             </motion.div>
