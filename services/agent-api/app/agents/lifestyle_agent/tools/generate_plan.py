@@ -7,7 +7,8 @@ from zoneinfo import ZoneInfo
 import random
 import json
 from typing import TypedDict, List
-from ....llm.vertex_gemini import generate_text, safe_json_load
+from ....llm.vertex_gemini import generate_text
+from ....services.gemini_chat import safe_json_load
 
 class RecommendedAction(TypedDict):
     id: str
