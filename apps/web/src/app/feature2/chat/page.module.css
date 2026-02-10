@@ -109,10 +109,10 @@
 }
 
 .aiMessage {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   color: #1a3d2e;
-  border: 1px solid rgba(65, 152, 115, 0.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(65, 152, 115, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-bottom-left-radius: 4px;
 }
 
