@@ -3,168 +3,233 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   width: 100%;
+  padding-bottom: 40px;
 }
 
-.scrollArea {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 var(--spacing-lg) var(--spacing-lg);
-}
-
-@media (max-width: 767px) {
-  .scrollArea {
-    padding: 0 var(--spacing-md) var(--spacing-md);
-  }
+.content {
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Title */
-.title {
+.pageTitle {
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
-  font-size: var(--font-2xl);
+  font-size: clamp(24px, 4vw, 32px);
   font-weight: 600;
   color: #1a3d2e;
-  margin-bottom: var(--spacing-sm);
+  text-align: center;
+  margin-bottom: 8px;
 }
 
 .subtitle {
-  font-size: var(--font-sm);
+  font-size: 14px;
   color: #7f786d;
-  margin-bottom: var(--spacing-lg);
+  text-align: center;
+  margin-bottom: 24px;
 }
 
-/* Section */
-.section {
-  margin-bottom: clamp(24px, 6vw, 32px);
+/* Progress Section */
+.progressSection {
+  margin-bottom: 24px;
 }
 
-.sectionTitle {
-  font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
-  font-size: var(--font-xl);
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progressLabel {
+  font-size: 14px;
   font-weight: 600;
   color: #1a3d2e;
-  margin-bottom: var(--spacing-md);
 }
 
-/* Card */
-.card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
-  border: 1px solid rgba(65, 152, 115, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.progressValue {
+  font-size: 14px;
+  color: #419873;
+  font-weight: 700;
 }
 
-@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
-  .card {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
+.progressBar {
+  height: 8px;
+  background: #e0dcd0;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-@media (max-width: 767px) {
-  .card {
-    border-radius: 12px;
-    padding: var(--spacing-md);
-  }
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #419873, #6dc99c);
+  border-radius: 4px;
+  transition: width 0.5s ease;
 }
 
-.cardTitle {
-  font-size: var(--font-base);
-  font-weight: 600;
-  color: #1a3d2e;
-  margin-bottom: var(--spacing-sm);
+/* Mission Card */
+.missionCard {
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: transform 0.2s ease;
 }
 
-.cardContent {
-  font-size: var(--font-sm);
-  color: #635d54;
-  line-height: 1.6;
+.missionInner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-/* Grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-@media (max-width: 767px) {
-  .grid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-sm);
-  }
-}
-
-/* Button Wrapper */
-.buttonWrapper {
-  margin-top: var(--spacing-xl);
-}
-
-/* Loading/Error States */
-.loadingContainer,
-.errorContainer {
-  flex: 1;
+.missionCheckbox {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid #e0dcd0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xl);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.emptyState {
-  text-align: center;
-  padding: clamp(32px, 10vw, 48px);
+.missionCheckboxCompleted {
+  background: #419873;
+  border-color: #419873;
 }
 
-.emptyStateIcon {
-  font-size: clamp(40px, 12vw, 56px);
-  margin-bottom: var(--spacing-md);
+.missionContent {
+  flex: 1;
 }
 
-.emptyStateTitle {
-  font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
-  font-size: var(--font-xl);
+.missionTitle {
+  font-size: 16px;
   font-weight: 600;
   color: #1a3d2e;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 4px;
 }
 
-.emptyStateText {
-  font-size: var(--font-sm);
+.missionDesc {
+  font-size: 13px;
   color: #7f786d;
-  line-height: 1.6;
-  max-width: 400px;
-  margin: 0 auto;
 }
 
-/* Chart Container */
-.chartContainer {
-  width: 100%;
-  height: clamp(250px, 50vw, 350px);
-  margin-bottom: var(--spacing-md);
-  overflow-x: auto;
+.scoreBonus {
+  font-size: 12px;
+  color: #419873;
+  font-weight: 600;
 }
 
-/* List Item */
-.listItem {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid rgba(26, 61, 46, 0.08);
+/* Streak Badge */
+.streakBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 99px;
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* Action Card */
+.actionCard {
+  margin-bottom: 16px;
+}
+
+.actionHeader {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  min-height: var(--touch-target-min);
+  gap: 12px;
+  cursor: pointer;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  transition: background 0.2s ease;
 }
 
-.listItem:last-child {
-  border-bottom: none;
+.actionHeader:hover {
+  background: rgba(255, 255, 255, 0.8);
 }
 
-@media (max-width: 767px) {
-  .listItem {
-    padding: var(--spacing-sm);
-    gap: var(--spacing-sm);
-  }
+.actionName {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a3d2e;
+}
+
+.actionContent {
+  padding: 16px;
+  font-size: 14px;
+  color: #635d54;
+  line-height: 1.6;
+  background: rgba(248, 246, 242, 0.5);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+/* Create Button Container */
+.createButtonContainer {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 61, 46, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalContent {
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.modalEmoji {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a3d2e;
+  margin-bottom: 12px;
+}
+
+.modalText {
+  font-size: 15px;
+  color: #635d54;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* Week End Card */
+.weekEndCard {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+/* Warning Card */
+.warningCard {
+  text-align: center;
+  padding: 32px 24px;
 }
