@@ -149,6 +149,48 @@ function Chat() {
     return () => { isUnmountedRef.current = true }
   }, [])
 
+  // Firestoreからメッセージを読み込むヘルパー関数
+  const loadMessagesFromFirestore = async (tid) => {
+    if (!user || !isFirebaseConfigured()) {
+      return
+    }
+    try {
+      const db = getFirestoreDb()
+      const messagesRef = collection(db, 'users', user.uid, 'conversations', tid, 'messages')
+      const q = query(messagesRef, orderBy('timestamp', 'asc'))
+      const snapshot = await getDocs(q)
+      if (!snapshot.empty) {
+        const history = snapshot.docs.map((docSnap) => {
+          const d = docSnap.data()
+          if (d.type === 'discussion-result') {
+            return {
+              id: docSnap.id,
+              type: 'discussion-result',
+              bestCard: d.bestCard ? JSON.parse(d.bestCard) : null,
+              summary: d.summary || '',
+              allCards: d.allCards ? JSON.parse(d.allCards) : [],
+              time: d.timestamp?.toDate
+                ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                : '',
+            }
+          }
+          return {
+            id: docSnap.id,
+            type: d.role === 'user' ? 'user' : 'ai',
+            agent: d.agent || 'orchestrator',
+            text: d.content,
+            time: d.timestamp?.toDate
+              ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+              : '',
+          }
+        })
+        setMessages(history)
+      }
+    } catch (err) {
+      console.error('Failed to load messages from Firestore:', err)
+    }
+  }
+
   // ページ読み込み時に未完了タスクをチェック
   useEffect(() => {
     const checkPendingTask = async () => {
@@ -157,17 +199,41 @@ function Chat() {
       const taskCreatedAt = localStorage.getItem('pending_chat_task_created_at')
 
       if (pendingTask && pendingThread) {
-        // タスク作成時刻をチェック（10分以上経過していたら自動クリア）
+        // タスク作成時刻をチェック（10分以上経過していたら状態確認）
         if (taskCreatedAt) {
           const createdTime = new Date(taskCreatedAt)
           const now = new Date()
           const elapsedMinutes = (now - createdTime) / 1000 / 60
 
           if (elapsedMinutes > 10) {
-            console.warn('Task expired (>10 minutes), clearing:', pendingTask)
+            console.warn('Task older than 10 minutes, checking Firestore status:', pendingTask)
+
+            // Firestoreでタスク状態を確認
+            if (user && isFirebaseConfigured()) {
+              try {
+                const db = getFirestoreDb()
+                const taskRef = doc(db, 'users', user.uid, 'chatTasks', pendingTask)
+                const taskSnapshot = await getDoc(taskRef)
+
+                if (taskSnapshot.exists()) {
+                  const taskData = taskSnapshot.data()
+
+                  if (taskData.status === 'succeeded') {
+                    // タスクは成功していた → メッセージを読み込んでから削除
+                    console.log('Task succeeded, loading messages before cleanup')
+                    await loadMessagesFromFirestore(pendingThread)
+                  }
+                  // failed/timeout の場合は何もしない（エラーは既に記録済み）
+                }
+                // タスクが存在しない場合も削除のみ実行
+              } catch (err) {
+                console.error('Failed to check task status:', err)
+              }
+            }
+
+            // いずれの場合もLocalStorageはクリア
             localStorage.removeItem('pending_chat_task')
             localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
             localStorage.removeItem('pending_chat_task_created_at')
             return
           }
@@ -236,37 +302,7 @@ function Chat() {
         return
       }
       try {
-        const db = getFirestoreDb()
-        const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
-        const q = query(messagesRef, orderBy('timestamp', 'asc'))
-        const snapshot = await getDocs(q)
-        if (!snapshot.empty) {
-          const history = snapshot.docs.map((docSnap) => {
-            const d = docSnap.data()
-            if (d.type === 'discussion-result') {
-              return {
-                id: docSnap.id,
-                type: 'discussion-result',
-                bestCard: d.bestCard ? JSON.parse(d.bestCard) : null,
-                summary: d.summary || '',
-                allCards: d.allCards ? JSON.parse(d.allCards) : [],
-                time: d.timestamp?.toDate
-                  ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-                  : '',
-              }
-            }
-            return {
-              id: docSnap.id,
-              type: d.role === 'user' ? 'user' : 'ai',
-              agent: d.agent || 'orchestrator',
-              text: d.content,
-              time: d.timestamp?.toDate
-                ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-                : '',
-            }
-          })
-          setMessages(history)
-        }
+        await loadMessagesFromFirestore(threadId)
       } catch (err) {
         console.error('Failed to load chat history:', err)
       } finally {
