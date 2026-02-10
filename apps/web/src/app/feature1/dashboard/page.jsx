@@ -220,10 +220,10 @@ function Dashboard() {
   const chartHeight = 180
   const paddingTop = 20
   const paddingBottom = 35
-  const paddingLeft = 20
+  const paddingLeft = 35
   const paddingRight = 20
   const maxValue = 100
-  const minValue = 50
+  const minValue = 0
 
   // Memoize chart calculations for performance
   const { points, axisLabels, linePath, areaPath } = useMemo(() => {
@@ -393,7 +393,7 @@ function Dashboard() {
               </defs>
 
               {/* Grid lines */}
-              {[60, 70, 80, 90].map((value) => {
+              {[0, 25, 50, 75, 100].map((value) => {
                 const y = paddingTop + ((maxValue - value) / (maxValue - minValue)) * (chartHeight - paddingTop - paddingBottom)
                 return (
                   <g key={value}>
@@ -407,7 +407,7 @@ function Dashboard() {
                       strokeDasharray="4,4"
                     />
                     <text
-                      x={paddingLeft - 5}
+                      x={paddingLeft - 8}
                       y={y + 3}
                       fontSize="10"
                       fill="#7f786d"

@@ -71,7 +71,7 @@
 }
 
 .statCard {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: var(--spacing-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -120,7 +120,7 @@
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: 12px;
   border: 1.5px solid rgba(26, 61, 46, 0.15);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   color: #635d54;
   font-size: var(--font-sm);
   font-weight: 500;
