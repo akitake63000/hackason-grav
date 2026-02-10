@@ -85,7 +85,10 @@ export default function WeeklyPlan() {
                 calculateBonusScores(planData, logArray)
             }
         } catch (error) {
-            console.error('Failed to fetch data:', error)
+            // 404 means no data available yet - this is normal, don't log
+            if (error?.statusCode !== 404 && error?.status !== 404) {
+                console.error('Failed to fetch data:', error)
+            }
             // Error handling (optional: show toast)
         } finally {
             setLoading(false)
