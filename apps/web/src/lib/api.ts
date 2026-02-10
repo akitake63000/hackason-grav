@@ -5,7 +5,10 @@ import {
   NetworkError,
 } from "./error-handler";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+if (!API_BASE) {
+  throw new Error('NEXT_PUBLIC_API_BASE environment variable is not configured. Please check your .env file.');
+}
 
 /**
  * 指数バックオフでスリープ
@@ -31,9 +34,10 @@ export const apiFetch = async (
       const token = await getIdToken();
       const headers = new Headers(init.headers ?? {});
       if (token) {
-        console.log("[apiFetch] Token found (first 20 chars):", token.slice(0, 20));
+        if (process.env.NODE_ENV === 'development') {
+          console.debug("[apiFetch] Token exists:", !!token);
+        }
         headers.set("Authorization", `Bearer ${token}`);
-        console.log("[apiFetch] Authorization header set:", headers.get("Authorization")?.slice(0, 30) + "...");
       } else {
         console.warn("[apiFetch] No ID Token found!");
       }

@@ -1,13 +1,16 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 from datetime import datetime, timezone
 import os
+
+from ..middleware.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.get("/api/health")
 @router.get("/api/v1/health")
-def health() -> dict:
+@limiter.limit("300/minute")
+def health(request: Request) -> dict:
     """
     Enhanced health check endpoint with detailed system information.
     Returns service status, version, timestamp, and environment details.
@@ -26,7 +29,8 @@ def health() -> dict:
 
 
 @router.get("/api/v1/health/ready")
-def readiness() -> dict:
+@limiter.limit("300/minute")
+def readiness(request: Request) -> dict:
     """
     Readiness probe for Kubernetes/Cloud Run.
     Returns 200 if the service is ready to accept traffic.
@@ -37,7 +41,8 @@ def readiness() -> dict:
 
 
 @router.get("/api/v1/health/live")
-def liveness() -> dict:
+@limiter.limit("300/minute")
+def liveness(request: Request) -> dict:
     """
     Liveness probe for Kubernetes/Cloud Run.
     Returns 200 if the service is alive (not deadlocked).

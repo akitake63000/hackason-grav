@@ -6,7 +6,7 @@ import re
 import uuid
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, validator
 from google.cloud import storage as gcs
 from google.cloud.firestore_v1.field_path import FieldPath
@@ -17,6 +17,7 @@ from firebase_admin import firestore
 from ..auth import get_current_uid
 from ..config import FIREBASE_STORAGE_BUCKET, GEMINI_MODEL, GEMINI_MODEL_LIGHT
 from ..firebase import get_firestore_client
+from ..middleware.rate_limit import limiter
 from ..llm.vertex_gemini import _get_client as get_gemini_client, gemini_enabled as _raw_gemini_enabled
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 from ..agents.lifestyle_agent.tools.analyze_tendency import (
@@ -128,12 +129,14 @@ def _sanitize_tip(text: str) -> str:
 
 
 @router.get("/health")
-def health() -> dict:
+@limiter.limit("300/minute")
+def health(request: Request) -> dict:
     return {"status": "ok"}
 
 
 @router.get("/tip", response_model=TipResponse)
-def tip(_: str = Depends(get_current_uid)) -> TipResponse:
+@limiter.limit("20/minute")
+def tip(request: Request, _: str = Depends(get_current_uid)) -> TipResponse:
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
     season = _season_label(now.month)
     time_label = _time_label(now.hour)
@@ -282,7 +285,9 @@ def _fallback_meal_analysis() -> MealAnalyzeResponse:
 
 
 @router.post("/meal-analyze", response_model=MealAnalyzeResponse)
+@limiter.limit("10/minute")
 def meal_analyze(
+    request: Request,
     req: MealAnalyzeRequest,
     uid: str = Depends(get_current_uid),
 ) -> MealAnalyzeResponse:
@@ -336,8 +341,10 @@ def meal_analyze(
 
 
 @router.post("/tendency", response_model=TendencyResponse)
+@limiter.limit("30/minute")
 def tendency(
-    request: TendencyRequest,
+    request: Request,
+    req: TendencyRequest,
     uid: str = Depends(get_current_uid),
 ) -> TendencyResponse:
     """
@@ -363,7 +370,7 @@ def tendency(
         logging.error(f"Unexpected error fetching hair analysis: {e}", exc_info=True)
 
     # 2. スコア算出
-    result = analyze_tendency_scores(request.answers, hair_analysis=hair_analysis)
+    result = analyze_tendency_scores(req.answers, hair_analysis=hair_analysis)
     scores = result["scores"]
 
     # 3. Firestore に保存
@@ -379,7 +386,7 @@ def tendency(
                 "bloodCirculation": scores["blood_flow"],
                 "circadian": scores["circadian"],
                 "stress": scores["stress"],
-                "answers": request.answers,  # Save answers for recommendation filtering
+                "answers": req.answers,  # Save answers for recommendation filtering
                 "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo")),
                 "hairlineScoreSource": hair_analysis.get("hairlineScore")
                 if hair_analysis
@@ -403,7 +410,9 @@ class TendencyHistoryResponse(TendencyResponse):
 
 
 @router.get("/tendency/latest", response_model=TendencyHistoryResponse)
+@limiter.limit("60/minute")
 def get_latest_tendency(
+    request: Request,
     uid: str = Depends(get_current_uid),
 ) -> TendencyHistoryResponse:
     """
@@ -444,7 +453,9 @@ def get_latest_tendency(
 
 
 @router.get("/recommendation", response_model=RecommendationResponse)
+@limiter.limit("30/minute")
 def recommendation(
+    request: Request,
     uid: str = Depends(get_current_uid),
     hormone: int = 50,
     circadian: int = 50,
@@ -513,7 +524,9 @@ class PlanResponse(BaseModel):
 
 
 @router.post("/plan/generate", response_model=PlanResponse)
+@limiter.limit("10/minute")
 def generate_plan(
+    request: Request,
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """最新の診断結果から週間プランを作成する（テーマのみ決定）"""
@@ -577,7 +590,9 @@ def generate_plan(
 
 
 @router.post("/plan/daily/generate", response_model=PlanResponse)
+@limiter.limit("10/minute")
 def generate_daily(
+    request: Request,
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """今日のアクションを手動で生成する"""
@@ -690,7 +705,9 @@ def _calculate_streak(plan_doc) -> int:
 
 
 @router.get("/plan/current", response_model=PlanResponse)
+@limiter.limit("60/minute")
 def get_current_plan(
+    request: Request,
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """現在進行中のプランと本日のログを取得"""
@@ -765,7 +782,9 @@ def get_current_plan(
 
 
 @router.post("/plan/check")
+@limiter.limit("100/minute")
 def check_action(
+    request: Request,
     req: ActionCheckRequest,
     uid: str = Depends(get_current_uid),
 ):

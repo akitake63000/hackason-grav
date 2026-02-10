@@ -11,23 +11,41 @@ logger = logging.getLogger(__name__)
 limiter = Limiter(key_func=get_remote_address)
 
 # Rate limit configurations by endpoint pattern
-# Format: (path_pattern, method, limit_string)
+# NOTE: Currently, rate limiting is enforced via @limiter.limit() decorators on individual routes.
+# This middleware (RateLimitMiddleware) is commented out in main.py.
+# These values should match decorator limits for consistency when middleware is enabled.
+# Format: {path_pattern: limit_string}
 RATE_LIMITS = {
-    # Health checks - very permissive
-    "/api/health": "200/minute",
-    "/api/v1/health": "200/minute",
-    "/api/v1/health/ready": "200/minute",
-    "/api/v1/health/live": "200/minute",
+    # Health checks - very permissive (matches decorator: 300/minute)
+    "/api/health": "300/minute",
+    "/api/v1/health": "300/minute",
+    "/api/v1/health/ready": "300/minute",
+    "/api/v1/health/live": "300/minute",
 
     # GET endpoints - more permissive for dashboard
+    # NOTE: photos/reports routes currently do NOT have @limiter.limit decorators.
+    # These values are for future middleware use.
     "/api/v1/photos/analysis-history": "100/minute",
 
     # POST endpoints - more restrictive
-    "/api/v1/photos/analyze": "5/minute",
-    "/api/v1/mental-shield/chat": "10/minute",
-    "/api/v1/food-sniper/recommend": "5/minute",
-    "/api/v1/reports/generate": "3/minute",
-    "/api/v1/lifestyle/recommendations": "5/minute",
+    "/api/v1/photos/analyze": "5/minute",  # no decorator yet
+    "/api/v1/mental-shield/chat": "10/minute",  # matches decorator
+    "/api/v1/mental-shield/chat/discuss": "10/minute",  # matches decorator
+    "/api/v1/food-sniper/recommend": "10/minute",  # matches decorator
+    "/api/v1/food-sniper/recipe": "10/minute",  # matches decorator
+    "/api/v1/reports/generate": "3/minute",  # no decorator yet
+
+    # Lifestyle endpoints (matches decorators)
+    "/api/v1/lifestyle/health": "300/minute",
+    "/api/v1/lifestyle/tip": "20/minute",
+    "/api/v1/lifestyle/meal-analyze": "10/minute",
+    "/api/v1/lifestyle/tendency": "30/minute",
+    "/api/v1/lifestyle/tendency/latest": "60/minute",
+    "/api/v1/lifestyle/recommendation": "30/minute",
+    "/api/v1/lifestyle/plan/generate": "10/minute",
+    "/api/v1/lifestyle/plan/daily/generate": "10/minute",
+    "/api/v1/lifestyle/plan/current": "60/minute",
+    "/api/v1/lifestyle/plan/check": "100/minute",
 }
 
 # Default rate limit for unspecified endpoints

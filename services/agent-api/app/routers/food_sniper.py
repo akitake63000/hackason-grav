@@ -3,7 +3,7 @@ import uuid
 import json
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
 from firebase_admin.exceptions import FirebaseError
 from google.cloud.exceptions import GoogleCloudError
@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
+from ..middleware.rate_limit import limiter
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 from ..config import GEMINI_MODEL
 
@@ -844,8 +845,9 @@ def _extract_food_recommendations(
 
 
 @router.post("/recommend", response_model=FoodSniperResponse)
+@limiter.limit("10/minute")
 def recommend_food_sniper(
-    payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
+    request: Request, payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
 ) -> FoodSniperResponse:
     # パターン取得: リクエスト > Firestore の順で探す
     pattern = payload.hairPattern
@@ -891,8 +893,9 @@ def recommend_food_sniper(
 
 
 @router.post("/recipe", response_model=RecipeResponse)
+@limiter.limit("10/minute")
 def generate_recipe(
-    payload: RecipeRequest, uid: str = Depends(get_current_uid)
+    request: Request, payload: RecipeRequest, uid: str = Depends(get_current_uid)
 ) -> RecipeResponse:
     """食材名からGeminiでレシピを生成。失敗時はフォールバック。"""
     pattern_context = ""

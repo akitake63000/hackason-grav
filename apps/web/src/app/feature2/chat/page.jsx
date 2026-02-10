@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
+import { useAuth, getIdToken } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 
@@ -38,6 +38,80 @@ const agentConfig = {
     emoji: '🌿',
     color: `linear-gradient(135deg, ${colors.sage} 0%, ${colors.deepForest} 100%)`,
   },
+}
+
+// 許可されたダイレクトAPI URLのドメインリスト
+// 本番環境ではlocalhostを除外
+const ALLOWED_DIRECT_API_DOMAINS = (() => {
+  const envDomains = process.env.NEXT_PUBLIC_ALLOWED_DIRECT_API_DOMAINS
+  const defaultDomains = process.env.NODE_ENV === 'production'
+    ? 'agent-api-7wsihnjf7q-an.a.run.app'
+    : 'agent-api-7wsihnjf7q-an.a.run.app,localhost,127.0.0.1'
+
+  return new Set(
+    (envDomains || defaultDomains)
+      .split(',')
+      .map(d => d.trim())
+      .filter(d => d) // 空文字除外
+      .map(d => d.toLowerCase().replace(/\.$/, '')) // 正規化: 小文字化 + 末尾ドット除去
+  )
+})()
+
+// デフォルトのダイレクトAPI URL
+const DEFAULT_DIRECT_API_URL = 'https://agent-api-7wsihnjf7q-an.a.run.app'
+
+/**
+ * ダイレクトAPI URLの検証
+ * - httpsプロトコル必須（開発環境のlocalhostは例外）
+ * - 許可されたドメインのみ
+ * - pathname, search, hashが空であること（originのみ許可）
+ * @param {string} urlString - 検証するURL文字列
+ * @returns {string} 検証済みURL origin
+ * @throws {Error} 検証失敗時
+ */
+function validateDirectApiUrl(urlString) {
+  if (!urlString) {
+    throw new Error('Direct API URL is required')
+  }
+
+  try {
+    const url = new URL(urlString)
+
+    // pathname, search, hash, username, passwordが空であることを検証
+    if (url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
+      throw new Error(
+        `Direct API URL must be origin only (no path, query, hash, or credentials): ${urlString}`
+      )
+    }
+
+    // ホスト名を正規化
+    const normalizedHostname = url.hostname.toLowerCase().replace(/\.$/, '')
+
+    // localhostまたは127.0.0.1の場合はhttpも許可（開発環境のみ）
+    const isLocalhost = normalizedHostname === 'localhost' || normalizedHostname === '127.0.0.1'
+
+    if (isLocalhost && process.env.NODE_ENV === 'production') {
+      throw new Error(`Localhost is not allowed in production: ${urlString}`)
+    }
+
+    if (!isLocalhost && url.protocol !== 'https:') {
+      throw new Error(`Direct API URL must use https protocol: ${urlString}`)
+    }
+
+    if (!ALLOWED_DIRECT_API_DOMAINS.has(normalizedHostname)) {
+      throw new Error(
+        `Direct API domain not allowed: ${normalizedHostname}. Allowed domains: ${Array.from(ALLOWED_DIRECT_API_DOMAINS).join(', ')}`
+      )
+    }
+
+    // originのみ返す（末尾スラッシュなし）
+    return url.origin
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(`Invalid Direct API URL format: ${urlString}`)
+    }
+    throw error
+  }
 }
 
 function Chat() {
@@ -199,25 +273,30 @@ function Chat() {
     try {
       // For detailed mode, use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
       const useDirectUrl = chatDetail === 'pro'
+      const DIRECT_API_URL = process.env.NEXT_PUBLIC_DIRECT_API_URL || DEFAULT_DIRECT_API_URL
+      const validatedDirectUrl = useDirectUrl ? validateDirectApiUrl(DIRECT_API_URL) : null
       const apiUrl = useDirectUrl
-        ? 'https://agent-api-7wsihnjf7q-an.a.run.app/api/v1/mental-shield/chat/discuss'
+        ? `${validatedDirectUrl}/api/v1/mental-shield/chat/discuss`
         : '/api/v1/mental-shield/chat/discuss'
 
       const response = useDirectUrl
-        ? await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(user?.accessToken && { 'Authorization': `Bearer ${user.accessToken}` })
-            },
-            body: JSON.stringify({
-              threadId,
-              message: inputValue,
-              mode: 'balanced',
-              style: chatStyle,
-              detail: chatDetail,
-            }),
-          })
+        ? await (async () => {
+            const token = await getIdToken()
+            return fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
+              },
+              body: JSON.stringify({
+                threadId,
+                message: inputValue,
+                mode: 'balanced',
+                style: chatStyle,
+                detail: chatDetail,
+              }),
+            })
+          })()
         : await apiFetch('/api/v1/mental-shield/chat/discuss', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
