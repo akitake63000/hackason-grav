@@ -163,23 +163,49 @@ function DeleteSettingsPage() {
       return
     }
     setIsWorking(true)
+    let dataDeleted = false
     try {
+      // Step 1: Delete user data
       await deleteUserData(user.uid)
+      dataDeleted = true
+      console.log('User data deleted successfully')
+
+      // Step 2: Delete authentication account
       const auth = getFirebaseAuth()
       if (auth.currentUser) {
         await deleteAuthUser(auth.currentUser)
+        console.log('Auth account deleted successfully')
       }
+
       window.alert('退会が完了しました。ご利用ありがとうございました。')
-    } catch (error) {
-      const code = error?.code
-      if (code === 'auth/requires-recent-login') {
-        window.alert('安全のため、再ログイン後に退会手続きを行ってください。')
-      } else {
-        window.alert('退会処理に失敗しました。時間をおいて再度お試しください。')
-      }
-    } finally {
       await signOutUser()
       router.push('/login')
+    } catch (error) {
+      console.error('Withdrawal error:', error)
+      const code = error?.code
+
+      if (code === 'auth/requires-recent-login') {
+        window.alert(
+          '安全のため、再ログイン後に退会手続きを行ってください。\n\n' +
+          (dataDeleted ? '※ データは削除されています。' : '')
+        )
+      } else {
+        window.alert(
+          '退会処理に失敗しました。\n\n' +
+          (dataDeleted ?
+            'データは削除されましたが、アカウントの削除に失敗しました。\n' +
+            'サポートにお問い合わせください。\n\n' : '') +
+          `エラーコード: ${code || 'unknown'}\n` +
+          `詳細: ${error?.message || error}`
+        )
+      }
+
+      if (dataDeleted) {
+        // Data was deleted, so sign out anyway
+        await signOutUser()
+        router.push('/login')
+      }
+    } finally {
       setIsWorking(false)
     }
   }
