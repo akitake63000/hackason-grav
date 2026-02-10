@@ -2,7 +2,7 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(165deg, #d4f0e3 0%, #f8f6f2 30%, #ebe8e3 100%);
+  background: #f8f6f2;
 }
 
 /* Loading State */
@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(165deg, #d4f0e3 0%, #f8f6f2 30%, #ebe8e3 100%);
+  background: #f8f6f2;
   color: #7f786d;
   font-size: var(--font-sm);
   font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
