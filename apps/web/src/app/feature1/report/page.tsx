@@ -222,8 +222,8 @@ function Report() {
   if (loading) {
     return (
       <Layout>
-        <div className={styles.container}>
-          <div className={styles.loadingContainer}>
+        <div style={styles.container}>
+          <div style={styles.loadingContainer}>
             <div className="animate-pulse">
               <Sparkles size={48} color="#c9a962" />
             </div>
@@ -242,9 +242,9 @@ function Report() {
   if (error) {
     return (
       <Layout>
-        <div className={styles.container}>
-          <div className={styles.content}>
-            <div className={styles.errorContainer}>
+        <div style={styles.container}>
+          <div style={styles.content}>
+            <div style={styles.errorContainer}>
               <AlertCircle size={32} color="#b85450" style={{ margin: '0 auto 16px' }} />
               <p style={{ color: '#b85450', marginBottom: '8px' }}>{error}</p>
             </div>
@@ -261,31 +261,31 @@ function Report() {
 
   return (
     <Layout>
-      <div className={styles.container}>
-        <div className={styles.content}>
+      <div style={styles.container}>
+        <div style={styles.content}>
           {/* Title Section */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 className={styles.title}>AIレポート</h1>
-            <p className={styles.subtitle}>詳細分析</p>
+            <h1 style={styles.title}>AIレポート</h1>
+            <p style={styles.subtitle}>詳細分析</p>
           </motion.div>
 
           {/* Report Header */}
           <motion.div
-            className={styles.reportHeader}
+            style={styles.reportHeader}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <div className={styles.aiIcon}>
+            <div style={styles.aiIcon}>
               <Sparkles size={24} color="#1a3d2e" />
             </div>
-            <div className={styles.reportHeaderText}>
-              <div className={styles.reportTitle}>月間分析レポート</div>
-              <div className={styles.reportDate}>
+            <div style={styles.reportHeaderText}>
+              <div style={styles.reportTitle}>月間分析レポート</div>
+              <div style={styles.reportDate}>
                 <Calendar size={12} />
                 {reportDate} 生成
               </div>
@@ -293,26 +293,26 @@ function Report() {
           </motion.div>
 
           {/* Grid for Cards */}
-          <div className={styles.gridContainer}>
+          <div style={styles.gridContainer}>
             {/* Summary/Highlights Section */}
             <Card variant="default" padding="lg" delay={0.2} onClick={undefined}>
-              <div className={styles.sectionHeader}>
-                <div className={styles.sectionIconWrapper}>
+              <div style={styles.sectionHeader}>
+                <div style={styles.sectionIconWrapper}>
                   <TrendingUp size={16} color="#419873" />
                 </div>
-                <span className={styles.sectionTitle}>ハイライト</span>
+                <span style={styles.sectionTitle}>ハイライト</span>
               </div>
 
               {data?.highlights && data.highlights.length > 0 ? (
-                <ul className={styles.bulletList}>
+                <ul style={styles.bulletList}>
                   {data.highlights.map((highlight, idx) => (
-                    <li key={idx} className={styles.bulletItem}>
+                    <li key={idx} style={styles.bulletItem}>
                       {highlight}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className={styles.reportText}>
+                <p style={styles.reportText}>
                   特筆すべき変化はまだ検出されていません。継続的な記録をおすすめします。
                 </p>
               )}
@@ -320,23 +320,23 @@ function Report() {
 
             {/* Next Actions / Detail Analysis */}
             <Card variant="default" padding="lg" delay={0.3} onClick={undefined}>
-              <div className={styles.sectionHeader}>
-                <div className={styles.sectionIconWrapper}>
+              <div style={styles.sectionHeader}>
+                <div style={styles.sectionIconWrapper}>
                   <Lightbulb size={16} color="#419873" />
                 </div>
-                <span className={styles.sectionTitle}>次のアクション</span>
+                <span style={styles.sectionTitle}>次のアクション</span>
               </div>
 
               {data?.nextActions && data.nextActions.length > 0 ? (
-                <ul className={styles.bulletList}>
+                <ul style={styles.bulletList}>
                   {data.nextActions.map((action, idx) => (
-                    <li key={idx} className={styles.bulletItem}>
+                    <li key={idx} style={styles.bulletItem}>
                       {action}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className={styles.reportText}>
+                <p style={styles.reportText}>
                   同じ条件での撮影を続けることで、より詳細なアドバイスが可能になります。
                 </p>
               )}
@@ -346,17 +346,17 @@ function Report() {
           {/* Raw Text Summary (Optional, if available) */}
           {data?.rawText && (
             <motion.div
-              className={styles.tipCard}
+              style={styles.tipCard}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.5 }}
             >
-              <div className={styles.tipIcon}>
+              <div style={styles.tipIcon}>
                 <FileText size={20} color="#1a3d2e" />
               </div>
-              <div className={styles.tipContent}>
-                <div className={styles.tipTitle}>AIアドバイス</div>
-                <p className={styles.tipText}>
+              <div style={styles.tipContent}>
+                <div style={styles.tipTitle}>AIアドバイス</div>
+                <p style={styles.tipText}>
                   {data.rawText}
                 </p>
               </div>
@@ -365,12 +365,12 @@ function Report() {
 
           {/* Action Buttons */}
           <motion.div
-            className={styles.buttonRow}
+            style={styles.buttonRow}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <div className={styles.buttonSecondary}>
+            <div style={styles.buttonSecondary}>
               <Button
                 variant="secondary"
                 size="full"
@@ -390,7 +390,7 @@ function Report() {
               </Button>
             </div>
             {/* 
-          <div className={styles.buttonPrimary}>
+          <div style={styles.buttonPrimary}>
             <Button
               variant="primary"
               size="full"
