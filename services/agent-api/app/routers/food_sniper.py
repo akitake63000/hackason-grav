@@ -19,6 +19,46 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
 
 # ---------------------------------------------------------------------------
+# Pattern validation
+# ---------------------------------------------------------------------------
+
+# Allowed hair loss pattern values (whitelist)
+ALLOWED_HAIR_PATTERNS = {
+    "M字",
+    "O字",
+    "U字",
+    "びまん性",
+    "オルセン型",
+    "ハミルトン型",
+}
+
+
+def validate_hair_pattern(pattern: Optional[str]) -> Optional[str]:
+    """
+    Validate hair loss pattern against whitelist.
+    Returns None if pattern is invalid or None.
+    Logs warning for invalid patterns.
+
+    Args:
+        pattern: Hair loss pattern string to validate
+
+    Returns:
+        Validated pattern or None if invalid
+    """
+    if not pattern:
+        return None
+
+    if pattern not in ALLOWED_HAIR_PATTERNS:
+        logging.warning(
+            f"Invalid hair pattern value detected: '{pattern}'. "
+            f"Allowed values: {', '.join(ALLOWED_HAIR_PATTERNS)}"
+        )
+        return None
+
+    return pattern
+
+
+# ---------------------------------------------------------------------------
 # Pydantic モデル
 # ---------------------------------------------------------------------------
 
@@ -726,7 +766,14 @@ def _get_user_hair_pattern(uid: str) -> Optional[str]:
             data = doc.to_dict()
             pattern = data.get("pattern") or data.get("hairPattern")
             if pattern:
-                return pattern
+                # Validate pattern against whitelist
+                validated_pattern = validate_hair_pattern(pattern)
+                if validated_pattern:
+                    return validated_pattern
+                else:
+                    logging.warning(
+                        f"Firestore returned invalid hair pattern for uid={uid}: '{pattern}'. Ignoring."
+                    )
     except (FirebaseError, GoogleCloudError) as e:
         logging.error(f"Firestore error fetching user hair pattern: {e}")
     except Exception as e:

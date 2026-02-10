@@ -179,6 +179,7 @@ def get_analysis_history(
     """
     Fetches analysis history for the authenticated user.
     Returns analysis results with photo metadata, sorted by analysis date (newest first).
+    Optimized to avoid N+1 query problem by batching photo fetches.
     """
     db = get_firestore_client()
 
@@ -191,25 +192,38 @@ def get_analysis_history(
         .limit(limit)
     )
 
-    analysis_docs = analysis_results_ref.stream()
+    # Convert stream to list to allow multiple iterations
+    analysis_docs = list(analysis_results_ref.stream())
 
-    items = []
-
+    # Extract photo IDs and analysis data
+    photo_ids = []
+    analysis_data_list = []
     for analysis_doc in analysis_docs:
         analysis_data = analysis_doc.to_dict()
         photo_id = analysis_data.get("photoId")
+        if photo_id:
+            photo_ids.append(photo_id)
+            analysis_data_list.append((photo_id, analysis_data))
 
-        if not photo_id:
+    if not photo_ids:
+        return AnalysisHistoryResponse(items=[], total=0)
+
+    # Batch fetch all photos at once (avoids N+1 query)
+    photos_ref = db.collection("users").document(uid).collection("photos")
+    photo_refs = [photos_ref.document(photo_id) for photo_id in photo_ids]
+    photo_snaps = db.get_all(photo_refs)
+
+    # Create photo_id -> photo_data mapping
+    photo_map = {}
+    for photo_snap in photo_snaps:
+        if photo_snap.exists:
+            photo_map[photo_snap.id] = photo_snap.to_dict()
+
+    items = []
+    for photo_id, analysis_data in analysis_data_list:
+        photo_data = photo_map.get(photo_id)
+        if not photo_data:
             continue
-
-        # Fetch corresponding photo metadata
-        photo_ref = db.collection("users").document(uid).collection("photos").document(photo_id)
-        photo_snap = photo_ref.get()
-
-        if not photo_snap.exists:
-            continue
-
-        photo_data = photo_snap.to_dict()
 
         # Extract timestamps
         analyzed_at = analysis_data.get("analyzedAt")

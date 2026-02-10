@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Validate environment variables before proceeding
+from .env_validator import validate_env_vars_on_startup
+validate_env_vars_on_startup()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
