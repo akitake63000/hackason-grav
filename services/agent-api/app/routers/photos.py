@@ -2,9 +2,9 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from google.cloud import firestore
 from google.cloud.exceptions import GoogleCloudError
 
@@ -12,6 +12,7 @@ from ..services.gemini_vision import analyze_image_bytes
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..storage import download_image_bytes
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
 
@@ -19,8 +20,9 @@ router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
 class AnalyzePhotoRequest(BaseModel):
     photoId: str = Field(..., min_length=1, max_length=100, pattern="^[a-zA-Z0-9_-]+$", description="Photo ID to analyze")
 
-    @validator('photoId')
-    def validate_photo_id(cls, v):
+    @field_validator('photoId')
+    @classmethod
+    def validate_photo_id(cls, v: str) -> str:
         if not v.strip():
             raise ValueError('Photo ID cannot be empty or whitespace only')
         return v.strip()
@@ -47,8 +49,10 @@ class AnalysisHistoryResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=AnalyzePhotoResponse)
+@limiter.limit("5/minute")  # Rate limit: 5 requests per minute
 def analyze_photo(
-    payload: AnalyzePhotoRequest, 
+    request: Request,
+    payload: AnalyzePhotoRequest,
     uid: str = Depends(get_current_uid)
 ) -> AnalyzePhotoResponse:
     """
@@ -172,13 +176,16 @@ def analyze_photo(
 
 
 @router.get("/analysis-history", response_model=AnalysisHistoryResponse)
+@limiter.limit("100/minute")  # Rate limit: 100 requests per minute
 def get_analysis_history(
+    request: Request,
     uid: str = Depends(get_current_uid),
-    limit: Optional[int] = 50
+    limit: int = Query(default=50, ge=1, le=200, description="Maximum number of analysis results to return (1-200)")
 ) -> AnalysisHistoryResponse:
     """
     Fetches analysis history for the authenticated user.
     Returns analysis results with photo metadata, sorted by analysis date (newest first).
+    Optimized to avoid N+1 query problem by batching photo fetches.
     """
     db = get_firestore_client()
 
@@ -191,25 +198,38 @@ def get_analysis_history(
         .limit(limit)
     )
 
-    analysis_docs = analysis_results_ref.stream()
+    # Convert stream to list to allow multiple iterations
+    analysis_docs = list(analysis_results_ref.stream())
 
-    items = []
-
+    # Extract photo IDs and analysis data
+    photo_ids = []
+    analysis_data_list = []
     for analysis_doc in analysis_docs:
         analysis_data = analysis_doc.to_dict()
         photo_id = analysis_data.get("photoId")
+        if photo_id:
+            photo_ids.append(photo_id)
+            analysis_data_list.append((photo_id, analysis_data))
 
-        if not photo_id:
+    if not photo_ids:
+        return AnalysisHistoryResponse(items=[], total=0)
+
+    # Batch fetch all photos at once (avoids N+1 query)
+    photos_ref = db.collection("users").document(uid).collection("photos")
+    photo_refs = [photos_ref.document(photo_id) for photo_id in photo_ids]
+    photo_snaps = db.get_all(photo_refs)
+
+    # Create photo_id -> photo_data mapping
+    photo_map = {}
+    for photo_snap in photo_snaps:
+        if photo_snap.exists:
+            photo_map[photo_snap.id] = photo_snap.to_dict()
+
+    items = []
+    for photo_id, analysis_data in analysis_data_list:
+        photo_data = photo_map.get(photo_id)
+        if not photo_data:
             continue
-
-        # Fetch corresponding photo metadata
-        photo_ref = db.collection("users").document(uid).collection("photos").document(photo_id)
-        photo_snap = photo_ref.get()
-
-        if not photo_snap.exists:
-            continue
-
-        photo_data = photo_snap.to_dict()
 
         # Extract timestamps
         analyzed_at = analysis_data.get("analyzedAt")

@@ -4,7 +4,7 @@ import uuid
 import logging
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel
 
@@ -12,6 +12,7 @@ from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL_HEAVY
 from ..services.gemini_chat import GEMINI_MODEL, gemini_enabled, generate_text, safe_json_load
+from ..middleware.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -94,38 +95,47 @@ def _generate_report_with_llm(
 
 
 @router.post("/generate", response_model=ReportGenerateResponse)
+@limiter.limit("3/minute")  # Rate limit: 3 requests per minute (expensive LLM operation)
 def generate_report(
-    payload: ReportGenerateRequest, uid: str = Depends(get_current_uid)
+    request: Request,
+    payload: ReportGenerateRequest,
+    uid: str = Depends(get_current_uid)
 ) -> ReportGenerateResponse:
     period_days = payload.periodDays or 7
     period_days = max(1, min(period_days, 30))
 
     db = get_firestore_client()
-    analysis_ref = db.collection("reports").document(uid).collection("items") # CHECK: Should be analysisResults?
-    # Correcting to fetch from analysisResults based on previous logic 
+    # Fetch from analysisResults
     analysis_ref = db.collection("users").document(uid).collection("analysisResults")
 
+    # Calculate cutoff date for filtering
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=period_days)
+
+    # Fetch documents (use Python-side filtering for backward compatibility)
+    # NOTE: Some old documents may only have 'createdAt', not 'analyzedAt'
+    # Database-level filtering on 'analyzedAt' would exclude those documents
     docs = (
-        analysis_ref.order_by(
-            "analyzedAt", direction=admin_firestore.Query.DESCENDING
-        )
-        .limit(20) # Limit to 20 items to avoid token limit
+        analysis_ref
+        .order_by("analyzedAt", direction=admin_firestore.Query.DESCENDING)
+        .limit(50)  # Fetch more to compensate for filtering
         .get()
     )
 
-    now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=period_days)
-    series_data = [] # List of dicts for LLM
-    series_for_calc = [] # List of (date, score) for calculation
+    series_data = []  # List of dicts for LLM
+    series_for_calc = []  # List of (date, score) for calculation
 
     for doc in docs:
         data = doc.to_dict()
+        # Try analyzedAt first, then fall back to createdAt for old documents
         ts = data.get("analyzedAt") or data.get("createdAt")
         computed_at = _to_datetime(ts)
         if not computed_at:
             continue
         if computed_at.tzinfo is None:
             computed_at = computed_at.replace(tzinfo=timezone.utc)
+
+        # Filter by date in Python (supports both analyzedAt and createdAt)
         if computed_at < cutoff:
             continue
         

@@ -22,204 +22,7 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import Button from '@/components/Button'
 import { apiFetch } from '@/lib/api'
-
-const styles = {
-    container: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-        paddingBottom: '40px',
-    },
-    content: {
-        maxWidth: '600px',
-        margin: '0 auto',
-        width: '100%',
-    },
-    pageTitle: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: 'clamp(24px, 4vw, 32px)',
-        fontWeight: '600',
-        color: '#1a3d2e',
-        textAlign: 'center',
-        marginBottom: '8px',
-    },
-    subtitle: {
-        fontSize: '14px',
-        color: '#7f786d',
-        textAlign: 'center',
-        marginBottom: '24px',
-    },
-    progressSection: {
-        marginBottom: '24px',
-    },
-    progressHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '12px',
-    },
-    progressLabel: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#1a3d2e',
-    },
-    progressValue: {
-        fontSize: '14px',
-        color: '#419873',
-        fontWeight: '700',
-    },
-    progressBar: {
-        height: '8px',
-        background: '#e0dcd0',
-        borderRadius: '4px',
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        background: 'linear-gradient(90deg, #419873, #6dc99c)',
-        borderRadius: '4px',
-        transition: 'width 0.5s ease',
-    },
-    missionCard: {
-        cursor: 'pointer',
-        marginBottom: '12px',
-        transition: 'transform 0.2s ease',
-    },
-    missionInner: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-    },
-    missionCheckbox: {
-        width: '28px',
-        height: '28px',
-        borderRadius: '8px',
-        border: '2px solid #e0dcd0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        transition: 'all 0.2s ease',
-    },
-    missionCheckboxCompleted: {
-        background: '#419873',
-        borderColor: '#419873',
-    },
-    missionContent: {
-        flex: 1,
-    },
-    missionTitle: {
-        fontSize: '16px',
-        fontWeight: '600',
-        color: '#1a3d2e',
-        marginBottom: '4px',
-    },
-    missionDesc: {
-        fontSize: '13px',
-        color: '#7f786d',
-    },
-    scoreBonus: {
-        fontSize: '12px',
-        color: '#419873',
-        fontWeight: '600',
-    },
-    // Modal
-    modalOverlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(26, 61, 46, 0.4)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-    },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: '24px',
-        width: '100%',
-        maxWidth: '400px',
-        padding: '32px 24px',
-        textAlign: 'center',
-    },
-    modalEmoji: {
-        fontSize: '48px',
-        marginBottom: '16px',
-    },
-    modalTitle: {
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#1a3d2e',
-        marginBottom: '8px',
-    },
-    modalText: {
-        fontSize: '14px',
-        color: '#7f786d',
-        marginBottom: '24px',
-    },
-    // Week end section
-    weekEndCard: {
-        textAlign: 'center',
-        padding: '32px 24px',
-    },
-    // Inactivity warning
-    warningCard: {
-        background: 'rgba(245, 158, 11, 0.1)',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
-    },
-    // Accordion & Action Styles
-    actionCard: {
-        marginBottom: '12px',
-        transition: 'all 0.3s ease',
-        overflow: 'hidden',
-    },
-    actionHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        padding: '16px',
-        cursor: 'pointer',
-    },
-    actionName: {
-        flex: 1,
-        fontSize: '18px', // Larger font
-        fontWeight: '700',
-        color: '#1a3d2e',
-        marginLeft: '12px',
-    },
-    actionContent: {
-        padding: '0 16px 16px 56px', // Indent to align with text
-        fontSize: '14px',
-        color: '#7f786d',
-        lineHeight: '1.6',
-        borderTop: '1px solid #f0f0f0',
-        marginTop: '8px',
-        paddingTop: '12px',
-    },
-    createButtonContainer: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        background: '#f9fafb',
-        borderRadius: '16px',
-        border: '2px dashed #e5e7eb',
-    },
-    streakBadge: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-        color: 'white',
-        padding: '6px 16px',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        boxShadow: '0 2px 4px rgba(234, 88, 12, 0.3)',
-        marginBottom: '16px',
-    },
-}
+import styles from './page.module.css'
 
 export default function WeeklyPlan() {
     const router = useRouter()
@@ -455,9 +258,9 @@ export default function WeeklyPlan() {
     if (showInactivityWarning) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.content}>
-                        <Card style={styles.warningCard}>
+                <div className={styles.container}>
+                    <div className={styles.content}>
+                        <Card className={styles.warningCard}>
                             <div style={{ textAlign: 'center', padding: '24px' }}>
                                 <AlertCircle size={48} color="#f59e0b" style={{ marginBottom: '16px' }} />
                                 <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
@@ -496,8 +299,8 @@ export default function WeeklyPlan() {
     if (!plan) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.content}>
+                <div className={styles.container}>
+                    <div className={styles.content}>
                         <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
                             <Sparkles size={48} color="#419873" style={{ marginBottom: '16px' }} />
                             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
@@ -521,11 +324,11 @@ export default function WeeklyPlan() {
     if (isPlanExpired()) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.content}>
-                        <h1 style={styles.pageTitle}>週間プラン完了！</h1>
+                <div className={styles.container}>
+                    <div className={styles.content}>
+                        <h1 className={styles.pageTitle}>週間プラン完了！</h1>
 
-                        <Card style={styles.weekEndCard}>
+                        <Card className={styles.weekEndCard}>
                             <Trophy size={64} color="#f59e0b" style={{ marginBottom: '16px' }} />
                             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
                                 お疲れさまでした！
@@ -550,10 +353,10 @@ export default function WeeklyPlan() {
     // Active plan view
     return (
         <Layout>
-            <div style={styles.container}>
-                <div style={styles.content}>
+            <div className={styles.container}>
+                <div className={styles.content}>
                     <motion.h1
-                        style={styles.pageTitle}
+                        className={styles.pageTitle}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                     >
@@ -563,7 +366,7 @@ export default function WeeklyPlan() {
                     {/* Streak Badge */}
                     <div style={{ textAlign: 'center' }}>
                         <motion.div
-                            style={styles.streakBadge}
+                            className={styles.streakBadge}
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 10 }}
@@ -573,22 +376,22 @@ export default function WeeklyPlan() {
                         </motion.div>
                     </div>
 
-                    <p style={styles.subtitle}>
+                    <p className={styles.subtitle}>
                         {plan.theme || '生活習慣改善'}
                     </p>
 
                     {/* Progress Section */}
-                    <Card style={styles.progressSection}>
-                        <div style={styles.progressHeader}>
-                            <span style={styles.progressLabel}>
+                    <Card className={styles.progressSection}>
+                        <div className={styles.progressHeader}>
+                            <span className={styles.progressLabel}>
                                 <Target size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                 本日の達成状況
                             </span>
-                            <span style={styles.progressValue}>{getCompletionRate()}%</span>
+                            <span className={styles.progressValue}>{getCompletionRate()}%</span>
                         </div>
-                        <div style={styles.progressBar}>
+                        <div className={styles.progressBar}>
                             <motion.div
-                                style={styles.progressFill}
+                                className={styles.progressFill}
                                 initial={{ width: 0 }}
                                 animate={{ width: `${getCompletionRate()}%` }}
                                 transition={{ duration: 0.5 }}
@@ -624,7 +427,7 @@ export default function WeeklyPlan() {
 
                     {/* Mission Cards or Create Button */}
                     {!plan.targetActions || plan.targetActions.length === 0 ? (
-                        <div style={styles.createButtonContainer}>
+                        <div className={styles.createButtonContainer}>
                             {generating ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                                     <Loader2 className="animate-spin" size={32} color="#419873" />
@@ -658,10 +461,10 @@ export default function WeeklyPlan() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                 >
-                                    <Card style={styles.actionCard}>
+                                    <Card className={styles.actionCard}>
                                         {/* Header area - Click to expand (except checkbox) */}
                                         <div
-                                            style={styles.actionHeader}
+                                            className={styles.actionHeader}
                                             onClick={() => toggleAccordion(action.id)}
                                         >
                                             <div
@@ -677,7 +480,7 @@ export default function WeeklyPlan() {
                                                 {completed && <CheckCircle size={18} color="#fff" />}
                                             </div>
 
-                                            <div style={styles.actionName}>
+                                            <div className={styles.actionName}>
                                                 {action.emoji} {action.name}
                                             </div>
 
@@ -695,7 +498,7 @@ export default function WeeklyPlan() {
                                                     exit={{ height: 0, opacity: 0 }}
                                                     transition={{ duration: 0.3 }}
                                                 >
-                                                    <div style={styles.actionContent}>
+                                                    <div className={styles.actionContent}>
                                                         <strong>Why?</strong><br />
                                                         {action.description}
 
@@ -731,22 +534,22 @@ export default function WeeklyPlan() {
             <AnimatePresence>
                 {confirmingAction && (
                     <motion.div
-                        style={styles.modalOverlay}
+                        className={styles.modalOverlay}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setConfirmingAction(null)}
                     >
                         <motion.div
-                            style={styles.modalContent}
+                            className={styles.modalContent}
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div style={styles.modalEmoji}>{confirmingAction.emoji || '✅'}</div>
-                            <h3 style={styles.modalTitle}>本当にやった？</h3>
-                            <p style={styles.modalText}>
+                            <div className={styles.modalEmoji}>{confirmingAction.emoji || '✅'}</div>
+                            <h3 className={styles.modalTitle}>本当にやった？</h3>
+                            <p className={styles.modalText}>
                                 「{confirmingAction.name}」を<br />
                                 実際に実行しましたか？
                             </p>

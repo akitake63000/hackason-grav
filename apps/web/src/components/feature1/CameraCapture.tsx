@@ -1,9 +1,11 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, Upload, RefreshCcw, AlertCircle } from 'lucide-react';
+import { Camera, Upload, X, AlertCircle } from 'lucide-react';
 
 interface CameraCaptureProps {
-    onCapture: (file: File) => void;
+    onCapture: (file: File, imageSrc: string) => void;
+    onClear: () => void;
+    initialImage?: string | null;
 }
 
 const videoConstraints = {
@@ -12,23 +14,132 @@ const videoConstraints = {
     facingMode: "user"
 };
 
-export default function CameraCapture({ onCapture }: CameraCaptureProps) {
+const styles = {
+    wrapper: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        width: '100%',
+        gap: '24px',
+    },
+    cameraFrame: {
+        position: 'relative' as const,
+        width: '100%',
+        aspectRatio: '1 / 1',
+        backgroundColor: '#f3f4f6', // gray-100
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+        border: '1px solid #e5e7eb', // gray-200
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    errorContainer: {
+        textAlign: 'center' as const,
+        padding: '24px',
+        color: '#ef4444', // red-500
+    },
+    webcam: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover' as const,
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover' as const,
+    },
+    clearButton: {
+        position: 'absolute' as const,
+        top: '16px',
+        left: '16px',
+        padding: '8px',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(4px)',
+        borderRadius: '9999px',
+        border: 'none',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        cursor: 'pointer',
+        zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    controls: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '32px',
+        width: '100%',
+        maxWidth: '320px',
+    },
+    fileLabel: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        alignItems: 'center',
+        gap: '4px',
+        cursor: 'pointer',
+    },
+    iconCircle: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '9999px',
+        backgroundColor: '#f3f4f6', // gray-100
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#4b5563', // gray-600
+        transition: 'background-color 0.2s',
+    },
+    labelText: {
+        fontSize: '12px',
+        color: '#6b7280', // gray-500
+        fontWeight: 500,
+    },
+    shutterButtonOuter: {
+        width: '80px',
+        height: '80px',
+        borderRadius: '9999px',
+        border: '4px solid #e5e7eb', // gray-200
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        cursor: 'pointer',
+        padding: 0,
+        transition: 'opacity 0.2s',
+    },
+    shutterButtonInner: {
+        width: '64px',
+        height: '64px',
+        borderRadius: '9999px',
+        background: 'linear-gradient(135deg, #419873 0%, #347a5c 100%)',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        transform: 'scale(1)',
+        transition: 'transform 0.1s',
+    },
+    placeholder: {
+        width: '48px',
+        opacity: 0,
+    },
+};
+
+export default function CameraCapture({ onCapture, onClear, initialImage }: CameraCaptureProps) {
     const webcamRef = useRef<Webcam>(null);
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
-    const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [cameraError, setCameraError] = useState<string | null>(null);
+    const [isCameraReady, setIsCameraReady] = useState(false);
 
     const capture = useCallback(() => {
         if (webcamRef.current) {
             const imageSrc = webcamRef.current.getScreenshot();
             if (imageSrc) {
-                setCapturedImage(imageSrc);
                 // Convert base64 to File
                 fetch(imageSrc)
                     .then(res => res.blob())
                     .then(blob => {
                         const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-                        onCapture(file);
+                        onCapture(file, imageSrc);
                     });
             }
         }
@@ -39,127 +150,128 @@ export default function CameraCapture({ onCapture }: CameraCaptureProps) {
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onloadend = () => {
-                setCapturedImage(reader.result as string);
-                onCapture(file);
+                const result = reader.result as string;
+                onCapture(file, result);
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const retake = () => {
-        setCapturedImage(null);
-        setCameraError(null);
-    };
-
     const handleUserMedia = () => {
-        console.log("Camera started successfully");
         setCameraError(null);
+        setIsCameraReady(true);
     };
 
     const handleUserMediaError = (error: any) => {
         console.error("Camera error:", error);
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        setIsCameraOpen(false);
+        setIsCameraReady(false);
 
         let errorMessage = "カメラの起動に失敗しました";
-
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-            errorMessage = "カメラへのアクセスが拒否されました。ブラウザの設定でカメラの使用を許可してください。";
+            errorMessage = "カメラへのアクセスが拒否されました。";
         } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-            errorMessage = "カメラが見つかりませんでした。デバイスにカメラが接続されているか確認してください。";
-        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-            errorMessage = "カメラは他のアプリケーションで使用中の可能性があります。";
-        } else if (error.name === 'OverconstrainedError') {
-            errorMessage = "カメラの設定に問題があります。";
-        } else if (error.name === 'TypeError') {
-            errorMessage = "カメラへのアクセスにはHTTPS接続が必要です。";
+            errorMessage = "カメラが見つかりませんでした。";
         }
-
         setCameraError(errorMessage);
     };
 
-    return (
-        <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 gap-4">
-            {/* Camera Error Message */}
-            {cameraError && (
-                <div className="w-full p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                    <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                        <p className="text-red-800 text-sm font-medium mb-1">カメラエラー</p>
-                        <p className="text-red-700 text-sm">{cameraError}</p>
-                    </div>
-                </div>
-            )}
+    // Review Mode (Image Captured)
+    if (initialImage) {
+        return (
+            <div style={styles.cameraFrame}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={initialImage} alt="Preview" style={styles.previewImage} />
 
-            <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300">
-                {!capturedImage ? (
-                    isCameraOpen ? (
-                        <Webcam
-                            audio={false}
-                            ref={webcamRef}
-                            screenshotFormat="image/jpeg"
-                            videoConstraints={videoConstraints}
-                            className="w-full h-full object-cover"
-                            onUserMedia={handleUserMedia}
-                            onUserMediaError={handleUserMediaError}
-                        />
-                    ) : (
-                        <div className="text-gray-400 flex flex-col items-center">
-                            <Camera size={48} />
-                            <p className="mt-2 text-sm">カメラを起動するか画像を選択</p>
-                        </div>
-                    )
+                {/* Clear Button */}
+                <button
+                    onClick={onClear}
+                    style={styles.clearButton}
+                    aria-label="再撮影"
+                >
+                    <X size={24} color="#374151" />
+                </button>
+            </div>
+        );
+    }
+
+    // Camera Mode
+    return (
+        <div style={styles.wrapper}>
+            <div style={styles.cameraFrame}>
+                {cameraError ? (
+                    <div style={styles.errorContainer}>
+                        <AlertCircle size={32} style={{ margin: '0 auto 8px', display: 'block' }} />
+                        <p style={{ fontSize: '14px', fontWeight: 500 }}>{cameraError}</p>
+                    </div>
                 ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={capturedImage} alt="Preview" className="w-full h-full object-cover" />
+                    <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        videoConstraints={videoConstraints}
+                        style={styles.webcam}
+                        onUserMedia={handleUserMedia}
+                        onUserMediaError={handleUserMediaError}
+                        forceScreenshotSourceSize={true}
+                    />
                 )}
             </div>
 
-            <div className="flex gap-4 w-full">
-                {!capturedImage ? (
-                    <>
-                        <button
-                            onClick={() => {
-                                if (!isCameraOpen) {
-                                    setCameraError(null);
-                                }
-                                setIsCameraOpen(!isCameraOpen);
-                            }}
-                            className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-                        >
-                            <Camera size={20} />
-                            {isCameraOpen ? 'カメラを閉じる' : 'カメラを起動'}
-                        </button>
-                        {isCameraOpen && (
-                            <button
-                                onClick={capture}
-                                className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-600 transition"
-                            >
-                                <div className="w-4 h-4 rounded-full bg-white animate-pulse" />
-                                撮影
-                            </button>
-                        )}
-                        <label className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-300 transition">
-                            <Upload size={20} />
-                            画像を選択
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={handleFileChange}
-                            />
-                        </label>
-                    </>
-                ) : (
+            {/* Controls */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '0 20px',
+            }}>
+                {/* Left Side (Album) */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+                    <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        cursor: 'pointer',
+                        padding: '10px 20px',
+                        borderRadius: '30px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s ease',
+                        color: '#1a3d2e',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        lineHeight: '1.4',
+                        textAlign: 'left',
+                    }}>
+                        <Upload size={24} />
+                        <span>アルバム<br />から選択</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handleFileChange}
+                        />
+                    </label>
+                </div>
+
+                {/* Center (Shutter) */}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <button
-                        onClick={retake}
-                        className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-700 transition"
+                        onClick={capture}
+                        disabled={!isCameraReady}
+                        style={{
+                            ...styles.shutterButtonOuter,
+                            opacity: !isCameraReady ? 0.5 : 1,
+                            cursor: !isCameraReady ? 'not-allowed' : 'pointer',
+                        }}
                     >
-                        <RefreshCcw size={20} />
-                        再撮影 / 再選択
+                        <div style={styles.shutterButtonInner} />
                     </button>
-                )}
+                </div>
+
+                {/* Right Side (Spacer) */}
+                <div style={{ flex: 1 }}></div>
             </div>
         </div>
     );

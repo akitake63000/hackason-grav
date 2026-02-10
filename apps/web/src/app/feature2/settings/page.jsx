@@ -9,6 +9,7 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
+import styles from './page.module.css'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -27,102 +28,6 @@ const detailOptions = [
   { value: 'flash', label: 'Flash', description: '高速・簡潔' },
   { value: 'pro', label: 'Pro', description: '高精度・詳細' },
 ]
-
-const styles = {
-  container: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  scrollArea: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '16px',
-    maxWidth: '600px',
-    width: '100%',
-    margin: '0 auto',
-    boxSizing: 'border-box',
-  },
-  settingCard: {
-    marginBottom: '16px',
-  },
-  settingHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '16px',
-  },
-  settingIcon: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: `linear-gradient(135deg, ${colors.sage}30 0%, ${colors.deepForest}15 100%)`,
-    flexShrink: 0,
-  },
-  settingTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: '16px',
-    fontWeight: '600',
-    color: colors.deepForest,
-  },
-  settingDescription: {
-    fontSize: '12px',
-    color: '#7f786d',
-    marginTop: '2px',
-  },
-  optionGroup: {
-    display: 'flex',
-    gap: '8px',
-  },
-  optionButton: {
-    flex: 1,
-    padding: '12px 8px',
-    borderRadius: '12px',
-    border: `1.5px solid rgba(124, 154, 124, 0.25)`,
-    background: 'rgba(255, 255, 255, 0.6)',
-    cursor: 'pointer',
-    textAlign: 'center',
-    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
-    transition: 'all 0.2s ease',
-  },
-  optionButtonActive: {
-    border: `2px solid ${colors.deepForest}`,
-    background: `linear-gradient(135deg, rgba(124, 154, 124, 0.15) 0%, rgba(26, 61, 46, 0.08) 100%)`,
-    boxShadow: `0 2px 8px rgba(26, 61, 46, 0.15)`,
-  },
-  optionLabel: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: colors.deepForest,
-  },
-  optionDesc: {
-    fontSize: '11px',
-    color: '#7f786d',
-    marginTop: '4px',
-  },
-  saveButtonContainer: {
-    padding: '16px',
-    paddingBottom: '24px',
-    maxWidth: '600px',
-    width: '100%',
-    margin: '0 auto',
-    boxSizing: 'border-box',
-  },
-  successMessage: {
-    textAlign: 'center',
-    padding: '12px',
-    background: `linear-gradient(135deg, ${colors.sage}20 0%, ${colors.deepForest}10 100%)`,
-    borderRadius: '12px',
-    marginTop: '12px',
-    fontSize: '14px',
-    color: colors.deepForest,
-    fontWeight: '500',
-  },
-}
 
 function ChatSettings() {
   const { user, loading: authLoading } = useAuth()
@@ -199,29 +104,25 @@ function ChatSettings() {
   if (authLoading || loadingSettings) {
     return (
       <Layout>
-        <div style={{ ...styles.container, alignItems: 'center', justifyContent: 'center' }}>
-          <Loader2 size={28} color={colors.sage} style={{ animation: 'spin 1s linear infinite' }} />
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <div className={`${styles.container} ${styles.loadingContainer}`}>
+          <Loader2 size={28} color={colors.sage} className={styles.spinner} />
         </div>
       </Layout>
     )
   }
 
   const renderOptionGroup = (options, currentValue, setter) => (
-    <div style={styles.optionGroup}>
+    <div className={styles.optionGroup}>
       {options.map((opt) => (
         <motion.div
           key={opt.value}
-          style={{
-            ...styles.optionButton,
-            ...(currentValue === opt.value ? styles.optionButtonActive : {}),
-          }}
+          className={`${styles.optionButton} ${currentValue === opt.value ? styles.optionButtonActive : ''}`}
           onClick={() => setter(opt.value)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <div style={styles.optionLabel}>{opt.label}</div>
-          <div style={styles.optionDesc}>{opt.description}</div>
+          <div className={styles.optionLabel}>{opt.label}</div>
+          <div className={styles.optionDesc}>{opt.description}</div>
         </motion.div>
       ))}
     </div>
@@ -229,31 +130,31 @@ function ChatSettings() {
 
   return (
     <Layout>
-      <div style={styles.container}>
-        <div style={styles.scrollArea}>
+      <div className={styles.container}>
+        <div className={styles.scrollArea}>
           {/* Style Selector */}
-          <Card variant="default" padding="lg" style={styles.settingCard}>
-            <div style={styles.settingHeader}>
-              <div style={styles.settingIcon}>
+          <Card variant="default" padding="lg" className={styles.settingCard}>
+            <div className={styles.settingHeader}>
+              <div className={styles.settingIcon}>
                 <MessageSquare size={20} color={colors.deepForest} />
               </div>
               <div>
-                <div style={styles.settingTitle}>対応スタイル</div>
-                <div style={styles.settingDescription}>AIの話し方を調整</div>
+                <div className={styles.settingTitle}>対応スタイル</div>
+                <div className={styles.settingDescription}>AIの話し方を調整</div>
               </div>
             </div>
             {renderOptionGroup(styleOptions, style, setStyle)}
           </Card>
 
           {/* Detail Selector */}
-          <Card variant="default" padding="lg" style={styles.settingCard}>
-            <div style={styles.settingHeader}>
-              <div style={styles.settingIcon}>
+          <Card variant="default" padding="lg" className={styles.settingCard}>
+            <div className={styles.settingHeader}>
+              <div className={styles.settingIcon}>
                 <Microscope size={20} color={colors.deepForest} />
               </div>
               <div>
-                <div style={styles.settingTitle}>回答の詳細度</div>
-                <div style={styles.settingDescription}>説明の詳しさを調整</div>
+                <div className={styles.settingTitle}>回答の詳細度</div>
+                <div className={styles.settingDescription}>説明の詳しさを調整</div>
               </div>
             </div>
             {renderOptionGroup(detailOptions, detail, setDetail)}
@@ -261,20 +162,19 @@ function ChatSettings() {
         </div>
 
         {/* Save Button */}
-        <div style={styles.saveButtonContainer}>
+        <div className={styles.saveButtonContainer}>
           <Button
             variant="primary"
             size="full"
-            icon={saving ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Save size={18} />}
+            icon={saving ? <Loader2 size={18} className={styles.spinner} /> : <Save size={18} />}
             onClick={handleSave}
             disabled={saving}
           >
             {saving ? '保存中...' : '設定を保存'}
           </Button>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           {saved && (
             <motion.div
-              style={styles.successMessage}
+              className={styles.successMessage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -284,7 +184,7 @@ function ChatSettings() {
           )}
           {error && (
             <motion.div
-              style={{ ...styles.successMessage, background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' }}
+              className={styles.errorMessage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >

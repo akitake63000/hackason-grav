@@ -8,78 +8,69 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 
-// Backend response type
-interface ReportGenerateResponse {
-  reportId: string;
-  highlights: string[];
-  nextActions: string[];
-  rawText: string;
-  period?: {
-    from: string;
-    to: string;
-    days: number;
-  };
-  createdAt?: string;
-}
-
 const styles = {
   container: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column' as const,
+    overflow: 'hidden',
     width: '100%',
+    paddingBottom: '24px',
   },
   content: {
     flex: 1,
+    overflowY: 'auto' as const,
+    padding: '0 20px 24px',
     display: 'flex',
     flexDirection: 'column' as const,
-    padding: '24px',
-    gap: '20px',
-    maxWidth: '800px',
-    width: '100%',
-    margin: '0 auto',
-    boxSizing: 'border-box' as const,
+    gap: '24px',
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '300px',
+  },
+  errorContainer: {
+    textAlign: 'center' as const,
+    padding: '32px 16px',
   },
   title: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: 'clamp(24px, 4vw, 32px)',
-    fontWeight: '600' as const,
+    fontSize: '28px',
+    fontWeight: '700',
     color: '#1a3d2e',
-    textAlign: 'center' as const,
+    marginBottom: '8px',
   },
   subtitle: {
     fontSize: '14px',
     color: '#7f786d',
-    textAlign: 'center' as const,
-    marginTop: '4px',
+    marginBottom: '24px',
   },
   reportHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     padding: '16px',
-    background: 'rgba(255, 255, 255, 0.6)',
+    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%)',
     borderRadius: '16px',
-    border: '1px solid rgba(26, 61, 46, 0.08)',
+    border: '1px solid rgba(65, 152, 115, 0.2)',
   },
   aiIcon: {
-    width: '48px',
-    height: '48px',
-    background: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
-    borderRadius: '14px',
+    width: '40px',
+    height: '40px',
+    borderRadius: '12px',
+    background: 'linear-gradient(135deg, #c9a962 0%, #a88c4a 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(201, 169, 98, 0.25)',
   },
   reportHeaderText: {
     flex: 1,
   },
   reportTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    fontSize: '18px',
-    fontWeight: '600' as const,
+    fontSize: '16px',
+    fontWeight: '600',
     color: '#1a3d2e',
     marginBottom: '4px',
   },
@@ -92,70 +83,62 @@ const styles = {
   },
   gridContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '20px',
+    gridTemplateColumns: '1fr',
+    gap: '16px',
   },
   sectionHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    marginBottom: '12px',
+    gap: '8px',
+    marginBottom: '16px',
   },
   sectionIconWrapper: {
     width: '32px',
     height: '32px',
-    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.12) 0%, rgba(65, 152, 115, 0.06) 100%)',
     borderRadius: '10px',
+    background: 'rgba(65, 152, 115, 0.1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   sectionTitle: {
-    fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontSize: '16px',
-    fontWeight: '600' as const,
-    color: '#1a3d2e',
-  },
-  reportText: {
-    fontSize: '14px',
-    lineHeight: 1.8,
-    color: '#4a4540',
-    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
-  },
-  highlightText: {
-    color: '#1a3d2e',
     fontWeight: '600',
-    background: 'linear-gradient(180deg, transparent 60%, rgba(201, 169, 98, 0.2) 60%)',
-    padding: '0 2px',
-  },
-  positiveText: {
-    color: '#419873',
-    fontWeight: '600',
+    color: '#1a3d2e',
   },
   bulletList: {
-    margin: '12px 0 0 0',
-    padding: '0 0 0 20px',
+    listStyle: 'none',
+    padding: 0,
+    margin: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
   },
   bulletItem: {
     fontSize: '14px',
-    lineHeight: 1.8,
-    color: '#4a4540',
-    marginBottom: '4px',
+    color: '#3d4a42',
+    lineHeight: '1.6',
+    paddingLeft: '20px',
+    position: 'relative' as const,
+  },
+  reportText: {
+    fontSize: '14px',
+    color: '#7f786d',
+    lineHeight: '1.6',
   },
   tipCard: {
-    background: 'linear-gradient(135deg, rgba(201, 169, 98, 0.1) 0%, rgba(201, 169, 98, 0.05) 100%)',
-    border: '1px solid rgba(201, 169, 98, 0.2)',
-    borderRadius: '16px',
-    padding: '20px',
     display: 'flex',
     gap: '12px',
+    padding: '16px',
+    background: 'rgba(201, 169, 98, 0.08)',
+    borderRadius: '16px',
+    border: '1px solid rgba(201, 169, 98, 0.2)',
   },
   tipIcon: {
     width: '40px',
     height: '40px',
-    background: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
-    borderRadius: '10px',
+    borderRadius: '12px',
+    background: 'linear-gradient(135deg, #c9a962 0%, #a88c4a 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,47 +151,38 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     color: '#1a3d2e',
-    marginBottom: '6px',
+    marginBottom: '8px',
   },
   tipText: {
     fontSize: '13px',
-    color: '#635d54',
-    lineHeight: 1.6,
+    color: '#3d4a42',
+    lineHeight: '1.6',
   },
   buttonRow: {
     display: 'flex',
     gap: '12px',
-    marginTop: 'auto',
-    paddingTop: '8px',
-    maxWidth: '500px',
-    width: '100%',
-    alignSelf: 'center',
-    flexWrap: 'wrap' as const,
-    justifyContent: 'center',
+    marginTop: '8px',
   },
   buttonSecondary: {
-    flex: '1 1 120px',
-    minWidth: '120px',
+    flex: 1,
   },
   buttonPrimary: {
-    flex: '2 1 200px',
-    minWidth: '200px',
+    flex: 1,
   },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '400px',
-    gap: '16px',
-  },
-  errorContainer: {
-    padding: '24px',
-    textAlign: 'center' as const,
-    background: 'rgba(184, 84, 80, 0.05)',
-    borderRadius: '16px',
-    border: '1px solid rgba(184, 84, 80, 0.1)',
-  },
+}
+
+// Backend response type
+interface ReportGenerateResponse {
+  reportId: string;
+  highlights: string[];
+  nextActions: string[];
+  rawText: string;
+  period?: {
+    from: string;
+    to: string;
+    days: number;
+  };
+  createdAt?: string;
 }
 
 function Report() {
@@ -321,7 +295,7 @@ function Report() {
           {/* Grid for Cards */}
           <div style={styles.gridContainer}>
             {/* Summary/Highlights Section */}
-            <Card variant="default" padding="lg" delay={0.2} style={{}} onClick={undefined}>
+            <Card variant="default" padding="lg" delay={0.2} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
                   <TrendingUp size={16} color="#419873" />
@@ -345,7 +319,7 @@ function Report() {
             </Card>
 
             {/* Next Actions / Detail Analysis */}
-            <Card variant="default" padding="lg" delay={0.3} style={{}} onClick={undefined}>
+            <Card variant="default" padding="lg" delay={0.3} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
                   <Lightbulb size={16} color="#419873" />

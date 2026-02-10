@@ -3,13 +3,14 @@ import logging
 import os
 from typing import List, Optional, Tuple, TypedDict
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL, GEMINI_MODEL_HEAVY
+from ..middleware.rate_limit import limiter
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,8 @@ class MentalShieldRequest(BaseModel):
     style: Optional[str] = "balanced"    # gentle / balanced / strict
     detail: Optional[str] = "flash"      # flash (gemini-2.5-flash) / pro (gemini-2.5-pro)
 
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         if not v.strip():
             raise ValueError('Message cannot be empty or whitespace only')
@@ -152,8 +154,9 @@ def _compose_mental_shield(
 
 
 @router.post("/chat", response_model=MentalShieldResponse)
+@limiter.limit("10/minute")
 def mental_shield_chat(
-    payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
+    request: Request, payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
 ) -> MentalShieldResponse:
     thread_id = payload.threadId or "default"
     cards, summary = _compose_mental_shield(
@@ -522,8 +525,9 @@ _discuss_workflow = _build_discuss_workflow()
 
 
 @router.post("/chat/discuss", response_model=MentalShieldDiscussResponse)
+@limiter.limit("10/minute")
 def mental_shield_discuss(
-    payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
+    request: Request, payload: MentalShieldRequest, uid: str = Depends(get_current_uid)
 ) -> MentalShieldDiscussResponse:
     thread_id = payload.threadId or "default"
 
