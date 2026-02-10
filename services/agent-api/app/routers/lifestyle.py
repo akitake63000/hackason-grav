@@ -9,7 +9,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, validator
 from google.cloud import storage as gcs
-from google.cloud.firestore import FieldPath
+from google.cloud.firestore_v1 import FieldPath
 from google.cloud.exceptions import GoogleCloudError
 from firebase_admin.exceptions import FirebaseError
 from firebase_admin import firestore
