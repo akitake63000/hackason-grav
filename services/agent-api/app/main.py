@@ -69,15 +69,32 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return handle_validation_error(exc, request_id)
 
 async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded):
-    """Handle rate limit errors with structured error response."""
+    """Handle rate limit errors with structured error response and Retry-After header."""
     request_id = request.headers.get("X-Request-ID", "unknown")
-    return create_error_response(
+
+    # Try to extract reset time from limiter storage
+    # slowapi stores reset time in request.state if available
+    retry_after = 60  # Default fallback
+
+    # Check if reset time is available in request state
+    if hasattr(request.state, "_rate_limit_reset_time"):
+        import time
+        reset_time = getattr(request.state, "_rate_limit_reset_time", None)
+        if reset_time:
+            retry_after = max(1, int(reset_time - time.time()))
+
+    response = create_error_response(
         error_code=ErrorCode.RATE_LIMIT_EXCEEDED,
         message="Rate limit exceeded. Please try again later.",
         status_code=429,
-        details={"retry_after": 60},
+        details={"retry_after": retry_after},
         request_id=request_id
     )
+
+    # Add Retry-After header per RFC 6585
+    response.headers["Retry-After"] = str(retry_after)
+
+    return response
 
 # Register exception handlers
 app.add_exception_handler(HTTPException, http_exception_handler)

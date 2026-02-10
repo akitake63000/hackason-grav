@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
 from firebase_admin.exceptions import FirebaseError
 from google.cloud.exceptions import GoogleCloudError
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
@@ -101,7 +101,8 @@ class FoodSniperRequest(BaseModel):
     message: Optional[str] = Field(None, max_length=1000, description="User message for food recommendation")
     hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型|None)$", description="Hair loss pattern")
 
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         if v and not v.strip():
             raise ValueError('Message cannot be empty or whitespace only')
@@ -136,6 +137,31 @@ class PatternInfo(BaseModel):
 class FoodSniperResponse(BaseModel):
     patternInfo: Optional[PatternInfo] = None
     nutrients: List[NutrientInfo]
+    shoppingList: Optional[List[str]] = None
+    hairPattern: Optional[str] = None
+
+
+class RecipeRequest(BaseModel):
+    foodName: str = Field(..., min_length=1, max_length=200, description="Food name for recipe generation")
+    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型|None)$", description="Hair loss pattern")
+
+    @field_validator('foodName')
+    @classmethod
+    def validate_food_name(cls, v):
+        if not v.strip():
+            raise ValueError('Food name cannot be empty or whitespace only')
+        return v.strip()
+
+
+class RecipeItem(BaseModel):
+    name: str = Field(..., description="Recipe name")
+    description: str = Field(..., description="Recipe description/cooking steps")
+    ingredients: List[str] = Field(default_factory=list, description="List of ingredients")
+    benefit: str = Field(default="", description="Health benefit of this recipe")
+
+
+class RecipeResponse(BaseModel):
+    recipes: List[RecipeItem] = Field(default_factory=list, description="List of generated recipes")
 # パターン未特定時の汎用フォールバック
 GENERIC_FALLBACK_NUTRIENTS = [
     {

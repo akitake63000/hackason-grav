@@ -7,8 +7,34 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+
+def get_real_client_ip(request: Request) -> str:
+    """
+    Get the real client IP address, accounting for proxies/load balancers.
+
+    Checks X-Forwarded-For header first (used by proxies/load balancers),
+    then falls back to direct connection IP.
+
+    Args:
+        request: FastAPI Request object
+
+    Returns:
+        Client IP address as string
+    """
+    # Check X-Forwarded-For header (set by proxies/load balancers)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+        # The first IP is the real client IP
+        client_ip = forwarded_for.split(",")[0].strip()
+        return client_ip
+
+    # Fall back to direct connection IP
+    return get_remote_address(request)
+
+
+# Initialize rate limiter with proxy-aware key function
+limiter = Limiter(key_func=get_real_client_ip)
 
 # Rate limit configurations by endpoint pattern
 # NOTE: Currently, rate limiting is enforced via @limiter.limit() decorators on individual routes.

@@ -225,41 +225,49 @@ Get personalized food recommendations based on hair loss pattern.
           "emoji": "🫘",
           "serving": "1パック（50g）",
           "amount": "イソフラボン 約37mg",
+          "dailyPercentValue": 74,
           "dailyPercent": "約74%",
           "tip": "朝食に1パック追加するだけで1日分の大半をカバー",
           "why": "納豆はイソフラボンが豊富で..."
         }
       ]
     }
-  ]
+  ],
+  "shoppingList": ["納豆", "豆腐", "豆乳", "きな粉"],
+  "hairPattern": "M字"
 }
 ```
 
 #### `POST /api/v1/food-sniper/recipe`
 **Rate Limit:** 10 requests/minute
 
-Generate a recipe based on pattern and selected foods.
+Generate recipes based on a specific food ingredient.
 
 **Request:**
 ```json
 {
-  "pattern": "M字",
-  "selectedFoods": ["納豆", "豆腐", "牡蠣"]
+  "foodName": "納豆",
+  "hairPattern": "M字"
 }
 ```
 
 **Response:**
 ```json
 {
-  "recipe": {
-    "title": "M字対策レシピ",
-    "description": "イソフラボンと亜鉛を効率的に摂取",
-    "ingredients": ["納豆 1パック", "豆腐 半丁", "牡蠣 2個"],
-    "steps": ["1. ...", "2. ...", "3. ..."],
-    "nutritionHighlights": ["イソフラボン: 70mg", "亜鉛: 5.6mg"],
-    "cookingTime": "15分",
-    "difficulty": "簡単"
-  }
+  "recipes": [
+    {
+      "name": "納豆とアボカドの簡単丼",
+      "description": "納豆とアボカドを混ぜてご飯にのせるだけ。5分で完成",
+      "ingredients": ["納豆 1パック", "アボカド 半分", "ご飯 1杯"],
+      "benefit": "イソフラボンとビタミンEで5α-リダクターゼを抑制し、M字対策に効果的です"
+    },
+    {
+      "name": "納豆オムレツ",
+      "description": "卵に納豆を混ぜて焼くだけ。タンパク質も豊富",
+      "ingredients": ["納豆 1パック", "卵 2個", "ネギ 少々"],
+      "benefit": "タンパク質とイソフラボンのダブル効果で髪の健康をサポートします"
+    }
+  ]
 }
 ```
 

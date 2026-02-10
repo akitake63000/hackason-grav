@@ -64,10 +64,17 @@ def before_send(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[st
             event['request']['headers'] = _sanitize_data(event['request']['headers'])
         if 'cookies' in event['request']:
             event['request']['cookies'] = _sanitize_data(event['request']['cookies'])
+        # Sanitize query string
+        if 'query_string' in event['request']:
+            event['request']['query_string'] = '[REDACTED]'
 
     # Sanitize extra context
     if 'extra' in event:
         event['extra'] = _sanitize_data(event['extra'])
+
+    # Sanitize contexts (e.g., user context, custom contexts)
+    if 'contexts' in event:
+        event['contexts'] = _sanitize_data(event['contexts'])
 
     # Custom fingerprinting based on error code and endpoint
     if 'tags' in event:

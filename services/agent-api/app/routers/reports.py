@@ -105,22 +105,24 @@ def generate_report(
     period_days = max(1, min(period_days, 30))
 
     db = get_firestore_client()
-    analysis_ref = db.collection("reports").document(uid).collection("items") # CHECK: Should be analysisResults?
-    # Correcting to fetch from analysisResults based on previous logic 
+    # Fetch from analysisResults
     analysis_ref = db.collection("users").document(uid).collection("analysisResults")
 
+    # Calculate cutoff date for filtering
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=period_days)
+
+    # Optimize: Filter by date at database level instead of in Python
     docs = (
-        analysis_ref.order_by(
-            "analyzedAt", direction=admin_firestore.Query.DESCENDING
-        )
-        .limit(20) # Limit to 20 items to avoid token limit
+        analysis_ref
+        .where("analyzedAt", ">=", cutoff)  # Database-level date filter
+        .order_by("analyzedAt", direction=admin_firestore.Query.DESCENDING)
+        .limit(20)  # Limit to 20 items to avoid token limit
         .get()
     )
 
-    now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(days=period_days)
-    series_data = [] # List of dicts for LLM
-    series_for_calc = [] # List of (date, score) for calculation
+    series_data = []  # List of dicts for LLM
+    series_for_calc = []  # List of (date, score) for calculation
 
     for doc in docs:
         data = doc.to_dict()
@@ -130,8 +132,6 @@ def generate_report(
             continue
         if computed_at.tzinfo is None:
             computed_at = computed_at.replace(tzinfo=timezone.utc)
-        if computed_at < cutoff:
-            continue
         
         score = data.get("score")
         if isinstance(score, (int, float)):

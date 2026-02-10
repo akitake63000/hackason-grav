@@ -263,7 +263,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     # Determine error code for Sentry tagging
     error_code = ErrorCode.INTERNAL_ERROR
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
     # Handle specific exception types
     if isinstance(exc, FirebaseError):
@@ -277,17 +276,15 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         response = handle_validation_error(exc, request_id)
     elif isinstance(exc, HTTPException):
         error_code = ErrorCode.INTERNAL_ERROR
-        status_code = exc.status_code
         response = create_error_response(
             error_code,
             exc.detail,
-            status_code,
+            exc.status_code,
             None,
             request_id
         )
     elif isinstance(exc, APIError):
         error_code = exc.error_code
-        status_code = exc.status_code
         response = create_error_response(
             exc.error_code,
             exc.message,
@@ -305,8 +302,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             request_id
         )
 
+    # Extract actual status_code from response to determine Sentry reporting
+    actual_status_code = response.status_code
+
     # Report to Sentry for server errors (5xx) only
-    if status_code >= 500:
+    if actual_status_code >= 500:
         capture_exception(
             exc,
             context={
