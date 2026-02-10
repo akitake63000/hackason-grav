@@ -102,9 +102,10 @@
 }
 
 .infoItem {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 12px;
+  border: 1px solid rgba(65, 152, 115, 0.1);
 }
 
 .infoLabel {
@@ -262,14 +263,16 @@
   display: flex;
   gap: 14px;
   padding: 14px;
-  background: rgba(248, 246, 242, 0.6);
+  background: rgba(248, 246, 242, 0.95);
   border-radius: 12px;
+  border: 1px solid rgba(65, 152, 115, 0.1);
   transition: all 0.2s ease;
 }
 
 .foodItem:hover {
-  background: rgba(248, 246, 242, 0.9);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border-color: rgba(65, 152, 115, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .foodEmoji {
@@ -385,11 +388,12 @@
 
 /* Recipe Card */
 .recipeCard {
-  background: linear-gradient(135deg, rgba(248, 246, 242, 0.5) 0%, rgba(232, 230, 225, 0.5) 100%);
+  background: rgba(248, 246, 242, 0.95);
   border-radius: 16px;
   padding: 18px;
   margin-bottom: 16px;
-  border: 1px solid rgba(26, 61, 46, 0.08);
+  border: 1px solid rgba(65, 152, 115, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .recipeCard:last-child {
