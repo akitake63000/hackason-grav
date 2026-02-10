@@ -295,7 +295,7 @@ function Report() {
           {/* Grid for Cards */}
           <div style={styles.gridContainer}>
             {/* Summary/Highlights Section */}
-            <Card variant="default" padding="lg" delay={0.2} onClick={undefined}>
+            <Card variant="default" padding="lg" delay={0.2} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
                   <TrendingUp size={16} color="#419873" />
@@ -319,7 +319,7 @@ function Report() {
             </Card>
 
             {/* Next Actions / Detail Analysis */}
-            <Card variant="default" padding="lg" delay={0.3} onClick={undefined}>
+            <Card variant="default" padding="lg" delay={0.3} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
                   <Lightbulb size={16} color="#419873" />
