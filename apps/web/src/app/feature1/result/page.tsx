@@ -113,11 +113,9 @@ const styles = {
     buttonWrapper: {
         marginTop: 'auto',
         paddingTop: '8px',
+        maxWidth: '400px',
         width: '100%',
         alignSelf: 'center' as const,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '12px',
     },
     loadingContainer: {
         flex: 1,
@@ -446,25 +444,6 @@ function ResultContent() {
                         </div>
                     </motion.div>
 
-                    {/* Details Grid (New) */}
-                    <motion.div
-                        style={styles.grid}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.25 }}
-                    >
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>AI判定タイプ</span>
-                            <span style={styles.gridValue}>{result.hairType || '---'}</span>
-                        </div>
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>パターン</span>
-                            <span style={styles.gridValue}>
-                                {result.pattern ? (PATTERN_DISPLAY_MAP[result.pattern] || result.pattern) : '---'}
-                            </span>
-                        </div>
-                    </motion.div>
-
                     {/* Analysis Notes Card */}
                     {result?.notes && (
                         <motion.div
@@ -482,14 +461,19 @@ function ResultContent() {
 
                     {/* Feature 3 Link Button */}
                     <motion.div
-                        style={{ width: '100%', marginBottom: '16px' }}
+                        style={{
+                            width: '100%',
+                            maxWidth: '400px',
+                            alignSelf: 'center',
+                            marginBottom: '16px'
+                        }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55 }}
                     >
                         <Button
                             variant="primary"
-                            size="lg"
+                            size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
                             style={{ background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)' }}
@@ -519,22 +503,10 @@ function ResultContent() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
                     >
-                        {/* Food Recommendation Button (New) */}
                         <Button
                             variant="primary"
-                            size="lg"
+                            size="full"
                             icon={<ChevronRight size={18} />}
-                            iconPosition="right"
-                            style={{ background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)' }}
-                            onClick={handleNavigateToFoodRecommend}
-                        >
-                            食事での改善プランを見る
-                        </Button>
-
-                        <Button
-                            variant="secondary"
-                            size="md"
-                            icon={<Camera size={18} />}
                             iconPosition="right"
                             style={{}}
                             onClick={() => router.push('/feature1/capture')}
