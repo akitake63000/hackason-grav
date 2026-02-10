@@ -11,6 +11,7 @@ import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import ScoreCircle from '@/components/ScoreCircle';
 import Button from '@/components/Button';
+import styles from './page.module.css';
 
 interface AnalysisResult {
     score: number;
@@ -30,204 +31,6 @@ const PATTERN_DISPLAY_MAP: Record<string, string> = {
     'オルセン型': 'オルセン型薄毛',
     'ハミルトン型': 'ハミルトン型薄毛',
     'None': '特になし',
-};
-
-const styles = {
-    container: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        width: '100%',
-    },
-    content: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        padding: '24px',
-        gap: '24px',
-        maxWidth: '800px',
-        width: '100%',
-        margin: '0 auto',
-        boxSizing: 'border-box' as const,
-    },
-    title: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: 'clamp(24px, 4vw, 32px)',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        textAlign: 'center' as const,
-    },
-    subtitle: {
-        fontSize: '14px',
-        color: '#7f786d',
-        textAlign: 'center' as const,
-        marginTop: '4px',
-    },
-    scoreSection: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        padding: '24px 0',
-    },
-    scoreTitle: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: '18px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '16px',
-    },
-    notesCard: {
-        width: '100%',
-    },
-    cardTitle: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: '16px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '12px',
-    },
-    notesText: {
-        fontSize: '14px',
-        color: '#635d54',
-        lineHeight: 1.6,
-        whiteSpace: 'pre-wrap' as const,
-    },
-    disclaimer: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '8px',
-        background: 'rgba(201, 169, 98, 0.08)',
-        border: '1px solid rgba(201, 169, 98, 0.2)',
-        borderRadius: '12px',
-        padding: '12px',
-    },
-    disclaimerIcon: {
-        flexShrink: 0,
-        marginTop: '2px',
-    },
-    disclaimerText: {
-        fontSize: '12px',
-        color: '#7f786d',
-        lineHeight: 1.5,
-    },
-    buttonWrapper: {
-        marginTop: 'auto',
-        paddingTop: '8px',
-        maxWidth: '400px',
-        width: '100%',
-        alignSelf: 'center' as const,
-    },
-    loadingContainer: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-    },
-    loadingCard: {
-        textAlign: 'center' as const,
-        padding: '32px',
-    },
-    loadingSpinner: {
-        fontSize: '48px',
-        marginBottom: '16px',
-    },
-    errorContainer: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-    },
-    errorCard: {
-        textAlign: 'center' as const,
-        padding: '32px',
-    },
-    errorIcon: {
-        fontSize: '48px',
-        marginBottom: '16px',
-    },
-    errorTitle: {
-        fontSize: '18px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '8px',
-    },
-    errorMessage: {
-        fontSize: '14px',
-        color: '#7f786d',
-        marginBottom: '24px',
-    },
-    emptyState: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 24px',
-        textAlign: 'center' as const,
-        gap: '16px',
-    },
-    emptyStateIcon: {
-        width: '80px',
-        height: '80px',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '40px',
-    },
-    emptyStateTitle: {
-        fontSize: '18px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    },
-    emptyStateDescription: {
-        fontSize: '14px',
-        color: '#7f786d',
-        lineHeight: '1.6',
-        maxWidth: '320px',
-    },
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '12px',
-        width: '100%',
-        marginBottom: '24px',
-    },
-    gridItem: {
-        background: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: '16px',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-        border: '1px solid rgba(65, 152, 115, 0.1)',
-    },
-    gridLabel: {
-        fontSize: '12px',
-        color: '#7f786d',
-        marginBottom: '4px',
-    },
-    gridValue: {
-        fontSize: '15px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        textAlign: 'center' as const,
-    },
-    deltaBadge: {
-        fontSize: '14px',
-        fontWeight: '600' as const,
-        padding: '4px 12px',
-        borderRadius: '20px',
-        marginTop: '8px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-    },
 };
 
 function ResultContent() {
@@ -313,13 +116,13 @@ function ResultContent() {
     if (loading) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.loadingContainer}>
-                        <Card variant="default" padding="lg" style={{}} onClick={undefined}>
-                            <div style={styles.loadingCard}>
-                                <div style={styles.loadingSpinner}>⏳</div>
-                                <h2 style={styles.errorTitle}>読み込み中...</h2>
-                                <p style={styles.errorMessage}>解析結果を取得しています。</p>
+                <div className={styles.container}>
+                    <div className={styles.loadingContainer}>
+                        <Card variant="default" padding="lg" onClick={undefined}>
+                            <div className={styles.loadingCard}>
+                                <div className={styles.loadingSpinner}>⏳</div>
+                                <h2 className={styles.errorTitle}>読み込み中...</h2>
+                                <p className={styles.errorMessage}>解析結果を取得しています。</p>
                             </div>
                         </Card>
                     </div>
@@ -332,26 +135,26 @@ function ResultContent() {
     if (!result || error) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.content}>
+                <div className={styles.container}>
+                    <div className={styles.content}>
                         <motion.div
-                            style={styles.emptyState}
+                            className={styles.emptyState}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4 }}
                         >
-                            <div style={styles.emptyStateIcon}>
+                            <div className={styles.emptyStateIcon}>
                                 <Camera size={40} color="#419873" />
                             </div>
-                            <h2 style={styles.emptyStateTitle}>まだ解析結果がありません</h2>
-                            <p style={styles.emptyStateDescription}>
+                            <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
+                            <p className={styles.emptyStateDescription}>
                                 まずは写真を撮影して、AIによる髪密度の解析を始めましょう。
                             </p>
                             <Button
                                 variant="primary"
                                 size="medium"
                                 icon={<Camera size={18} />}
-                                style={{}}
+                               
                                 onClick={() => router.push('/feature1/capture')}
                             >
                                 写真を撮影する
@@ -371,26 +174,26 @@ function ResultContent() {
 
     return (
         <Layout>
-            <div style={styles.container}>
-                <div style={styles.content}>
+            <div className={styles.container}>
+                <div className={styles.content}>
                     {/* Title Section */}
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4 }}
                     >
-                        <h1 style={styles.title}>解析結果</h1>
-                        <p style={styles.subtitle}>{currentDate}</p>
+                        <h1 className={styles.title}>解析結果</h1>
+                        <p className={styles.subtitle}>{currentDate}</p>
                     </motion.div>
 
                     {/* Score Section */}
                     <motion.div
-                        style={styles.scoreSection}
+                        className={styles.scoreSection}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        <span style={styles.scoreTitle}>髪密度スコア</span>
+                        <span className={styles.scoreTitle}>髪密度スコア</span>
                         <ScoreCircle
                             score={result?.score || 0}
                             label={result?.score && result.score >= 70 ? "良好" : result?.score && result.score >= 50 ? "普通" : "要注意"}
@@ -419,42 +222,42 @@ function ResultContent() {
 
                     {/* Detailed Analysis Grid */}
                     <motion.div
-                        style={styles.grid}
+                        className={styles.grid}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.25 }}
                     >
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>AI判定タイプ</span>
-                            <span style={styles.gridValue}>{result?.hairType || '---'}</span>
+                        <div className={styles.gridItem}>
+                            <span className={styles.gridLabel}>AI判定タイプ</span>
+                            <span className={styles.gridValue}>{result?.hairType || '---'}</span>
                         </div>
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>パターン</span>
-                            <span style={styles.gridValue}>
+                        <div className={styles.gridItem}>
+                            <span className={styles.gridLabel}>パターン</span>
+                            <span className={styles.gridValue}>
                                 {result?.pattern ? (PATTERN_DISPLAY_MAP[result.pattern] || result.pattern) : '---'}
                             </span>
                         </div>
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>頭皮の状態</span>
-                            <span style={styles.gridValue}>{result?.scalpCondition || '---'}</span>
+                        <div className={styles.gridItem}>
+                            <span className={styles.gridLabel}>頭皮の状態</span>
+                            <span className={styles.gridValue}>{result?.scalpCondition || '---'}</span>
                         </div>
-                        <div style={styles.gridItem}>
-                            <span style={styles.gridLabel}>判定精度</span>
-                            <span style={styles.gridValue}>{result?.quality || '---'}</span>
+                        <div className={styles.gridItem}>
+                            <span className={styles.gridLabel}>判定精度</span>
+                            <span className={styles.gridValue}>{result?.quality || '---'}</span>
                         </div>
                     </motion.div>
 
                     {/* Analysis Notes Card */}
                     {result?.notes && (
                         <motion.div
-                            style={styles.notesCard}
+                            className={styles.notesCard}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                            <Card variant="default" padding="lg" style={{}} onClick={undefined}>
-                                <span style={styles.cardTitle}>分析コメント</span>
-                                <p style={styles.notesText}>{result.notes}</p>
+                            <Card variant="default" padding="lg" onClick={undefined}>
+                                <span className={styles.cardTitle}>分析コメント</span>
+                                <p className={styles.notesText}>{result.notes}</p>
                             </Card>
                         </motion.div>
                     )}
@@ -485,20 +288,20 @@ function ResultContent() {
 
                     {/* Disclaimer */}
                     <motion.div
-                        style={styles.disclaimer}
+                        className={styles.disclaimer}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
                     >
-                        <AlertCircle size={16} color="#c9a962" style={styles.disclaimerIcon} />
-                        <span style={styles.disclaimerText}>
+                        <AlertCircle size={16} color="#c9a962" className={styles.disclaimerIcon} />
+                        <span className={styles.disclaimerText}>
                             この判定はAIによる参考情報です。正確な診断については医療機関にご相談ください。
                         </span>
                     </motion.div>
 
                     {/* Action Button */}
                     <motion.div
-                        style={styles.buttonWrapper}
+                        className={styles.buttonWrapper}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
@@ -508,7 +311,7 @@ function ResultContent() {
                             size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
-                            style={{}}
+                           
                             onClick={() => router.push('/feature1/capture')}
                         >
                             新しく撮影する
