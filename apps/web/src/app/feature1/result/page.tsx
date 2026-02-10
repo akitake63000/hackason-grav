@@ -461,14 +461,19 @@ function ResultContent() {
 
                     {/* Feature 3 Link Button */}
                     <motion.div
-                        style={{ width: '100%', marginBottom: '16px' }}
+                        style={{
+                            width: '100%',
+                            maxWidth: '400px',
+                            alignSelf: 'center',
+                            marginBottom: '16px'
+                        }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.55 }}
                     >
                         <Button
                             variant="primary"
-                            size="lg"
+                            size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
                             style={{ background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)' }}

@@ -108,11 +108,23 @@ def analyze_photo(
     # 4. Save Result
     analysis_ref = db.collection("users").document(uid).collection("analysisResults").document(payload.photoId)
     
-    # Calculate Delta (Fetch latest previous result)
+    # Calculate Delta (Fetch latest previous result before today 00:00 JST)
+    import datetime
+    
+    # JST Timezone
+    JST = datetime.timezone(datetime.timedelta(hours=9))
+    now_jst = datetime.datetime.now(JST)
+    today_start_jst = now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Convert JST datetime to UTC datetime for Firestore query
+    # Firestore stores timestamps in UTC.
+    today_start_utc = today_start_jst.astimezone(datetime.timezone.utc)
+
     previous_results = (
         db.collection("users")
         .document(uid)
         .collection("analysisResults")
+        .where("analyzedAt", "<", today_start_utc)
         .order_by("analyzedAt", direction=firestore.Query.DESCENDING)
         .limit(1)
         .stream()
@@ -120,7 +132,6 @@ def analyze_photo(
     
     delta = 0.0
     for prev_doc in previous_results:
-        # Since we haven't saved the current one yet, the "latest" in DB is the previous one.
         prev_data = prev_doc.to_dict()
         prev_score = prev_data.get("score")
         if isinstance(prev_score, (int, float)):
