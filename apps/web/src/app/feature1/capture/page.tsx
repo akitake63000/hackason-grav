@@ -11,93 +11,7 @@ import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/fireb
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { apiFetch } from '@/lib/api';
-
-const styles = {
-    container: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        overflow: 'hidden',
-        width: '100%',
-        paddingBottom: '24px',
-    },
-    scrollArea: {
-        flex: 1,
-        overflowY: 'auto' as const,
-        padding: '0 20px 24px',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        alignItems: 'center',
-    },
-    tipsCard: {
-        width: '100%',
-        maxWidth: '448px', // match max-w-md
-        background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '20px',
-        padding: '16px',
-        marginBottom: '24px',
-        border: '1px solid rgba(65, 152, 115, 0.2)',
-        boxShadow: '0 4px 20px rgba(26, 61, 46, 0.06)',
-    },
-    tipsHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '8px',
-    },
-    tipsTitle: {
-        fontSize: '14px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-    },
-    tipsList: {
-        margin: 0,
-        paddingLeft: '20px',
-        color: '#4a6356',
-        fontSize: '13px',
-        lineHeight: '1.6',
-    },
-    cameraContainer: {
-        width: '100%',
-        maxWidth: '448px', // match max-w-md
-        marginBottom: '24px',
-    },
-    errorMessage: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        margin: '12px auto',
-        padding: '12px 16px',
-        background: 'rgba(184, 84, 80, 0.08)',
-        borderRadius: '12px',
-        color: '#b85450',
-        fontSize: '14px',
-        border: '1px solid rgba(184, 84, 80, 0.2)',
-        maxWidth: '448px',
-        width: '100%',
-    },
-    infoMessage: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '16px',
-        background: 'rgba(65, 152, 115, 0.08)',
-        borderRadius: '16px',
-        color: '#1a3d2e',
-        fontSize: '14px',
-        border: '1px solid rgba(65, 152, 115, 0.2)',
-        marginBottom: '24px',
-        boxShadow: '0 2px 8px rgba(65, 152, 115, 0.1)',
-        width: '100%',
-        maxWidth: '448px',
-    },
-    buttonWrapper: {
-        width: '100%',
-        maxWidth: '448px',
-        marginTop: 'auto',
-    }
-};
+import styles from './page.module.css';
 
 function CaptureContent() {
     const router = useRouter();
@@ -208,13 +122,13 @@ function CaptureContent() {
 
     return (
         <Layout>
-            <div style={styles.container}>
-                <div style={styles.scrollArea}>
+            <div className={styles.container}>
+                <div className={styles.scrollArea}>
                     {/* Info Message */}
                     <AnimatePresence>
                         {infoMessage && (
                             <motion.div
-                                style={styles.infoMessage}
+                                className={styles.infoMessage}
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
@@ -228,69 +142,28 @@ function CaptureContent() {
 
                     {/* Tips Card */}
                     <motion.div
-                        style={styles.tipsCard}
+                        className={styles.tipsCard}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+                        <div className={styles.tipsHeader}>
                             <Camera size={18} color="#419873" />
-                            <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1a3d2e', margin: 0 }}>
+                            <h3 className={styles.tipsTitle}>
                                 撮影のポイント
                             </h3>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                            {/* Tip 1 */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                                <div style={{
-                                    width: '48px', height: '48px', borderRadius: '50%',
-                                    background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 2px 8px rgba(65, 152, 115, 0.1)'
-                                }}>
-                                    <span style={{ fontSize: '24px' }}>☀️</span>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '12px', fontWeight: '700', color: '#1a3d2e', marginBottom: '2px' }}>明るい場所</p>
-                                    <p style={{ fontSize: '10px', color: '#4a6356' }}>自然光推奨</p>
-                                </div>
-                            </div>
-
-                            {/* Tip 2 */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                                <div style={{
-                                    width: '48px', height: '48px', borderRadius: '50%',
-                                    background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 2px 8px rgba(65, 152, 115, 0.1)'
-                                }}>
-                                    <span style={{ fontSize: '24px' }}>🔍</span>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '12px', fontWeight: '700', color: '#1a3d2e', marginBottom: '2px' }}>大きく写す</p>
-                                    <p style={{ fontSize: '10px', color: '#4a6356' }}>生え際・頭頂部</p>
-                                </div>
-                            </div>
-
-                            {/* Tip 3 */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                                <div style={{
-                                    width: '48px', height: '48px', borderRadius: '50%',
-                                    background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 2px 8px rgba(65, 152, 115, 0.1)'
-                                }}>
-                                    <span style={{ fontSize: '24px' }}>✨</span>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '12px', fontWeight: '700', color: '#1a3d2e', marginBottom: '2px' }}>髪を上げる</p>
-                                    <p style={{ fontSize: '10px', color: '#4a6356' }}>おでこを出す</p>
-                                </div>
-                            </div>
-                        </div>
+                        <ul className={styles.tipsList}>
+                            <li>☀️ 明るい場所で撮影（自然光推奨）</li>
+                            <li>🔍 生え際・頭頂部を大きく写す</li>
+                            <li>✨ おでこを出して髪を上げる</li>
+                        </ul>
                     </motion.div>
 
                     {/* Camera Component */}
                     <motion.div
-                        style={styles.cameraContainer}
+                        className={styles.cameraContainer}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
@@ -306,21 +179,21 @@ function CaptureContent() {
                     <AnimatePresence>
                         {file && (
                             <motion.div
-                                style={styles.buttonWrapper}
+                                className={styles.buttonWrapper}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 20 }}
                                 transition={{ delay: 0.1 }}
                             >
                                 <Button
-                                    variant="primary" // Overridden by style
+                                    variant="primary"
                                     size="full"
                                     icon={<div style={{ position: 'relative', zIndex: 10 }}><ChevronRight size={18} /></div>}
                                     iconPosition="right"
                                     disabled={uploading}
                                     onClick={handleUpload}
                                     style={{
-                                        background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)', // Gold/Bronze gradient
+                                        background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)',
                                         boxShadow: '0 4px 20px rgba(201, 169, 98, 0.4)',
                                         position: 'relative',
                                         overflow: 'hidden',
@@ -335,21 +208,21 @@ function CaptureContent() {
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: '-100%',
-                                                width: '100%', // Wide beam for soft feeling
+                                                width: '100%',
                                                 height: '100%',
-                                                background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 20%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)', // Very soft gradient
+                                                background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 20%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)',
                                                 transform: 'skewX(-25deg)',
                                                 zIndex: 1,
                                             }}
                                             animate={{
                                                 left: ['-100%', '200%'],
-                                                opacity: [0, 1, 1, 0] // Fade in/out to avoid sudden cuts
+                                                opacity: [0, 1, 1, 0]
                                             }}
                                             transition={{
                                                 repeat: Infinity,
-                                                duration: 2.0, // Elegant pace
+                                                duration: 2.0,
                                                 ease: "easeInOut",
-                                                repeatDelay: 0.3 // Short pause
+                                                repeatDelay: 0.3
                                             }}
                                         />
                                     )}
@@ -357,7 +230,7 @@ function CaptureContent() {
 
                                 {error && (
                                     <motion.div
-                                        style={styles.errorMessage}
+                                        className={styles.errorMessage}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                     >
