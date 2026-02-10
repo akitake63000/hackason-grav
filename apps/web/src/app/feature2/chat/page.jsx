@@ -581,8 +581,7 @@ function Chat() {
                       <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
                     <div
-                      className={`${styles.messageBubble} ${styles.aiMessage}`}
-                      style={{ opacity: 0.7, borderStyle: 'dashed' }}
+                      className={`${styles.messageBubble} ${styles.aiMessage} ${styles.aiMessagePending}`}
                     >
                       {msg.text}
                     </div>

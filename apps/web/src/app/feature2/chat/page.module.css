@@ -116,6 +116,11 @@
   border-bottom-left-radius: 4px;
 }
 
+.aiMessagePending {
+  border-style: dashed;
+  opacity: 1; /* 明示的に不透明 */
+}
+
 .systemMessage {
   align-self: center;
   background: rgba(201, 169, 98, 0.08);
@@ -284,7 +289,9 @@
 }
 
 .discussionCard {
-  background: rgba(248, 246, 242, 0.6);
+  background: #ffffff;
+  border: 1px solid rgba(65, 152, 115, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   border-radius: 12px;
   padding: 12px 14px;
   margin-top: 8px;
