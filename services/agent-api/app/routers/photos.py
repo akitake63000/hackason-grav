@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from google.cloud import firestore
 from google.cloud.exceptions import GoogleCloudError
 
@@ -20,8 +20,9 @@ router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
 class AnalyzePhotoRequest(BaseModel):
     photoId: str = Field(..., min_length=1, max_length=100, pattern="^[a-zA-Z0-9_-]+$", description="Photo ID to analyze")
 
-    @validator('photoId')
-    def validate_photo_id(cls, v):
+    @field_validator('photoId')
+    @classmethod
+    def validate_photo_id(cls, v: str) -> str:
         if not v.strip():
             raise ValueError('Photo ID cannot be empty or whitespace only')
         return v.strip()
