@@ -32,8 +32,9 @@ service firebase.storage {
     }
 
     // Allow deletion of all files under users/{uid} for account deletion
+    // read is needed for listAll() operation during deletion
     match /users/{uid}/{allPaths=**} {
-      allow delete: if isOwner(uid);
+      allow read, delete: if isOwner(uid);
     }
   }
 }
