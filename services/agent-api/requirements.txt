@@ -15,6 +15,7 @@ google-auth==2.48.0
 google-cloud-core==2.5.0
 google-cloud-firestore==2.23.0
 google-cloud-storage==3.8.0
+google-cloud-tasks==2.21.0
 google-crc32c==1.8.0
 google-genai==1.62.0
 google-resumable-media==2.8.0

@@ -11,6 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel, Field, field_validator
 
+try:
+    from google.cloud import tasks_v2
+    CLOUD_TASKS_AVAILABLE = True
+except ImportError:
+    CLOUD_TASKS_AVAILABLE = False
+
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL, GEMINI_MODEL_HEAVY
@@ -849,24 +855,132 @@ def mental_shield_discuss_async(
         thread.daemon = True
         thread.start()
     else:
-        # 本番環境: Cloud Tasks にenqueue（未実装）
-        # TODO: 本番環境でのCloud Tasks連携を実装
-        logger.warning("Production mode: Cloud Tasks not yet implemented, using background thread")
-        thread = threading.Thread(
-            target=_execute_discuss_workflow_sync,
-            args=(
-                task_id,
-                uid,
-                payload.message,
-                payload.style or "balanced",
-                payload.detail or "flash",
-                thread_id
+        # 本番環境: Cloud Tasks にenqueue
+        if not CLOUD_TASKS_AVAILABLE:
+            logger.error("Cloud Tasks library not available, falling back to threading")
+            thread = threading.Thread(
+                target=_execute_discuss_workflow_sync,
+                args=(
+                    task_id,
+                    uid,
+                    payload.message,
+                    payload.style or "balanced",
+                    payload.detail or "flash",
+                    thread_id
+                )
             )
-        )
-        thread.daemon = True
-        thread.start()
+            thread.daemon = True
+            thread.start()
+        else:
+            logger.info(f"Production mode: enqueuing task {task_id} to Cloud Tasks")
+
+            # Cloud Tasks設定
+            project_id = os.getenv("GCP_PROJECT_ID", "hackason-grab")
+            location = os.getenv("GCP_REGION", "asia-northeast1")
+            queue = "chat-processing-queue"
+            cloud_run_url = os.getenv("CLOUD_RUN_URL", "agent-api-7wsihnjf7q-an.a.run.app")
+            service_account_email = os.getenv("SERVICE_ACCOUNT_EMAIL", "54206639421-compute@developer.gserviceaccount.com")
+
+            # Cloud Tasksクライアント作成
+            client = tasks_v2.CloudTasksClient()
+            parent = client.queue_path(project_id, location, queue)
+
+            # タスクURL
+            task_url = f"https://{cloud_run_url}/api/v1/mental-shield/tasks/{task_id}/execute"
+
+            # タスク作成
+            task = {
+                "http_request": {
+                    "http_method": tasks_v2.HttpMethod.POST,
+                    "url": task_url,
+                    "headers": {
+                        "Content-Type": "application/json",
+                    },
+                    "body": json.dumps({
+                        "task_id": task_id,
+                        "user_id": uid
+                    }).encode(),
+                    "oidc_token": {
+                        "service_account_email": service_account_email
+                    }
+                }
+            }
+
+            # Cloud Tasksにenqueue
+            try:
+                response = client.create_task(request={"parent": parent, "task": task})
+                logger.info(f"Task {task_id} enqueued to Cloud Tasks: {response.name}")
+            except Exception as e:
+                logger.error(f"Failed to enqueue task {task_id} to Cloud Tasks: {e}")
+                # フォールバック: スレッドで実行
+                thread = threading.Thread(
+                    target=_execute_discuss_workflow_sync,
+                    args=(
+                        task_id,
+                        uid,
+                        payload.message,
+                        payload.style or "balanced",
+                        payload.detail or "flash",
+                        thread_id
+                    )
+                )
+                thread.daemon = True
+                thread.start()
 
     return AsyncTaskResponse(taskId=task_id, status="queued")
+
+
+class ExecuteTaskRequest(BaseModel):
+    task_id: str
+    user_id: str
+
+
+@router.post("/tasks/{task_id}/execute")
+async def execute_task(task_id: str, request_body: ExecuteTaskRequest):
+    """
+    Cloud Tasksから呼ばれる実際の処理エンドポイント（内部用）
+
+    このエンドポイントはCloud TasksのOIDCトークンで保護されているため、
+    Firebase認証は不要です。
+    """
+    uid = request_body.user_id
+    db = get_firestore_client()
+
+    task_ref = db.collection("users").document(uid).collection("chatTasks").document(task_id)
+    task_doc = task_ref.get()
+
+    if not task_doc.exists:
+        logger.error(f"Task {task_id} not found for user {uid}")
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task_data = task_doc.to_dict()
+
+    # タスクデータから必要な情報を取得
+    thread_id = task_data["conversationId"]
+    input_data = task_data["input"]
+    message = input_data["message"]
+    style = input_data.get("style", "balanced")
+    detail = input_data.get("detailLevel", "flash")
+
+    # 実際の処理を実行（同期関数を別スレッドで実行）
+    # Note: FastAPIの async 関数内でも、同期関数をブロッキング呼び出しすると
+    # パフォーマンス問題が起きるため、run_in_executorを使用
+    import concurrent.futures
+    loop = asyncio.get_event_loop()
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+    await loop.run_in_executor(
+        executor,
+        _execute_discuss_workflow_sync,
+        task_id,
+        uid,
+        message,
+        style,
+        detail,
+        thread_id
+    )
+
+    return {"status": "success"}
 
 
 @router.get("/tasks/{task_id}", response_model=TaskStatusResponse)
