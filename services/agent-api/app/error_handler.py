@@ -13,6 +13,8 @@ from google.cloud.exceptions import GoogleCloudError
 from firebase_admin.exceptions import FirebaseError
 from pydantic import ValidationError
 
+from .monitoring.sentry import capture_exception, set_request_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -227,6 +229,7 @@ def handle_validation_error(error: ValidationError, request_id: Optional[str] = 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Global exception handler for all unhandled exceptions.
+    Automatically reports errors to Sentry with context.
 
     Args:
         request: FastAPI Request object
@@ -236,48 +239,84 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         JSONResponse with error information
     """
     request_id = request.headers.get("X-Request-ID", "unknown")
+    endpoint = request.url.path
+    method = request.method
+
+    # Set request context for Sentry
+    set_request_context(
+        request_id=request_id,
+        endpoint=endpoint,
+        method=method
+    )
 
     # Log the exception with full context
     logger.error(
-        f"Unhandled exception in {request.method} {request.url.path}",
+        f"Unhandled exception in {method} {endpoint}",
         exc_info=exc,
         extra={
             "request_id": request_id,
-            "method": request.method,
-            "path": request.url.path,
+            "method": method,
+            "path": endpoint,
             "query_params": dict(request.query_params),
         }
     )
 
+    # Determine error code for Sentry tagging
+    error_code = ErrorCode.INTERNAL_ERROR
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
     # Handle specific exception types
     if isinstance(exc, FirebaseError):
-        return handle_firebase_error(exc, request_id)
+        error_code = ErrorCode.DATABASE_ERROR
+        response = handle_firebase_error(exc, request_id)
     elif isinstance(exc, GoogleCloudError):
-        return handle_google_cloud_error(exc, request_id)
+        error_code = ErrorCode.EXTERNAL_API_ERROR
+        response = handle_google_cloud_error(exc, request_id)
     elif isinstance(exc, ValidationError):
-        return handle_validation_error(exc, request_id)
+        error_code = ErrorCode.VALIDATION_FAILED
+        response = handle_validation_error(exc, request_id)
     elif isinstance(exc, HTTPException):
-        return create_error_response(
-            ErrorCode.INTERNAL_ERROR,
+        error_code = ErrorCode.INTERNAL_ERROR
+        status_code = exc.status_code
+        response = create_error_response(
+            error_code,
             exc.detail,
-            exc.status_code,
+            status_code,
             None,
             request_id
         )
     elif isinstance(exc, APIError):
-        return create_error_response(
+        error_code = exc.error_code
+        status_code = exc.status_code
+        response = create_error_response(
             exc.error_code,
             exc.message,
             exc.status_code,
             exc.details,
             request_id
         )
+    else:
+        # Default error response for unknown exceptions
+        response = create_error_response(
+            ErrorCode.INTERNAL_ERROR,
+            "An unexpected error occurred. Please try again later.",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"exception_type": type(exc).__name__},
+            request_id
+        )
 
-    # Default error response for unknown exceptions
-    return create_error_response(
-        ErrorCode.INTERNAL_ERROR,
-        "An unexpected error occurred. Please try again later.",
-        status.HTTP_500_INTERNAL_SERVER_ERROR,
-        {"exception_type": type(exc).__name__},
-        request_id
-    )
+    # Report to Sentry for server errors (5xx) only
+    if status_code >= 500:
+        capture_exception(
+            exc,
+            context={
+                "request_id": request_id,
+                "endpoint": endpoint,
+                "method": method,
+                "query_params": dict(request.query_params),
+            },
+            error_code=error_code.value if isinstance(error_code, ErrorCode) else str(error_code),
+            endpoint=endpoint
+        )
+
+    return response

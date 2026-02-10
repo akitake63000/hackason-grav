@@ -4,7 +4,7 @@ import uuid
 import logging
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel
 
@@ -12,6 +12,7 @@ from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL_HEAVY
 from ..services.gemini_chat import GEMINI_MODEL, gemini_enabled, generate_text, safe_json_load
+from ..middleware.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +95,11 @@ def _generate_report_with_llm(
 
 
 @router.post("/generate", response_model=ReportGenerateResponse)
+@limiter.limit("3/minute")  # Rate limit: 3 requests per minute (expensive LLM operation)
 def generate_report(
-    payload: ReportGenerateRequest, uid: str = Depends(get_current_uid)
+    request: Request,
+    payload: ReportGenerateRequest,
+    uid: str = Depends(get_current_uid)
 ) -> ReportGenerateResponse:
     period_days = payload.periodDays or 7
     period_days = max(1, min(period_days, 30))

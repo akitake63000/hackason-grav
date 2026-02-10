@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel, Field, validator
 from google.cloud import firestore
@@ -12,6 +12,7 @@ from ..services.gemini_vision import analyze_image_bytes
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..storage import download_image_bytes
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
 
@@ -47,8 +48,10 @@ class AnalysisHistoryResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=AnalyzePhotoResponse)
+@limiter.limit("5/minute")  # Rate limit: 5 requests per minute
 def analyze_photo(
-    payload: AnalyzePhotoRequest, 
+    request: Request,
+    payload: AnalyzePhotoRequest,
     uid: str = Depends(get_current_uid)
 ) -> AnalyzePhotoResponse:
     """
@@ -172,7 +175,9 @@ def analyze_photo(
 
 
 @router.get("/analysis-history", response_model=AnalysisHistoryResponse)
+@limiter.limit("100/minute")  # Rate limit: 100 requests per minute
 def get_analysis_history(
+    request: Request,
     uid: str = Depends(get_current_uid),
     limit: int = Query(default=50, ge=1, le=200, description="Maximum number of analysis results to return (1-200)")
 ) -> AnalysisHistoryResponse:

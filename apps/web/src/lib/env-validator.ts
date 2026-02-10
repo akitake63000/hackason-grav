@@ -73,7 +73,7 @@ export function validateAllEnvVars(): Record<string, string | undefined> {
     },
     {
       key: 'NEXT_PUBLIC_API_BASE',
-      required: false, // Optional for relative URL usage
+      required: true, // Required - used by api.ts for backend API calls
     },
     {
       key: 'NEXT_PUBLIC_DIRECT_API_URL',
