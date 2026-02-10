@@ -151,16 +151,37 @@ function Chat() {
 
   // ページ読み込み時に未完了タスクをチェック
   useEffect(() => {
-    const pendingTask = localStorage.getItem('pending_chat_task')
-    const pendingThread = localStorage.getItem('pending_chat_thread')
+    const checkPendingTask = async () => {
+      const pendingTask = localStorage.getItem('pending_chat_task')
+      const pendingThread = localStorage.getItem('pending_chat_thread')
+      const taskCreatedAt = localStorage.getItem('pending_chat_task_created_at')
 
-    if (pendingTask && pendingThread) {
-      console.log('Resuming pending task:', pendingTask)
-      setPendingTaskId(pendingTask)
-      setThreadId(pendingThread)
-      setIsLoading(true)
-      startListening(pendingTask, pendingThread)
+      if (pendingTask && pendingThread) {
+        // タスク作成時刻をチェック（10分以上経過していたら自動クリア）
+        if (taskCreatedAt) {
+          const createdTime = new Date(taskCreatedAt)
+          const now = new Date()
+          const elapsedMinutes = (now - createdTime) / 1000 / 60
+
+          if (elapsedMinutes > 10) {
+            console.warn('Task expired (>10 minutes), clearing:', pendingTask)
+            localStorage.removeItem('pending_chat_task')
+            localStorage.removeItem('pending_chat_thread')
+            localStorage.removeItem('pending_chat_task_created_at')
+            localStorage.removeItem('pending_chat_task_created_at')
+            return
+          }
+        }
+
+        console.log('Resuming pending task:', pendingTask)
+        setPendingTaskId(pendingTask)
+        setThreadId(pendingThread)
+        setIsLoading(true)
+        startListening(pendingTask, pendingThread)
+      }
     }
+
+    checkPendingTask()
 
     // クリーンアップ: リスナー/ポーリング停止
     return () => {
@@ -287,6 +308,7 @@ function Chat() {
             setPendingTaskId(null)
             localStorage.removeItem('pending_chat_task')
             localStorage.removeItem('pending_chat_thread')
+            localStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
             return
           }
@@ -305,6 +327,7 @@ function Chat() {
             setPendingTaskId(null)
             localStorage.removeItem('pending_chat_task')
             localStorage.removeItem('pending_chat_thread')
+            localStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
 
           } else if (taskData.status === 'failed' || taskData.status === 'timeout') {
@@ -317,6 +340,7 @@ function Chat() {
             setPendingTaskId(null)
             localStorage.removeItem('pending_chat_task')
             localStorage.removeItem('pending_chat_thread')
+            localStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
           }
           // queued/running の場合は継続
@@ -363,6 +387,7 @@ function Chat() {
             setPendingTaskId(null)
             localStorage.removeItem('pending_chat_task')
             localStorage.removeItem('pending_chat_thread')
+            localStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
           }
           return
@@ -381,6 +406,7 @@ function Chat() {
           setPendingTaskId(null)
           localStorage.removeItem('pending_chat_task')
           localStorage.removeItem('pending_chat_thread')
+          localStorage.removeItem('pending_chat_task_created_at')
           setIsLoading(false)
 
         } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
@@ -393,6 +419,7 @@ function Chat() {
           setPendingTaskId(null)
           localStorage.removeItem('pending_chat_task')
           localStorage.removeItem('pending_chat_thread')
+          localStorage.removeItem('pending_chat_task_created_at')
           setIsLoading(false)
         }
         // queued/running の場合は継続
@@ -458,6 +485,7 @@ function Chat() {
       setPendingTaskId(taskId)
       localStorage.setItem('pending_chat_task', taskId)
       localStorage.setItem('pending_chat_thread', threadId)
+      localStorage.setItem('pending_chat_task_created_at', new Date().toISOString())
 
       // Firestoreリスナー開始（Phase 2: リアルタイム更新）
       startListening(taskId, threadId)
