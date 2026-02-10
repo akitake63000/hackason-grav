@@ -1,17 +1,13 @@
 'use client'
 
-const styles = {
-  frame: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '24px',
-    width: '100%',
-  },
-}
+import styles from './PhoneFrame.module.css'
 
-function PhoneFrame({ children, style }) {
+function PhoneFrame({ children, style, className }) {
   return (
-    <div style={{ ...styles.frame, ...(style || {}) }}>
+    <div
+      className={`${styles.frame} ${className || ''}`}
+      style={style}
+    >
       {children}
     </div>
   )
