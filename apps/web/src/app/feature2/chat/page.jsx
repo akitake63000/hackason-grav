@@ -534,36 +534,23 @@ function Chat() {
                     {agent.emoji} {agent.name}
                   </div>
                 )}
-                <div
-                  style={{
-                    ...styles.messageRow,
-                    ...(message.type === 'user' ? styles.messageRowUser : {}),
-                  }}
-                >
+                <div className={`${styles.messageRow} ${message.type === 'user' ? styles.messageRowUser : ''}`}>
                   {message.type === 'ai' && (
-                    <div style={{
-                      ...styles.avatar,
-                      background: agent?.color || styles.avatar.background,
-                    }}>
+                    <div
+                      className={styles.avatar}
+                      style={{ background: agent?.color || '#7c9a7c' }}
+                    >
                       <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
                   )}
                   <motion.div
-                    style={{
-                      ...styles.messageBubble,
-                      ...(message.type === 'ai' ? styles.aiMessage : styles.userMessage),
-                    }}
+                    className={`${styles.messageBubble} ${message.type === 'ai' ? styles.aiMessage : styles.userMessage}`}
                     whileHover={{ scale: 1.01 }}
                   >
                     {message.text}
                   </motion.div>
                 </div>
-                <div
-                  style={{
-                    ...styles.timestamp,
-                    ...(message.type === 'user' ? styles.timestampUser : {}),
-                  }}
-                >
+                <div className={`${styles.timestamp} ${message.type === 'user' ? styles.timestampUser : ''}`}>
                   {message.time}
                 </div>
               </motion.div>
@@ -587,19 +574,15 @@ function Chat() {
                     {agent?.emoji} {agent?.name}
                   </div>
                   <div className={styles.messageRow}>
-                    <div style={{
-                      ...styles.avatar,
-                      background: agent?.color || styles.avatar.background,
-                    }}>
+                    <div
+                      className={styles.avatar}
+                      style={{ background: agent?.color || '#7c9a7c' }}
+                    >
                       <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
                     <div
-                      style={{
-                        ...styles.messageBubble,
-                        ...styles.aiMessage,
-                        opacity: 0.7,
-                        borderStyle: 'dashed',
-                      }}
+                      className={`${styles.messageBubble} ${styles.aiMessage}`}
+                      style={{ opacity: 0.7, borderStyle: 'dashed' }}
                     >
                       {msg.text}
                     </div>
@@ -633,10 +616,10 @@ function Chat() {
                 exit={{ opacity: 0, y: -10 }}
                 key={`thinking-${revealingAgent}`}
               >
-                <div style={{
-                  ...styles.avatar,
-                  background: agentConfig[revealingAgent]?.color || styles.avatar.background,
-                }}>
+                <div
+                  className={styles.avatar}
+                  style={{ background: agentConfig[revealingAgent]?.color || '#7c9a7c' }}
+                >
                   <motion.span
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 0.8, repeat: Infinity }}
@@ -715,8 +698,8 @@ function Chat() {
             onKeyDown={handleKeyDown}
           />
           <motion.button
+            className={styles.sendButton}
             style={{
-              ...styles.sendButton,
               opacity: isBusy ? 0.6 : 1,
               cursor: isBusy ? 'not-allowed' : 'pointer',
             }}
