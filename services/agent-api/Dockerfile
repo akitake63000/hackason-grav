@@ -32,7 +32,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import requests; requests.get('http://localhost:8080/health', timeout=2)"
+  CMD python -c "import requests; requests.get('http://localhost:8080/api/health', timeout=2)"
 
 # Run uvicorn with optimized settings for Cloud Run
 CMD exec uvicorn app.main:app \

@@ -56,7 +56,7 @@ const styles = {
     transition: 'all 0.3s ease',
   },
   genderCardSelected: {
-    borderColor: '#419873',
+    border: '2px solid #419873',
     background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(124, 154, 124, 0.04) 100%)',
   },
   genderIcon: {
@@ -107,7 +107,7 @@ const styles = {
     boxSizing: 'border-box',
   },
   ageInputFocused: {
-    borderColor: '#419873',
+    border: '1.5px solid #419873',
     boxShadow: '0 0 0 4px rgba(65, 152, 115, 0.1)',
   },
   ageSuffix: {
@@ -136,7 +136,7 @@ const styles = {
     fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
   },
   tagSelected: {
-    borderColor: '#419873',
+    border: '1.5px solid #419873',
     background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.08) 100%)',
     color: '#1a3d2e',
     fontWeight: '600',
@@ -266,6 +266,39 @@ function Profile() {
                 👩
               </div>
               <span style={styles.genderLabel}>女性</span>
+            </motion.div>
+
+            {/* Prefer not to say */}
+            <motion.div
+              style={{
+                ...styles.genderCard,
+                ...(gender === 'prefer-not-to-say' ? styles.genderCardSelected : {}),
+              }}
+              onClick={() => setGender('prefer-not-to-say')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <AnimatePresence>
+                {gender === 'prefer-not-to-say' && (
+                  <motion.div
+                    style={styles.checkmark}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                  >
+                    <Check size={14} strokeWidth={3} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div
+                style={{
+                  ...styles.genderIcon,
+                  background: 'linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 150, 0.05) 100%)',
+                }}
+              >
+                🤐
+              </div>
+              <span style={styles.genderLabel}>回答なし</span>
             </motion.div>
           </div>
         </motion.div>

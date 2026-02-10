@@ -2,7 +2,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { getFirestoreDb } from "./firebase";
 
 export type UserProfile = {
-  gender?: string;
+  gender?: 'male' | 'female' | 'prefer-not-to-say';
   birthDate?: string;
   concernAreas?: string[];
   displayName?: string;

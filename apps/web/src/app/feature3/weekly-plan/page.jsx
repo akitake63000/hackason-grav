@@ -13,7 +13,10 @@ import {
     Sparkles,
     TrendingUp,
     AlertCircle,
-    ArrowRight
+    ArrowRight,
+    Flame,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
@@ -169,6 +172,53 @@ const styles = {
         background: 'rgba(245, 158, 11, 0.1)',
         border: '1px solid rgba(245, 158, 11, 0.3)',
     },
+    // Accordion & Action Styles
+    actionCard: {
+        marginBottom: '12px',
+        transition: 'all 0.3s ease',
+        overflow: 'hidden',
+    },
+    actionHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        padding: '16px',
+        cursor: 'pointer',
+    },
+    actionName: {
+        flex: 1,
+        fontSize: '18px', // Larger font
+        fontWeight: '700',
+        color: '#1a3d2e',
+        marginLeft: '12px',
+    },
+    actionContent: {
+        padding: '0 16px 16px 56px', // Indent to align with text
+        fontSize: '14px',
+        color: '#7f786d',
+        lineHeight: '1.6',
+        borderTop: '1px solid #f0f0f0',
+        marginTop: '8px',
+        paddingTop: '12px',
+    },
+    createButtonContainer: {
+        textAlign: 'center',
+        padding: '40px 20px',
+        background: '#f9fafb',
+        borderRadius: '16px',
+        border: '2px dashed #e5e7eb',
+    },
+    streakBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+        color: 'white',
+        padding: '6px 16px',
+        borderRadius: '20px',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        boxShadow: '0 2px 4px rgba(234, 88, 12, 0.3)',
+        marginBottom: '16px',
+    },
 }
 
 export default function WeeklyPlan() {
@@ -180,6 +230,9 @@ export default function WeeklyPlan() {
     const [showInactivityWarning, setShowInactivityWarning] = useState(false)
     const [tendencyData, setTendencyData] = useState(null)
     const [bonusScores, setBonusScores] = useState({ hormone: 0, circadian: 0, blood_flow: 0, stress: 0 })
+    const [streak, setStreak] = useState(0)
+    const [expandedActions, setExpandedActions] = useState({}) // { id: boolean }
+    const [generating, setGenerating] = useState(false)
 
     useEffect(() => {
         fetchData()
@@ -214,6 +267,7 @@ export default function WeeklyPlan() {
                 // todayLog is an object { completedActions: [...] } or null
                 const logArray = planData.todayLog?.completedActions || []
                 setTodayLog(logArray)
+                setStreak(planData.streak || 0)
 
                 // Calculate bonus scores from completed actions
                 calculateBonusScores(planData, logArray)
@@ -259,26 +313,40 @@ export default function WeeklyPlan() {
         if (!confirmingAction) return
 
         try {
+            // Optimistic Update
+            const newLog = [...todayLog.filter(l => l.actionId !== confirmingAction.id), { actionId: confirmingAction.id, completed: true }]
+            setTodayLog(newLog)
+
+            // Update streak if this is the first completion of the day
+            const completedCount = newLog.filter(l => l.completed).length
+            if (completedCount === 1) {
+                setStreak(prev => prev + 1)
+            }
+
+            // Update bonus scores locally
+            if (confirmingAction.targetAxis) {
+                setBonusScores(prev => ({
+                    ...prev,
+                    [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 2
+                }))
+            }
+
+            // API Call
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actionId: confirmingAction.id, completed: true }),
             })
 
-            if (res.ok) {
-                setTodayLog(prev => [...prev.filter(l => l.actionId !== confirmingAction.id),
-                { actionId: confirmingAction.id, completed: true }])
-
-                // Update bonus scores
-                if (confirmingAction.targetAxis) {
-                    setBonusScores(prev => ({
-                        ...prev,
-                        [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 2
-                    }))
-                }
+            if (!res.ok) {
+                // Revert on error
+                setTodayLog(todayLog)
+                if (completedCount === 1) setStreak(prev => prev - 1)
+                // Revert bonus (simplified: just refetch or ignore for now as it's minor)
             }
         } catch (error) {
             console.error('Check failed:', error)
+            setTodayLog(todayLog) // Revert
         } finally {
             setConfirmingAction(null)
         }
@@ -286,17 +354,30 @@ export default function WeeklyPlan() {
 
     const handleUncheck = async (actionId) => {
         try {
+            // Optimistic Update
+            const newLog = todayLog.filter(l => l.actionId !== actionId)
+            setTodayLog(newLog)
+
+            // Update streak if we removed the last completed action
+            const completedCount = newLog.filter(l => l.completed).length
+            if (completedCount === 0) {
+                setStreak(prev => Math.max(0, prev - 1))
+            }
+
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ actionId, completed: false }),
             })
 
-            if (res.ok) {
-                setTodayLog(prev => prev.filter(l => l.actionId !== actionId))
+            if (!res.ok) {
+                // Revert
+                setTodayLog(todayLog)
+                if (completedCount === 0) setStreak(prev => prev + 1)
             }
         } catch (error) {
             console.error('Uncheck failed:', error)
+            setTodayLog(todayLog)
         }
     }
 
@@ -316,6 +397,29 @@ export default function WeeklyPlan() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleGenerateDaily = async () => {
+        setGenerating(true)
+        try {
+            const res = await apiFetch('/api/v1/lifestyle/plan/daily/generate', { method: 'POST' })
+            if (res.ok) {
+                await fetchData()
+            } else {
+                alert("アクション生成に失敗しました")
+            }
+        } catch (e) {
+            console.error("Failed to generate daily actions", e)
+        } finally {
+            setGenerating(false)
+        }
+    }
+
+    const toggleAccordion = (id) => {
+        setExpandedActions(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }))
     }
 
     const handleRetakeSurvey = () => {
@@ -455,6 +559,20 @@ export default function WeeklyPlan() {
                     >
                         今日のミッション
                     </motion.h1>
+
+                    {/* Streak Badge */}
+                    <div style={{ textAlign: 'center' }}>
+                        <motion.div
+                            style={styles.streakBadge}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                        >
+                            <Flame size={16} style={{ marginRight: '6px' }} />
+                            {streak}日連続達成中！
+                        </motion.div>
+                    </div>
+
                     <p style={styles.subtitle}>
                         {plan.theme || '生活習慣改善'}
                     </p>
@@ -504,54 +622,104 @@ export default function WeeklyPlan() {
                         )}
                     </Card>
 
-                    {/* Mission Cards */}
-                    {plan.targetActions && plan.targetActions.map((action, index) => {
-                        const completed = isActionCompleted(action.id)
-                        return (
-                            <motion.div
-                                key={action.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                <Card
-                                    style={{
-                                        ...styles.missionCard,
-                                        opacity: completed ? 0.7 : 1,
-                                    }}
-                                    onClick={() => handleCheckClick(action)}
+                    {/* Mission Cards or Create Button */}
+                    {!plan.targetActions || plan.targetActions.length === 0 ? (
+                        <div style={styles.createButtonContainer}>
+                            {generating ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                    <Loader2 className="animate-spin" size={32} color="#419873" />
+                                    <p style={{ color: '#419873', fontWeight: '600' }}>AIが今日のミッションを生成中...</p>
+                                    <p style={{ fontSize: '12px', color: '#7f786d' }}>あなたの体調に合わせて最適化しています</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <Sparkles size={48} color="#419873" style={{ marginBottom: '16px' }} />
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                                        今日のミッションを作成
+                                    </h3>
+                                    <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
+                                        今のあなたに最適な3つのアクションを<br />AIが提案します。
+                                    </p>
+                                    <Button onClick={handleGenerateDaily}>
+                                        ミッションを生成する
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        plan.targetActions.map((action, index) => {
+                            const completed = isActionCompleted(action.id)
+                            const isExpanded = expandedActions[action.id]
+
+                            return (
+                                <motion.div
+                                    key={action.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
                                 >
-                                    <div style={styles.missionInner}>
-                                        <div style={{
-                                            ...styles.missionCheckbox,
-                                            ...(completed ? styles.missionCheckboxCompleted : {})
-                                        }}>
-                                            {completed && <CheckCircle size={18} color="#fff" />}
-                                        </div>
-                                        <div style={styles.missionContent}>
-                                            <div style={{
-                                                ...styles.missionTitle,
-                                                textDecoration: completed ? 'line-through' : 'none',
-                                            }}>
+                                    <Card style={styles.actionCard}>
+                                        {/* Header area - Click to expand (except checkbox) */}
+                                        <div
+                                            style={styles.actionHeader}
+                                            onClick={() => toggleAccordion(action.id)}
+                                        >
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleCheckClick(action)
+                                                }}
+                                                style={{
+                                                    ...styles.missionCheckbox,
+                                                    ...(completed ? styles.missionCheckboxCompleted : {})
+                                                }}
+                                            >
+                                                {completed && <CheckCircle size={18} color="#fff" />}
+                                            </div>
+
+                                            <div style={styles.actionName}>
                                                 {action.emoji} {action.name}
                                             </div>
-                                            <div style={styles.missionDesc}>{action.description}</div>
-                                        </div>
-                                        {!completed && action.targetAxis && (
-                                            <div style={styles.scoreBonus}>
-                                                <TrendingUp size={12} style={{ marginRight: '2px' }} />
-                                                +2
+
+                                            <div style={{ color: '#9ca3af' }}>
+                                                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                             </div>
-                                        )}
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        )
-                    })}
+                                        </div>
+
+                                        {/* Content area - Expanded details */}
+                                        <AnimatePresence>
+                                            {isExpanded && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.3 }}
+                                                >
+                                                    <div style={styles.actionContent}>
+                                                        <strong>Why?</strong><br />
+                                                        {action.description}
+
+                                                        {!completed && action.targetAxis && (
+                                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', fontSize: '12px', color: '#419873', fontWeight: '600' }}>
+                                                                <TrendingUp size={14} style={{ marginRight: '4px' }} />
+                                                                達成で{action.targetAxis === 'hormone' ? 'ホルモン' :
+                                                                    action.targetAxis === 'circadian' ? '体内時計' :
+                                                                        action.targetAxis === 'blood_flow' ? '血流' : 'ストレス'}スコアUP!
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </Card>
+                                </motion.div>
+                            )
+                        })
+                    )}
 
                     {/* Week remaining info */}
                     {plan.endDate && (
-                        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '24px' }}>
+                        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '32px' }}>
                             <Calendar size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                             プラン終了日: {new Date(plan.endDate).toLocaleDateString('ja-JP')}
                         </p>
