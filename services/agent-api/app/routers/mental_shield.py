@@ -230,14 +230,14 @@ class _DiscussState(TypedDict):
 
 
 _DETAIL_TOKEN_LIMIT = {
-    "flash": 500,
+    "flash": None,   # flash は制限なし（他機能と同条件）
     "pro": 1500,
 }
 
 
-def _max_tokens_for_detail(detail: str) -> int:
+def _max_tokens_for_detail(detail: str) -> int | None:
     """detail 設定に応じた max_output_tokens を返す。"""
-    return _DETAIL_TOKEN_LIMIT.get(detail, 500)
+    return _DETAIL_TOKEN_LIMIT.get(detail)
 
 
 def _model_for_detail(detail: str) -> str:
