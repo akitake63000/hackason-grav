@@ -816,8 +816,8 @@ def mental_shield_discuss_async(
     db = get_firestore_client()
     task_ref = db.collection("users").document(uid).collection("chatTasks").document(task_id)
 
-    # TTLは10分後
-    ttl_time = datetime.utcnow() + timedelta(minutes=10)
+    # TTLは30分後
+    ttl_time = datetime.utcnow() + timedelta(minutes=30)
 
     task_ref.set({
         "userId": uid,
