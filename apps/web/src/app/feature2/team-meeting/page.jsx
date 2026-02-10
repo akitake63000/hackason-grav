@@ -8,6 +8,7 @@ import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
+import styles from './page.module.css'
 
 const colors = {
   deepForest: '#1a3d2e',
@@ -15,6 +16,34 @@ const colors = {
   cream: '#f8f6f2',
   gold: '#c9a962',
 }
+
+// キャラクター定義
+const characters = [
+  {
+    id: 'encourager',
+    name: 'サポーター',
+    emoji: '❤️',
+    trait: '寄り添い型',
+    catchphrase: 'あなたの味方だよ',
+    color: 'linear-gradient(135deg, #f8b4b4 0%, #f472b6 100%)',
+  },
+  {
+    id: 'coach',
+    name: 'コーチ',
+    emoji: '💪',
+    trait: '目標達成型',
+    catchphrase: '一緒に頑張ろう！',
+    color: 'linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)',
+  },
+  {
+    id: 'doctor',
+    name: 'ドクター',
+    emoji: '🔬',
+    trait: '科学的根拠型',
+    catchphrase: 'データで見てみよう',
+    color: 'linear-gradient(135deg, #86efac 0%, #22c55e 100%)',
+  },
+]
 
 function TeamMeetingContent() {
   const searchParams = useSearchParams()

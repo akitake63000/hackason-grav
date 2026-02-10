@@ -22,6 +22,7 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import Button from '@/components/Button'
 import { apiFetch } from '@/lib/api'
+import styles from './page.module.css'
 
 export default function WeeklyPlan() {
     const router = useRouter()

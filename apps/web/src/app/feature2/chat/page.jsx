@@ -8,6 +8,18 @@ import { apiFetch } from '@/lib/api'
 import { useAuth, getIdToken } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import styles from './page.module.css'
+
+// 初期メッセージ
+const initialMessages = [
+  {
+    id: 1,
+    type: 'ai',
+    agent: 'orchestrator',
+    text: 'こんにちは！髪の健康についてお悩みのことがあれば、何でもご相談ください。3人のアドバイザーがあなたをサポートします。',
+    time: '10:00',
+  },
+]
 
 const colors = {
   deepForest: '#1a3d2e',

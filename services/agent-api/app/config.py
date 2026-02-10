@@ -21,6 +21,11 @@ GEMINI_MODEL_HEAVY = os.getenv("GEMINI_MODEL_HEAVY", "gemini-2.5-pro")
 GEMINI_MODEL_VISION = os.getenv("GEMINI_MODEL_VISION", "gemini-2.5-pro")  # For photo analysis
 GEMINI_ENABLED = _get_bool("GEMINI_ENABLED", "true")
 
+# Gemini API rate limiting and retry settings
+GEMINI_RETRY_MAX_ATTEMPTS = int(os.getenv("GEMINI_RETRY_MAX_ATTEMPTS", "3"))  # Max retry attempts for rate limit errors
+GEMINI_RETRY_BASE_DELAY = float(os.getenv("GEMINI_RETRY_BASE_DELAY", "1.0"))  # Base delay in seconds for exponential backoff
+GEMINI_RATE_LIMIT_RPM = int(os.getenv("GEMINI_RATE_LIMIT_RPM", "60"))  # Target requests per minute (default: 60)
+
 # Storage path validation settings
 # Allowed storage path patterns (comma-separated regex patterns)
 # Default: users/{uid}/photos/{id}.{ext}, users/{uid}/meals/{id}.{ext}

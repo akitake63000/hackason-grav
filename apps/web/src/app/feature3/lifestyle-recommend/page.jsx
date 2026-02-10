@@ -19,6 +19,16 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import Button from '@/components/Button'
 import { apiFetch } from '@/lib/api'
+import styles from './page.module.css'
+
+// 4軸の表示順序と設定
+const AXIS_ORDER = ['hormone', 'circadian', 'blood_flow', 'stress']
+const AXIS_CONFIG = {
+  hormone: { name: 'ホルモン分泌', icon: Heart, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
+  circadian: { name: '体内時計', icon: Activity, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
+  blood_flow: { name: '血流促進', icon: Droplets, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+  stress: { name: 'ストレス管理', icon: Brain, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },
+}
 
 function LifestyleRecommendContent() {
   const searchParams = useSearchParams()

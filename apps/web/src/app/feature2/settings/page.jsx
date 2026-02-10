@@ -9,6 +9,7 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
+import styles from './page.module.css'
 
 const colors = {
   deepForest: '#1a3d2e',
