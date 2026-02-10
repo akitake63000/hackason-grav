@@ -462,7 +462,8 @@ def _orchestrator_node(state: _DiscussState) -> dict:
         "あなたは薄毛対策メンタル支援チームの議論まとめ役です。\n"
         "臨床心理士・毛髪診断士・皮膚科医の3専門家が2回議論しました。\n"
         "全体を統合し、相談者にとって最も有益なまとめを作成してください。\n"
-        "メンタルケア・生活習慣・医学的観点のバランスを意識してください。\n\n"
+        "メンタルケア・生活習慣・医学的観点のバランスを意識してください。\n"
+        "JSONや装飾は不要です。まとめの文章だけを出力してください。\n\n"
         f"{si}"
         "【1回目】\n"
         f"サポーター（臨床心理士）: {state['encourager_response']}\n"
@@ -472,17 +473,12 @@ def _orchestrator_node(state: _DiscussState) -> dict:
         f"サポーター: {state['encourager_response_r2']}\n"
         f"コーチ: {state['coach_response_r2']}\n"
         f"ドクター: {state['doctor_response_r2']}\n\n"
-        '出力は必ず次のJSON形式のみ:\n'
-        '{"summary": "まとめテキスト"}\n'
     )
     try:
-        text = generate_text(prompt, model=model, max_output_tokens=mt)
-        if not text.strip():
+        summary = generate_text(prompt, model=model, max_output_tokens=mt)
+        if not summary.strip():
             raise ValueError("Empty response from LLM")
-        data = safe_json_load(text)
-        summary = data.get("summary", "")
-        if not summary:
-            raise ValueError("Invalid orchestrator response")
+        summary = summary.strip()
     except Exception:
         summary = "今日の最小の一手: 「同条件の写真チェックイン」か「睡眠の確保」。"
     return {"best_agent": "encourager", "summary": summary}
