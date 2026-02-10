@@ -25,13 +25,16 @@
   font-size: var(--font-2xl);
   font-weight: 600;
   color: #1a3d2e;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xs);
+  text-align: center;
 }
 
 .subtitle {
   font-size: var(--font-sm);
   color: #7f786d;
   margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
 }
 
 /* Section */
@@ -45,14 +48,16 @@
   font-weight: 600;
   color: #1a3d2e;
   margin-bottom: var(--spacing-md);
+  display: block;
+  text-align: center;
 }
 
 /* Chart Container */
 .chartContainer {
   width: 100%;
-  height: clamp(250px, 50vw, 350px);
+  height: clamp(280px, 55vw, 400px);
   margin-bottom: var(--spacing-md);
-  overflow-x: auto;
+  overflow: visible;
 }
 
 /* Stats Grid */
@@ -114,6 +119,7 @@
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-lg);
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .filterButton {
