@@ -6,14 +6,20 @@
   right: 0;
   height: 70px;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(26, 61, 46, 0.08);
   z-index: 90;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   padding: 8px 12px;
   gap: 4px;
+}
+
+/* Progressive enhancement: backdrop-filter */
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .bottomNav {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
 }
 
 /* Hide on desktop */

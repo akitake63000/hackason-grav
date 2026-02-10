@@ -21,6 +21,8 @@ function BottomNav({ isMobile, items, isActive, onNavigate }) {
             onClick={() => onNavigate(item.path)}
             whileTap={{ scale: 0.95 }}
             type="button"
+            aria-current={active ? 'page' : undefined}
+            aria-label={item.label}
           >
             <Icon
               size={22}

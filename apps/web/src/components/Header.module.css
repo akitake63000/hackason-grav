@@ -4,16 +4,22 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-top, 0px));
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(26, 61, 46, 0.08);
   z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--spacing-md);
+  padding: env(safe-area-inset-top, 0px) var(--spacing-md) 0 var(--spacing-md);
+}
+
+/* Progressive enhancement: backdrop-filter */
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .mobileHeader {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
 }
 
 /* Hide on desktop */
@@ -71,8 +77,8 @@
 /* Responsive adjustments */
 @media (max-width: 374px) {
   .mobileHeader {
-    height: 56px;
-    padding: 0 var(--spacing-sm);
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) var(--spacing-sm) 0 var(--spacing-sm);
   }
 
   .title {
@@ -80,13 +86,14 @@
   }
 
   .menuButton {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    /* Keep 44px touch target */
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    /* Visually smaller padding */
+    padding: 8px;
   }
 
   .spacer {
-    width: 40px;
+    width: var(--touch-target-min);
   }
 }

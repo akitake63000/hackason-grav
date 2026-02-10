@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home, Camera, MessageCircle, Leaf, Settings,
-  X, ChevronRight
+  ChevronRight
 } from 'lucide-react'
 import { useState, useEffect, useTransition, useCallback, memo } from 'react'
 import { useAuth } from '@/lib/auth'
@@ -74,6 +74,8 @@ const SidebarContent = memo(({ pathname, expandedNav, onNavClick, onSubNavClick 
               <button
                 className={`${styles.navItem} ${active ? styles.navItemActive : ''}`}
                 onClick={() => onNavClick(item)}
+                aria-current={active && !item.subItems ? 'page' : undefined}
+                aria-expanded={item.subItems ? expanded : undefined}
               >
                 <Icon size={20} />
                 <span style={{ flex: 1 }}>{item.label}</span>
@@ -91,6 +93,7 @@ const SidebarContent = memo(({ pathname, expandedNav, onNavClick, onSubNavClick 
                       key={subItem.path}
                       className={`${styles.subNavItem} ${pathname === subItem.path ? styles.subNavItemActive : ''}`}
                       onClick={() => onSubNavClick(subItem.path)}
+                      aria-current={pathname === subItem.path ? 'page' : undefined}
                     >
                       {subItem.label}
                     </button>
@@ -109,7 +112,9 @@ function Layout({ children }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/'
   const { user, loading } = useAuth()
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedNav, setExpandedNav] = useState(null)
   const [isPending, startTransition] = useTransition()
