@@ -112,12 +112,13 @@ def generate_report(
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=period_days)
 
-    # Optimize: Filter by date at database level instead of in Python
+    # Fetch documents (use Python-side filtering for backward compatibility)
+    # NOTE: Some old documents may only have 'createdAt', not 'analyzedAt'
+    # Database-level filtering on 'analyzedAt' would exclude those documents
     docs = (
         analysis_ref
-        .where("analyzedAt", ">=", cutoff)  # Database-level date filter
         .order_by("analyzedAt", direction=admin_firestore.Query.DESCENDING)
-        .limit(20)  # Limit to 20 items to avoid token limit
+        .limit(50)  # Fetch more to compensate for filtering
         .get()
     )
 
@@ -126,12 +127,17 @@ def generate_report(
 
     for doc in docs:
         data = doc.to_dict()
+        # Try analyzedAt first, then fall back to createdAt for old documents
         ts = data.get("analyzedAt") or data.get("createdAt")
         computed_at = _to_datetime(ts)
         if not computed_at:
             continue
         if computed_at.tzinfo is None:
             computed_at = computed_at.replace(tzinfo=timezone.utc)
+
+        # Filter by date in Python (supports both analyzedAt and createdAt)
+        if computed_at < cutoff:
+            continue
         
         score = data.get("score")
         if isinstance(score, (int, float)):

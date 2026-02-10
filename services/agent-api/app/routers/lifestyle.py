@@ -7,7 +7,7 @@ import uuid
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from google.cloud import storage as gcs
 from google.cloud.firestore_v1.field_path import FieldPath
 from google.cloud.exceptions import GoogleCloudError
@@ -43,7 +43,8 @@ class TendencyRequest(BaseModel):
     """問診回答リクエスト"""
     answers: dict[str, str] = Field(..., description="Questionnaire answers (max 50 keys, max 500 chars per value)")
 
-    @validator('answers')
+    @field_validator('answers')
+    @classmethod
     def validate_answers(cls, v):
         if not v:
             raise ValueError('Answers cannot be empty')
@@ -179,7 +180,8 @@ def tip(request: Request, _: str = Depends(get_current_uid)) -> TipResponse:
 class MealAnalyzeRequest(BaseModel):
     storagePath: str = Field(..., min_length=1, max_length=500, description="Firebase Storage path (users/{uid}/meals/xxx.jpg)")
 
-    @validator('storagePath')
+    @field_validator('storagePath')
+    @classmethod
     def validate_storage_path(cls, v):
         if not v.strip():
             raise ValueError('Storage path cannot be empty or whitespace only')

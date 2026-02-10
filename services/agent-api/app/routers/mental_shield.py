@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, TypedDict
 
 from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
@@ -25,7 +25,8 @@ class MentalShieldRequest(BaseModel):
     style: Optional[str] = "balanced"    # gentle / balanced / strict
     detail: Optional[str] = "flash"      # flash (gemini-2.5-flash) / pro (gemini-2.5-pro)
 
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         if not v.strip():
             raise ValueError('Message cannot be empty or whitespace only')

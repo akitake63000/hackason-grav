@@ -69,12 +69,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return handle_validation_error(exc, request_id)
 
 async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded):
-    """Handle rate limit errors with structured error response and Retry-After header."""
+    """
+    Handle rate limit errors with structured error response and Retry-After header.
+
+    NOTE: Dynamic retry_after calculation relies on request.state._rate_limit_reset_time,
+    which slowapi 0.1.9 may not set consistently. If unavailable, falls back to 60 seconds.
+    This is a known limitation of slowapi's current implementation.
+    """
     request_id = request.headers.get("X-Request-ID", "unknown")
 
     # Try to extract reset time from limiter storage
-    # slowapi stores reset time in request.state if available
-    retry_after = 60  # Default fallback
+    # LIMITATION: slowapi 0.1.9 may not set request.state._rate_limit_reset_time
+    # In that case, we fall back to a static 60 second retry period
+    retry_after = 60  # Default fallback (1 minute)
 
     # Check if reset time is available in request state
     if hasattr(request.state, "_rate_limit_reset_time"):

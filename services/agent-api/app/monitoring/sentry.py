@@ -59,14 +59,29 @@ def before_send(event: Dict[str, Any], hint: Dict[str, Any]) -> Optional[Dict[st
     # Sanitize request data
     if 'request' in event:
         if 'data' in event['request']:
-            event['request']['data'] = _sanitize_data(event['request']['data'])
+            # Handle string/bytes data (should be sanitized entirely)
+            data = event['request']['data']
+            if isinstance(data, (str, bytes)):
+                event['request']['data'] = '[REDACTED]'
+            else:
+                event['request']['data'] = _sanitize_data(data)
+
         if 'headers' in event['request']:
             event['request']['headers'] = _sanitize_data(event['request']['headers'])
+
         if 'cookies' in event['request']:
             event['request']['cookies'] = _sanitize_data(event['request']['cookies'])
+
         # Sanitize query string
         if 'query_string' in event['request']:
             event['request']['query_string'] = '[REDACTED]'
+
+        # Sanitize URL to remove query parameters
+        if 'url' in event['request']:
+            url = event['request']['url']
+            if isinstance(url, str) and '?' in url:
+                # Remove query string from URL
+                event['request']['url'] = url.split('?')[0]
 
     # Sanitize extra context
     if 'extra' in event:
