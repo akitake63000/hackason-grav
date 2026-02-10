@@ -9,6 +9,7 @@ import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { getFirebaseAuth } from '@/lib/firebase'
+import styles from './page.module.css'
 
 function Dashboard() {
   const router = useRouter()
