@@ -16,6 +16,7 @@ from .routers import food_sniper, health, lifestyle, mental_shield, photos, repo
 from .config import ALLOWED_ORIGINS
 from .middleware import ResponseTimeMiddleware, RateLimitMiddleware, limiter
 from .monitoring import init_sentry
+from .error_handler import global_exception_handler
 
 # Initialize error monitoring (Sentry)
 init_sentry()
@@ -25,6 +26,9 @@ app = FastAPI(title="HairGuard Agent API")
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add global exception handler for consistent error responses
+app.add_exception_handler(Exception, global_exception_handler)
 
 allowed_origins = [
     origin.strip()
