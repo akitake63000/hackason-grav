@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel, Field, validator
 from google.cloud import firestore
@@ -174,7 +174,7 @@ def analyze_photo(
 @router.get("/analysis-history", response_model=AnalysisHistoryResponse)
 def get_analysis_history(
     uid: str = Depends(get_current_uid),
-    limit: Optional[int] = 50
+    limit: int = Query(default=50, ge=1, le=200, description="Maximum number of analysis results to return (1-200)")
 ) -> AnalysisHistoryResponse:
     """
     Fetches analysis history for the authenticated user.

@@ -45,14 +45,18 @@ def batch_delete_documents(
     Args:
         db: Firestore client
         doc_refs: List of document references to delete
-        chunk_size: Number of deletes per batch (default: 400)
+        chunk_size: Number of deletes per batch (default: 400, max: 500)
 
     Returns:
         Total number of documents deleted
 
     Raises:
+        ValueError: If chunk_size exceeds Firestore limit (500)
         Exception: If batch deletion fails
     """
+    if chunk_size > 500:
+        raise ValueError(f"chunk_size ({chunk_size}) exceeds Firestore batch limit (500)")
+
     total_deleted = 0
 
     for chunk in chunk_list(doc_refs, chunk_size):
@@ -83,14 +87,18 @@ def batch_write_documents(
     Args:
         db: Firestore client
         operations: List of (document_reference, data) tuples
-        chunk_size: Number of writes per batch (default: 400)
+        chunk_size: Number of writes per batch (default: 400, max: 500)
 
     Returns:
         Total number of documents written
 
     Raises:
+        ValueError: If chunk_size exceeds Firestore limit (500)
         Exception: If batch write fails
     """
+    if chunk_size > 500:
+        raise ValueError(f"chunk_size ({chunk_size}) exceeds Firestore batch limit (500)")
+
     total_written = 0
 
     for chunk in chunk_list(operations, chunk_size):
@@ -121,14 +129,18 @@ def batch_update_documents(
     Args:
         db: Firestore client
         operations: List of (document_reference, update_data) tuples
-        chunk_size: Number of updates per batch (default: 400)
+        chunk_size: Number of updates per batch (default: 400, max: 500)
 
     Returns:
         Total number of documents updated
 
     Raises:
+        ValueError: If chunk_size exceeds Firestore limit (500)
         Exception: If batch update fails
     """
+    if chunk_size > 500:
+        raise ValueError(f"chunk_size ({chunk_size}) exceeds Firestore batch limit (500)")
+
     total_updated = 0
 
     for chunk in chunk_list(operations, chunk_size):
@@ -160,42 +172,62 @@ def recursive_delete_collection(
     Args:
         db: Firestore client
         collection_ref: Collection reference to delete
-        batch_size: Number of documents to delete per batch (default: 400)
+        batch_size: Number of documents to delete per batch (default: 400, max: 500)
 
     Returns:
         Total number of documents deleted
 
+    Raises:
+        ValueError: If batch_size exceeds Firestore limit (500)
+
     Warning:
         This is a destructive operation. Use with caution.
     """
+    if batch_size > 500:
+        raise ValueError(f"batch_size ({batch_size}) exceeds Firestore batch limit (500)")
+
     total_deleted = 0
-    docs = collection_ref.limit(batch_size).stream()
 
-    deleted_in_batch = 0
-    batch = db.batch()
+    while True:
+        # Get next batch of documents
+        docs = list(collection_ref.limit(batch_size).stream())
 
-    for doc in docs:
-        # Delete subcollections first (recursive)
-        for subcollection in doc.reference.collections():
-            total_deleted += recursive_delete_collection(db, subcollection, batch_size)
+        if not docs:
+            break  # No more documents to delete
 
-        # Add document to batch delete
-        batch.delete(doc.reference)
-        deleted_in_batch += 1
+        deleted_in_batch = 0
+        batch = db.batch()
 
-        # Commit batch when it reaches the size limit
-        if deleted_in_batch >= batch_size:
-            batch.commit()
-            total_deleted += deleted_in_batch
-            logger.info(f"Deleted batch of {deleted_in_batch} documents")
-            deleted_in_batch = 0
-            batch = db.batch()
+        for doc in docs:
+            # Delete subcollections first (recursive)
+            for subcollection in doc.reference.collections():
+                total_deleted += recursive_delete_collection(db, subcollection, batch_size)
 
-    # Commit remaining documents
-    if deleted_in_batch > 0:
-        batch.commit()
-        total_deleted += deleted_in_batch
-        logger.info(f"Deleted final batch of {deleted_in_batch} documents")
+            # Add document to batch delete
+            batch.delete(doc.reference)
+            deleted_in_batch += 1
+
+            # Commit batch when it reaches the size limit
+            if deleted_in_batch >= batch_size:
+                try:
+                    batch.commit()
+                    total_deleted += deleted_in_batch
+                    logger.info(f"Deleted batch of {deleted_in_batch} documents")
+                    deleted_in_batch = 0
+                    batch = db.batch()
+                except Exception as e:
+                    logger.error(f"Failed to delete batch of {deleted_in_batch} documents: {e}", exc_info=True)
+                    raise
+
+        # Commit remaining documents
+        if deleted_in_batch > 0:
+            try:
+                batch.commit()
+                total_deleted += deleted_in_batch
+                logger.info(f"Deleted final batch of {deleted_in_batch} documents")
+            except Exception as e:
+                logger.error(f"Failed to delete final batch of {deleted_in_batch} documents: {e}", exc_info=True)
+                raise
 
     logger.info(f"Total documents deleted from collection: {total_deleted}")
     return total_deleted

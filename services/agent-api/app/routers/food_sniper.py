@@ -30,6 +30,7 @@ ALLOWED_HAIR_PATTERNS = {
     "びまん性",
     "オルセン型",
     "ハミルトン型",
+    "None",  # Pattern not identifiable or not applicable
 }
 
 

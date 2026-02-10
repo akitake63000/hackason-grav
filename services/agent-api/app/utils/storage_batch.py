@@ -45,6 +45,7 @@ def batch_delete_blobs(
     errors = []
 
     for chunk in chunk_list(blob_names, batch_size):
+        chunk_deleted = 0  # Track successful deletions in this chunk
         try:
             # Delete blobs in parallel within the batch
             with bucket.client.batch():
@@ -52,13 +53,14 @@ def batch_delete_blobs(
                     try:
                         blob = bucket.blob(blob_name)
                         blob.delete()
-                        total_deleted += 1
+                        chunk_deleted += 1  # Count only on successful deletion
                     except GoogleCloudError as e:
                         # Log error but continue with other blobs
                         logger.warning(f"Failed to delete blob '{blob_name}': {e}")
                         errors.append((blob_name, str(e)))
 
-            logger.info(f"Batch deleted {len(chunk)} blobs (actual: {total_deleted})")
+            total_deleted += chunk_deleted
+            logger.info(f"Batch deleted {chunk_deleted} of {len(chunk)} blobs")
 
         except Exception as e:
             logger.error(f"Failed to delete batch of {len(chunk)} blobs: {e}", exc_info=True)

@@ -69,8 +69,8 @@ def validate_all_env_vars() -> Dict[str, str]:
     validated = {}
     errors = []
 
+    # Environment type validation
     try:
-        # Environment type validation
         environment = validate_env_var(
             "ENVIRONMENT",
             required=False,
@@ -78,71 +78,102 @@ def validate_all_env_vars() -> Dict[str, str]:
             default="development"
         )
         validated["ENVIRONMENT"] = environment
+    except EnvValidationError as e:
+        errors.append(str(e))
+        environment = "development"  # Fallback for later checks
 
-        # Firebase configuration
+    # Firebase configuration
+    try:
         firebase_project_id = validate_env_var(
             "FIREBASE_PROJECT_ID",
             required=True
         )
         validated["FIREBASE_PROJECT_ID"] = firebase_project_id
+    except EnvValidationError as e:
+        errors.append(str(e))
 
+    try:
         firebase_storage_bucket = validate_env_var(
             "FIREBASE_STORAGE_BUCKET",
             required=True
         )
         validated["FIREBASE_STORAGE_BUCKET"] = firebase_storage_bucket
+    except EnvValidationError as e:
+        errors.append(str(e))
 
-        # Google Cloud configuration
-        use_vertexai = _get_bool("GOOGLE_GENAI_USE_VERTEXAI", "false")
-        if use_vertexai:
+    # Google Cloud configuration
+    use_vertexai = _get_bool("GOOGLE_GENAI_USE_VERTEXAI", "false")
+    if use_vertexai:
+        try:
             google_cloud_project = validate_env_var(
                 "GOOGLE_CLOUD_PROJECT",
                 required=True
             )
             validated["GOOGLE_CLOUD_PROJECT"] = google_cloud_project
+        except EnvValidationError as e:
+            errors.append(str(e))
 
+        try:
             google_cloud_location = validate_env_var(
                 "GOOGLE_CLOUD_LOCATION",
                 required=False,
                 default="global"
             )
             validated["GOOGLE_CLOUD_LOCATION"] = google_cloud_location
+        except EnvValidationError as e:
+            errors.append(str(e))
+    else:
+        # If not using Vertex AI, validate GOOGLE_API_KEY instead
+        try:
+            google_api_key = validate_env_var(
+                "GOOGLE_API_KEY",
+                required=True
+            )
+            validated["GOOGLE_API_KEY"] = google_api_key
+        except EnvValidationError as e:
+            errors.append(str(e))
 
-        # Gemini models
+    # Gemini models
+    try:
         gemini_model = validate_env_var(
             "GEMINI_MODEL",
             required=False,
             default="gemini-2.5-flash"
         )
         validated["GEMINI_MODEL"] = gemini_model
+    except EnvValidationError as e:
+        errors.append(str(e))
 
-        # CORS configuration (required in production)
-        if environment == "production":
+    # CORS configuration (required in production)
+    if environment == "production":
+        try:
             allowed_origins = validate_env_var(
                 "ALLOWED_ORIGINS",
                 required=True
             )
             validated["ALLOWED_ORIGINS"] = allowed_origins
+        except EnvValidationError as e:
+            errors.append(str(e))
 
-            # Sentry DSN (recommended in production)
+        # Sentry DSN (recommended in production)
+        try:
             sentry_dsn = validate_env_var("SENTRY_DSN")
             if not sentry_dsn:
                 logger.warning(
                     "SENTRY_DSN is not set in production environment. "
                     "Error monitoring will not be available."
                 )
-
-        logger.info(f"Environment variables validated successfully for environment: {environment}")
-        return validated
-
-    except EnvValidationError as e:
-        errors.append(str(e))
+            else:
+                validated["SENTRY_DSN"] = sentry_dsn
+        except EnvValidationError as e:
+            errors.append(str(e))
 
     if errors:
         error_message = "Environment variable validation failed:\n" + "\n".join(f"  - {err}" for err in errors)
         logger.error(error_message)
         raise EnvValidationError(error_message)
 
+    logger.info(f"Environment variables validated successfully for environment: {environment}")
     return validated
 
 
