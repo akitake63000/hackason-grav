@@ -136,40 +136,6 @@ class PatternInfo(BaseModel):
 class FoodSniperResponse(BaseModel):
     patternInfo: Optional[PatternInfo] = None
     nutrients: List[NutrientInfo]
-                    },
-                ],
-            },
-            {
-                "name": "オメガ3 + ビタミンE",
-                "role": "ホルモン合成の材料となり、抗炎症作用で頭皮を保護する",
-                "dailyRecommended": "n-3系脂肪酸 2.0g / ビタミンE 5.0mg（女性）",
-                "foods": [
-                    {
-                        "name": "青魚（まさば）",
-                        "emoji": "🐟",
-                        "serving": "1切れ（80g）",
-                        "amount": "EPA+DHA 約1.3g",
-                        "dailyPercentValue": 65,
-                        "dailyPercent": "約65%",
-                        "tip": "サバ缶は保存がきき、調理も不要で続けやすい",
-                        "why": "サバのEPA+DHAはホルモン合成の材料となり、抗炎症作用で頭皮を保護します",
-                    },
-                    {
-                        "name": "ナッツ類（アーモンド）",
-                        "emoji": "🥜",
-                        "serving": "25粒（約25g）",
-                        "amount": "ビタミンE 7.4mg、亜鉛 1.0mg",
-                        "dailyPercentValue": 148,
-                        "dailyPercent": "ビタミンE 約148%（女性基準）",
-                        "tip": "素焼きを選び、間食として1日25粒が理想的",
-                        "why": "アーモンドはビタミンEとミネラルが豊富で、ホルモンバランスの維持に役立ちます",
-                    },
-                ],
-            },
-        ],
-    },
-}
-
 # パターン未特定時の汎用フォールバック
 GENERIC_FALLBACK_NUTRIENTS = [
     {
