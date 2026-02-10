@@ -63,7 +63,7 @@ const styles = {
     transition: 'all 0.3s ease',
   },
   genderCardSelected: {
-    borderColor: '#419873',
+    border: '2px solid #419873',
     background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(124, 154, 124, 0.04) 100%)',
   },
   genderIcon: {
