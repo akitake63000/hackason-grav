@@ -74,10 +74,11 @@
 
 .logoText {
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
-  font-size: clamp(16px, 3vw, 18px);
+  font-size: clamp(15px, 2.8vw, 17px);
   font-weight: 600;
   color: #1a3d2e;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 /* Navigation List */
