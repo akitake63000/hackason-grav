@@ -306,6 +306,39 @@ function Profile() {
               </div>
               <span style={styles.genderLabel}>女性</span>
             </motion.div>
+
+            {/* Prefer not to say */}
+            <motion.div
+              style={{
+                ...styles.genderCard,
+                ...(gender === 'prefer-not-to-say' ? styles.genderCardSelected : {}),
+              }}
+              onClick={() => setGender('prefer-not-to-say')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <AnimatePresence>
+                {gender === 'prefer-not-to-say' && (
+                  <motion.div
+                    style={styles.checkmark}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                  >
+                    <Check size={14} strokeWidth={3} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div
+                style={{
+                  ...styles.genderIcon,
+                  background: 'linear-gradient(135deg, rgba(150, 150, 150, 0.15) 0%, rgba(150, 150, 150, 0.05) 100%)',
+                }}
+              >
+                🤐
+              </div>
+              <span style={styles.genderLabel}>回答なし</span>
+            </motion.div>
           </div>
         </motion.div>
 
