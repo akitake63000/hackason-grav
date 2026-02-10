@@ -7,7 +7,7 @@ import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth, getIdToken } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import styles from './page.module.css'
 
 // 初期メッセージ
@@ -159,13 +159,20 @@ function Chat() {
       setPendingTaskId(pendingTask)
       setThreadId(pendingThread)
       setIsLoading(true)
-      startPolling(pendingTask, pendingThread)
+      startListening(pendingTask, pendingThread)
     }
 
-    // クリーンアップ: ポーリング停止
+    // クリーンアップ: リスナー/ポーリング停止
     return () => {
       if (pollingIntervalId) {
-        clearInterval(pollingIntervalId)
+        // pollingIntervalIdはintervalまたはunsubscribe関数
+        if (typeof pollingIntervalId === 'function') {
+          // Firestoreリスナーのunsubscribe
+          pollingIntervalId()
+        } else {
+          // ポーリングのinterval
+          clearInterval(pollingIntervalId)
+        }
       }
     }
   }, []) // 空の依存配列で初回のみ実行
@@ -257,7 +264,81 @@ function Chat() {
     }
   }, [messages, discussionMessages, revealingAgent])
 
-  // ポーリング開始
+  // Firestoreリスナー開始（Phase 2: リアルタイム更新）
+  const startListening = (taskId, tid) => {
+    if (!user || !isFirebaseConfigured()) {
+      console.warn('Firebase not configured, falling back to polling')
+      return startPolling(taskId, tid)
+    }
+
+    try {
+      const db = getFirestoreDb()
+      const taskRef = doc(db, 'users', user.uid, 'chatTasks', taskId)
+
+      console.log('Starting Firestore listener for task:', taskId)
+
+      const unsubscribe = onSnapshot(
+        taskRef,
+        async (snapshot) => {
+          if (!snapshot.exists()) {
+            console.warn('Task not found:', taskId)
+            unsubscribe()
+            setPollingIntervalId(null)
+            setPendingTaskId(null)
+            localStorage.removeItem('pending_chat_task')
+            localStorage.removeItem('pending_chat_thread')
+            setIsLoading(false)
+            return
+          }
+
+          const taskData = snapshot.data()
+          console.log('Task status updated:', taskData.status)
+
+          if (taskData.status === 'succeeded') {
+            // 完了：メッセージを再読み込み
+            console.log('Task succeeded, reloading messages')
+            await loadMessagesFromFirestore(tid)
+
+            // リスナー停止
+            unsubscribe()
+            setPollingIntervalId(null)
+            setPendingTaskId(null)
+            localStorage.removeItem('pending_chat_task')
+            localStorage.removeItem('pending_chat_thread')
+            setIsLoading(false)
+
+          } else if (taskData.status === 'failed' || taskData.status === 'timeout') {
+            // 失敗：エラー表示
+            console.error('Task failed:', taskData.error)
+            setError(`回答の生成に失敗しました: ${taskData.error || '不明なエラー'}`)
+
+            unsubscribe()
+            setPollingIntervalId(null)
+            setPendingTaskId(null)
+            localStorage.removeItem('pending_chat_task')
+            localStorage.removeItem('pending_chat_thread')
+            setIsLoading(false)
+          }
+          // queued/running の場合は継続
+        },
+        (error) => {
+          console.error('Firestore listener error:', error)
+          // エラー時はポーリングにフォールバック
+          startPolling(taskId, tid)
+        }
+      )
+
+      // unsubscribe関数をpollingIntervalIdとして保存（cleanup用）
+      setPollingIntervalId(unsubscribe)
+
+    } catch (error) {
+      console.error('Failed to start Firestore listener:', error)
+      // エラー時はポーリングにフォールバック
+      startPolling(taskId, tid)
+    }
+  }
+
+  // ポーリング開始（Phase 1: フォールバック用）
   const startPolling = (taskId, tid) => {
     const interval = setInterval(async () => {
       try {
@@ -281,6 +362,7 @@ function Chat() {
             setPollingIntervalId(null)
             setPendingTaskId(null)
             localStorage.removeItem('pending_chat_task')
+            localStorage.removeItem('pending_chat_thread')
             setIsLoading(false)
           }
           return
@@ -298,6 +380,7 @@ function Chat() {
           setPollingIntervalId(null)
           setPendingTaskId(null)
           localStorage.removeItem('pending_chat_task')
+          localStorage.removeItem('pending_chat_thread')
           setIsLoading(false)
 
         } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
@@ -309,6 +392,7 @@ function Chat() {
           setPollingIntervalId(null)
           setPendingTaskId(null)
           localStorage.removeItem('pending_chat_task')
+          localStorage.removeItem('pending_chat_thread')
           setIsLoading(false)
         }
         // queued/running の場合は継続
@@ -375,8 +459,8 @@ function Chat() {
       localStorage.setItem('pending_chat_task', taskId)
       localStorage.setItem('pending_chat_thread', threadId)
 
-      // ポーリング開始
-      startPolling(taskId, threadId)
+      // Firestoreリスナー開始（Phase 2: リアルタイム更新）
+      startListening(taskId, threadId)
 
     } catch (error) {
       console.error('Failed to send async chat:', error)
