@@ -9,6 +9,8 @@ import Layout from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { getUserProfile } from '@/lib/profile'
 import { apiFetch } from '@/lib/api'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import styles from './page.module.css'
 
 // Inline styles for dynamic gradient values
@@ -53,6 +55,7 @@ function Home() {
   const { user } = useAuth()
   const [userName, setUserName] = useState('あなた')
   const [streakDays, setStreakDays] = useState(0)
+  const [totalDays, setTotalDays] = useState(0)
   const [tip, setTip] = useState('今日のヒントを準備中です')
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
@@ -70,19 +73,132 @@ function Home() {
     return '習慣化達成！この調子で続けましょう'
   }, [streakDays])
 
+  // 訪問記録を保存する関数
+  const recordHomeVisit = async (uid) => {
+    if (!isFirebaseConfigured()) return
+
+    try {
+      const db = getFirestoreDb()
+      const now = new Date()
+
+      // JST日付取得（Asia/Tokyo）
+      const jstDateStr = now.toLocaleDateString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/\//g, '-') // YYYY-MM-DD形式
+
+      // visitHistoryに記録（dateKeyをドキュメントIDに）
+      const visitRef = doc(db, 'users', uid, 'visitHistory', jstDateStr)
+      await setDoc(visitRef, {
+        date: jstDateStr,
+        timestamp: serverTimestamp(),
+        lastVisitedAt: serverTimestamp()
+      }, { merge: true }) // mergeで同日の重複を防止
+
+      console.log('Home visit recorded:', jstDateStr)
+
+      // 連続日数・通算日数を計算してprofileを更新
+      await updateVisitStats(uid, jstDateStr)
+
+    } catch (error) {
+      console.error('Failed to record home visit:', error)
+    }
+  }
+
+  // 連続日数・通算日数を計算（キャッシュ活用で効率化）
+  const updateVisitStats = async (uid, todayDate) => {
+    try {
+      const db = getFirestoreDb()
+      const profileRef = doc(db, 'users', uid, 'profile', 'default')
+
+      // UserProfileを取得してキャッシュを確認
+      const profileSnap = await getDoc(profileRef)
+      const profile = profileSnap.data() || {}
+
+      const lastVisitDate = profile.lastHomeVisitDate
+      const cachedStreakDays = profile.homeStreakDays || 0
+      const cachedTotalDays = profile.homeTotalDays || 0
+
+      // 初回訪問または今日が初めての訪問かチェック
+      if (lastVisitDate === todayDate) {
+        // 同日の再訪問 → キャッシュをそのまま使用（クエリ不要）
+        console.log('Same day visit, using cached values')
+        setStreakDays(cachedStreakDays)
+        setTotalDays(cachedTotalDays)
+        return
+      }
+
+      // 新しい日の訪問 → 連続性チェック
+      let newStreakDays = 0
+      let newTotalDays = cachedTotalDays + 1
+
+      if (!lastVisitDate) {
+        // 初回訪問
+        newStreakDays = 1
+        newTotalDays = 1
+      } else {
+        // 前回訪問日から連続性をチェック
+        const lastVisit = new Date(lastVisitDate)
+        const today = new Date(todayDate)
+        const daysDiff = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24))
+
+        if (daysDiff === 1) {
+          // 連続訪問（昨日も訪問していた）
+          newStreakDays = cachedStreakDays + 1
+        } else if (daysDiff === 0) {
+          // 同日（念のため）
+          newStreakDays = cachedStreakDays
+          newTotalDays = cachedTotalDays // 通算日数は増やさない
+        } else {
+          // 途切れた → リセット
+          newStreakDays = 1
+        }
+      }
+
+      // UserProfileを更新（キャッシュを更新）
+      await setDoc(profileRef, {
+        homeStreakDays: newStreakDays,
+        homeTotalDays: newTotalDays,
+        lastHomeVisitDate: todayDate
+      }, { merge: true })
+
+      console.log('Visit stats updated:', {
+        streakDays: newStreakDays,
+        totalDays: newTotalDays,
+        daysSinceLastVisit: lastVisitDate ? Math.floor((new Date(todayDate) - new Date(lastVisitDate)) / (1000 * 60 * 60 * 24)) : 0
+      })
+
+      // 状態を更新（即座にUIに反映）
+      setStreakDays(newStreakDays)
+      setTotalDays(newTotalDays)
+
+    } catch (error) {
+      console.error('Failed to update visit stats:', error)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
     const fallbackName = user.displayName ?? 'あなた'
     setUserName(`${fallbackName}さん`)
 
+    // 訪問記録（非同期で実行）
+    recordHomeVisit(user.uid)
+
+    // UserProfileから統計を取得
     getUserProfile(user.uid)
       .then((profile) => {
         if (!profile) return
         if (profile.displayName) {
           setUserName(`${profile.displayName}さん`)
         }
-        if (typeof profile.streakDays === 'number') {
-          setStreakDays(profile.streakDays)
+        if (typeof profile.homeStreakDays === 'number') {
+          setStreakDays(profile.homeStreakDays)
+        }
+        if (typeof profile.homeTotalDays === 'number') {
+          setTotalDays(profile.homeTotalDays)
         }
       })
       .catch(() => {
@@ -137,11 +253,13 @@ function Home() {
         >
           <div className={styles.statusHeader}>
             <Sparkles size={16} color="#c9a962" />
-            <span className={styles.statusTitle}>継続記録</span>
+            <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
           </div>
           <div className={styles.statusContent}>
             <span className={styles.statusValue}>{streakDays}</span>
             <span className={styles.statusUnit}>日連続</span>
+            <span className={styles.statusSeparator}>・</span>
+            <span className={styles.statusTotal}>通算{totalDays}日利用</span>
           </div>
           <p className={styles.statusSubtext}>
             {streakMessage}

@@ -89,6 +89,17 @@
   color: #7f786d;
 }
 
+.statusSeparator {
+  font-size: var(--font-sm);
+  color: #7f786d;
+  margin: 0 4px;
+}
+
+.statusTotal {
+  font-size: var(--font-sm);
+  color: #7f786d;
+}
+
 .statusSubtext {
   font-size: var(--font-xs);
   color: #7f786d;

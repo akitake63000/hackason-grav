@@ -6,7 +6,10 @@ export type UserProfile = {
   birthDate?: string;
   concernAreas?: string[];
   displayName?: string;
-  streakDays?: number;
+  streakDays?: number; // lifestyle plan用
+  homeStreakDays?: number; // ホーム画面連続日数
+  homeTotalDays?: number; // 通算日数
+  lastHomeVisitDate?: string; // 最後の訪問日（YYYY-MM-DD）
 };
 
 export const hasUserProfile = async (uid: string): Promise<boolean> => {

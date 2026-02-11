@@ -49,6 +49,11 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow write: if false;
       }
+
+      match /visitHistory/{dateKey} {
+        // ユーザーは自分の訪問履歴のみ読み書き可能
+        allow read, write: if isOwner(uid);
+      }
     }
   }
 }
