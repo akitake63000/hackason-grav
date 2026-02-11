@@ -1,0 +1,306 @@
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 24px;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.title {
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 600;
+    color: #1a3d2e;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #7f786d;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.sectionTitle {
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a3d2e;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.patternCard {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(26, 61, 46, 0.1);
+    border-radius: 16px;
+    padding: 0;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(26, 61, 46, 0.05);
+}
+
+.columnSection {
+    padding: 24px;
+}
+
+.columnLabel {
+    font-size: 11px;
+    font-weight: 700;
+    color: #c9a962;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.patternName {
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a3d2e;
+    margin-bottom: 8px;
+}
+
+.columnText {
+    font-size: 15px;
+    color: #4a4a4a;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.divider {
+    height: 1px;
+    background: rgba(26, 61, 46, 0.05);
+    margin: 0 24px;
+}
+
+.nutrientCard {
+    margin-bottom: 16px;
+}
+
+.nutrientHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.nutrientName {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a3d2e;
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+}
+
+.nutrientRole {
+    font-size: 13px;
+    color: #7f786d;
+    margin-top: 4px;
+}
+
+.foodList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.foodItem {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.foodEmoji {
+    font-size: 32px;
+    line-height: 1;
+    background: #fcfaf7;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.foodContent {
+    flex: 1;
+}
+
+.foodName {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a3d2e;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.foodAmount {
+    font-size: 13px;
+    color: #7f786d;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.foodWhy {
+    font-size: 13px;
+    color: #635d54;
+    background: rgba(65, 152, 115, 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.recipeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid rgba(65, 152, 115, 0.2);
+    border-radius: 10px;
+    background: transparent;
+    color: #419873;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
+}
+
+.recipeBtn:hover {
+    background: rgba(65, 152, 115, 0.08);
+}
+
+.recipeBtn:active {
+    transform: scale(0.97);
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modalContent {
+    background: #fff;
+    border-radius: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: auto;
+    padding: 24px;
+    position: relative;
+}
+
+.modalClose {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.modalTitle {
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a3d2e;
+    margin-bottom: 20px;
+    padding-right: 40px;
+}
+
+.recipeCard {
+    padding: 16px;
+    background: rgba(26, 61, 46, 0.03);
+    border-radius: 16px;
+    margin-bottom: 12px;
+}
+
+.recipeName {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a3d2e;
+    margin-bottom: 8px;
+}
+
+.recipeDesc {
+    font-size: 14px;
+    color: #4a4a4a;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.recipeIngredients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.ingredientTag {
+    padding: 4px 10px;
+    background: rgba(201, 169, 98, 0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #8a7640;
+}
+
+.recipeBenefit {
+    font-size: 13px;
+    color: #419873;
+    font-style: italic;
+}
+
+.loadingContainer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+}
+
+.errorContainer {
+    padding: 24px;
+    text-align: center;
+}
+
+.backButton {
+    margin-bottom: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: #7f786d;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 0;
+}

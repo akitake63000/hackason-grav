@@ -8,6 +8,7 @@ import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { apiFetch } from '@/lib/api';
+import styles from './page.module.css';
 
 // Types based on backend Pydantic models
 interface FoodDetail {
@@ -55,274 +56,6 @@ interface RecipeModal {
     recipes: RecipeItem[];
     error: string | null;
 }
-
-const styles = {
-    container: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        width: '100%',
-    },
-    content: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column' as const,
-        padding: '24px',
-        gap: '24px',
-        maxWidth: '800px',
-        width: '100%',
-        margin: '0 auto',
-        boxSizing: 'border-box' as const,
-    },
-    header: {
-        marginBottom: '8px',
-    },
-    title: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: 'clamp(24px, 4vw, 32px)',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        textAlign: 'center' as const,
-        marginBottom: '8px',
-    },
-    subtitle: {
-        fontSize: '14px',
-        color: '#7f786d',
-        textAlign: 'center' as const,
-        marginBottom: '24px',
-    },
-    sectionTitle: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: '18px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-    },
-    patternCard: {
-        background: 'rgba(255, 255, 255, 0.95)',
-        border: '1px solid rgba(26, 61, 46, 0.1)',
-        borderRadius: '16px',
-        padding: '0', // Reset padding for inner sections
-        marginBottom: '24px',
-        overflow: 'hidden',
-        boxShadow: '0 4px 20px rgba(26, 61, 46, 0.05)',
-    },
-    columnSection: {
-        padding: '24px',
-    },
-    columnLabel: {
-        fontSize: '11px',
-        fontWeight: '700',
-        color: '#c9a962',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '1px',
-        marginBottom: '8px',
-        display: 'block',
-    },
-    patternName: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: '22px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '8px',
-    },
-    columnText: {
-        fontSize: '15px',
-        color: '#4a4a4a',
-        lineHeight: 1.7,
-        whiteSpace: 'pre-wrap' as const,
-    },
-    divider: {
-        height: '1px',
-        background: 'rgba(26, 61, 46, 0.05)',
-        margin: '0 24px',
-    },
-    nutrientCard: {
-        marginBottom: '16px',
-    },
-    nutrientHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
-        marginBottom: '12px',
-        paddingBottom: '12px',
-        borderBottom: '1px solid rgba(0,0,0,0.05)',
-    },
-    nutrientName: {
-        fontSize: '18px',
-        fontWeight: '600',
-        color: '#1a3d2e',
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-    },
-    nutrientRole: {
-        fontSize: '13px',
-        color: '#7f786d',
-    },
-    foodList: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '16px',
-    },
-    foodItem: {
-        display: 'flex',
-        gap: '16px',
-        alignItems: 'flex-start',
-    },
-    foodEmoji: {
-        fontSize: '32px',
-        lineHeight: 1,
-        background: '#fcfaf7',
-        padding: '12px',
-        borderRadius: '12px',
-    },
-    foodContent: {
-        flex: 1,
-    },
-    foodName: {
-        fontSize: '16px',
-        fontWeight: '600',
-        color: '#1a3d2e',
-        marginBottom: '4px',
-        display: 'block',
-    },
-    foodAmount: {
-        fontSize: '13px',
-        color: '#7f786d',
-        display: 'block',
-        marginBottom: '8px',
-    },
-    foodWhy: {
-        fontSize: '13px',
-        color: '#635d54',
-        background: 'rgba(65, 152, 115, 0.05)',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        lineHeight: 1.5,
-    },
-    recipeBtn: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        padding: '8px',
-        border: '1px solid rgba(65, 152, 115, 0.2)',
-        borderRadius: '10px',
-        background: 'transparent',
-        color: '#419873',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
-    },
-    modalOverlay: {
-        position: 'fixed' as const,
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px',
-    },
-    modalContent: {
-        background: '#fff',
-        borderRadius: '24px',
-        maxWidth: '500px',
-        width: '100%',
-        maxHeight: '80vh',
-        overflow: 'auto' as const,
-        padding: '24px',
-        position: 'relative' as const,
-    },
-    modalClose: {
-        position: 'absolute' as const,
-        top: '16px',
-        right: '16px',
-        width: '32px',
-        height: '32px',
-        borderRadius: '50%',
-        background: 'rgba(0, 0, 0, 0.06)',
-        border: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-    },
-    modalTitle: {
-        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
-        fontSize: '20px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '20px',
-        paddingRight: '40px',
-    },
-    recipeCard: {
-        padding: '16px',
-        background: 'rgba(26, 61, 46, 0.03)',
-        borderRadius: '16px',
-        marginBottom: '12px',
-    },
-    recipeName: {
-        fontSize: '16px',
-        fontWeight: '600' as const,
-        color: '#1a3d2e',
-        marginBottom: '8px',
-    },
-    recipeDesc: {
-        fontSize: '14px',
-        color: '#4a4a4a',
-        lineHeight: 1.6,
-        marginBottom: '10px',
-    },
-    recipeIngredients: {
-        display: 'flex',
-        flexWrap: 'wrap' as const,
-        gap: '6px',
-        marginBottom: '10px',
-    },
-    ingredientTag: {
-        padding: '4px 10px',
-        background: 'rgba(201, 169, 98, 0.1)',
-        borderRadius: '8px',
-        fontSize: '12px',
-        color: '#8a7640',
-    },
-    recipeBenefit: {
-        fontSize: '13px',
-        color: '#419873',
-        fontStyle: 'italic' as const,
-    },
-    loadingContainer: {
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px',
-    },
-    errorContainer: {
-        padding: '24px',
-        textAlign: 'center' as const,
-    },
-    backButton: {
-        marginBottom: '16px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        fontSize: '14px',
-        color: '#7f786d',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '8px 0',
-    },
-};
 
 function FoodRecommendContent() {
     const searchParams = useSearchParams();
@@ -400,8 +133,8 @@ function FoodRecommendContent() {
     if (loading) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.loadingContainer}>
+                <div className={styles.container}>
+                    <div className={styles.loadingContainer}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🥗</div>
                             <h2 style={{ color: '#1a3d2e', marginBottom: '8px', fontWeight: 600 }}>分析中...</h2>
@@ -416,10 +149,10 @@ function FoodRecommendContent() {
     if (error) {
         return (
             <Layout>
-                <div style={styles.container}>
-                    <div style={styles.errorContainer}>
+                <div className={styles.container}>
+                    <div className={styles.errorContainer}>
                         <p style={{ color: '#e53e3e', marginBottom: '16px' }}>{error}</p>
-                        <Button variant="secondary" onClick={() => router.back()} size="medium" style={{}} icon={undefined}>
+                        <Button variant="secondary" onClick={() => router.back()} size="medium" icon={undefined} style={{}}>
                             戻る
                         </Button>
                     </div>
@@ -430,9 +163,9 @@ function FoodRecommendContent() {
 
     return (
         <Layout>
-            <div style={styles.container}>
-                <div style={styles.content}>
-                    <button style={styles.backButton} onClick={() => router.back()}>
+            <div className={styles.container}>
+                <div className={styles.content}>
+                    <button className={styles.backButton} onClick={() => router.back()}>
                         <ChevronLeft size={16} />
                         診断結果に戻る
                     </button>
@@ -442,8 +175,8 @@ function FoodRecommendContent() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4 }}
                     >
-                        <h1 style={styles.title}>食事改善プラン</h1>
-                        <p style={styles.subtitle}>
+                        <h1 className={styles.title}>食事改善プラン</h1>
+                        <p className={styles.subtitle}>
                             {data?.patternInfo?.label ? `${data.patternInfo.label}向け` : 'あなたに最適'}の栄養アプローチ
                         </p>
                     </motion.div>
@@ -451,32 +184,32 @@ function FoodRecommendContent() {
                     {/* Pattern Info Section - "WHY" */}
                     {data?.patternInfo && (
                         <motion.div
-                            style={styles.patternCard}
+                            className={styles.patternCard}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1, duration: 0.5 }}
                         >
                             {/* Pattern Name Block */}
-                            <div style={styles.columnSection}>
-                                <span style={styles.columnLabel}>あなたのパターン</span>
-                                <h3 style={styles.patternName}>{data.patternInfo.label}</h3>
-                                <p style={styles.columnText}>{data.patternInfo.description}</p>
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>あなたのパターン</span>
+                                <h3 className={styles.patternName}>{data.patternInfo.label}</h3>
+                                <p className={styles.columnText}>{data.patternInfo.description}</p>
                             </div>
 
-                            <div style={styles.divider} />
+                            <div className={styles.divider} />
 
                             {/* Cause Block */}
-                            <div style={styles.columnSection}>
-                                <span style={styles.columnLabel}>なぜ？</span>
-                                <p style={styles.columnText}>{data.patternInfo.cause}</p>
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>なぜ？</span>
+                                <p className={styles.columnText}>{data.patternInfo.cause}</p>
                             </div>
 
-                            <div style={styles.divider} />
+                            <div className={styles.divider} />
 
                             {/* Strategy Block */}
-                            <div style={styles.columnSection}>
-                                <span style={styles.columnLabel}>どうしよう？</span>
-                                <p style={styles.columnText}>{data.patternInfo.strategy}</p>
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>どうしよう？</span>
+                                <p className={styles.columnText}>{data.patternInfo.strategy}</p>
                             </div>
                         </motion.div>
                     )}
@@ -487,17 +220,17 @@ function FoodRecommendContent() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3, duration: 0.5 }}
                     >
-                        <h2 style={styles.sectionTitle}>
+                        <h2 className={styles.sectionTitle}>
                             <Utensils size={20} />
                             重点的に摂りたい栄養素と食材
                         </h2>
 
                         {data?.nutrients.map((nutrient, idx) => (
-                            <Card key={idx} variant="default" padding="lg" style={styles.nutrientCard} onClick={undefined}>
-                                <div style={styles.nutrientHeader}>
+                            <Card key={idx} variant="default" padding="lg" className={styles.nutrientCard} onClick={undefined} style={{}}>
+                                <div className={styles.nutrientHeader}>
                                     <div>
-                                        <span style={styles.nutrientName}>{nutrient.name}</span>
-                                        <div style={{ ...styles.nutrientRole, marginTop: '4px' }}>{nutrient.role}</div>
+                                        <span className={styles.nutrientName}>{nutrient.name}</span>
+                                        <div className={styles.nutrientRole} style={{ marginTop: '4px' }}>{nutrient.role}</div>
                                     </div>
                                     {nutrient.dailyRecommended && (
                                         <div style={{ fontSize: '12px', background: '#f0f0f0', padding: '4px 8px', borderRadius: '4px' }}>
@@ -506,20 +239,20 @@ function FoodRecommendContent() {
                                     )}
                                 </div>
 
-                                <div style={styles.foodList}>
+                                <div className={styles.foodList}>
                                     {nutrient.foods.map((food, fIdx) => (
-                                        <div key={fIdx} style={styles.foodItem}>
-                                            <div style={styles.foodEmoji}>{food.emoji}</div>
-                                            <div style={styles.foodContent}>
-                                                <span style={styles.foodName}>{food.name}</span>
-                                                <span style={styles.foodAmount}>
+                                        <div key={fIdx} className={styles.foodItem}>
+                                            <div className={styles.foodEmoji}>{food.emoji}</div>
+                                            <div className={styles.foodContent}>
+                                                <span className={styles.foodName}>{food.name}</span>
+                                                <span className={styles.foodAmount}>
                                                     {food.serving} で {food.amount}
                                                     {food.dailyPercent && ` (${food.dailyPercent})`}
                                                 </span>
-                                                <p style={styles.foodWhy}>{food.why}</p>
+                                                <p className={styles.foodWhy}>{food.why}</p>
 
                                                 <motion.button
-                                                    style={styles.recipeBtn}
+                                                    className={styles.recipeBtn}
                                                     whileHover={{
                                                         background: 'rgba(65, 152, 115, 0.08)',
                                                     }}
@@ -541,27 +274,27 @@ function FoodRecommendContent() {
                     <AnimatePresence>
                         {recipeModal && (
                             <motion.div
-                                style={styles.modalOverlay}
+                                className={styles.modalOverlay}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setRecipeModal(null)}
                             >
                                 <motion.div
-                                    style={styles.modalContent}
+                                    className={styles.modalContent}
                                     initial={{ scale: 0.9, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     exit={{ scale: 0.9, opacity: 0 }}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <button
-                                        style={styles.modalClose}
+                                        className={styles.modalClose}
                                         onClick={() => setRecipeModal(null)}
                                     >
                                         <X size={18} />
                                     </button>
 
-                                    <h3 style={styles.modalTitle}>
+                                    <h3 className={styles.modalTitle}>
                                         {recipeModal.food.emoji} {recipeModal.food.name}のレシピ
                                     </h3>
 
@@ -609,18 +342,18 @@ function FoodRecommendContent() {
 
                                     {!recipeModal.loading &&
                                         recipeModal.recipes.map((recipe, idx) => (
-                                            <div key={idx} style={styles.recipeCard}>
-                                                <div style={styles.recipeName}>{recipe.name}</div>
-                                                <p style={styles.recipeDesc}>{recipe.description}</p>
-                                                <div style={styles.recipeIngredients}>
+                                            <div key={idx} className={styles.recipeCard}>
+                                                <div className={styles.recipeName}>{recipe.name}</div>
+                                                <p className={styles.recipeDesc}>{recipe.description}</p>
+                                                <div className={styles.recipeIngredients}>
                                                     {recipe.ingredients.map((ing, i) => (
-                                                        <span key={i} style={styles.ingredientTag}>
+                                                        <span key={i} className={styles.ingredientTag}>
                                                             {ing}
                                                         </span>
                                                     ))}
                                                 </div>
                                                 {recipe.benefit && (
-                                                    <p style={styles.recipeBenefit}>
+                                                    <p className={styles.recipeBenefit}>
                                                         {'🌿 '}
                                                         {recipe.benefit}
                                                     </p>
