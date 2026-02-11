@@ -768,7 +768,7 @@ def _execute_discuss_workflow_sync(
             })
 
         # サマリーメッセージID
-        message_doc = messages_ref.add({
+        _, message_ref = messages_ref.add({
             "role": "agent",
             "agent": "orchestrator",
             "text": summary,
@@ -781,7 +781,7 @@ def _execute_discuss_workflow_sync(
         task_ref.update({
             "status": "succeeded",
             "finishedAt": admin_firestore.SERVER_TIMESTAMP,
-            "messageId": message_doc[1].id,  # message_doc is (timestamp, DocumentReference)
+            "messageId": message_ref.id,
         })
 
         logger.info(f"Task {task_id} completed successfully")
