@@ -711,7 +711,7 @@ function Chat() {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendAsync()
+      handleSend()
     }
   }
 
@@ -1022,7 +1022,7 @@ function Chat() {
               opacity: isBusy ? 0.6 : 1,
               cursor: isBusy ? 'not-allowed' : 'pointer',
             }}
-            onClick={handleSendAsync}
+            onClick={handleSend}
             disabled={isBusy}
             whileHover={isBusy ? {} : { scale: 1.05 }}
             whileTap={isBusy ? {} : { scale: 0.95 }}
