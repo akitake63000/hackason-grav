@@ -562,16 +562,16 @@ function Chat() {
             type: 'discussion-result',
             summary: msg.summary,
             allCards: JSON.stringify(msg.allCards),
-            timestamp: serverTimestamp(),
+            createdAt: serverTimestamp(),
           }
           if (msg.bestCard) saveData.bestCard = JSON.stringify(msg.bestCard)
           await setDoc(msgRef, saveData)
         } else {
           await setDoc(msgRef, {
             role: msg.type === 'user' ? 'user' : 'ai',
-            content: msg.text,
+            text: msg.text,
             ...(msg.agent && { agent: msg.agent }),
-            timestamp: serverTimestamp(),
+            createdAt: serverTimestamp(),
           })
         }
       } catch (e) {
