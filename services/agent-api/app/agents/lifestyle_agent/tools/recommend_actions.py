@@ -564,41 +564,71 @@ def get_recommended_actions(
         "stress": [],
     }
 
-    # Iterate over each axis to find relevant actions
-    for axis in grouped_actions.keys():
-        axis_score = scores.get(axis, 50)
+    # Priority order for ties (If scores are equal, prioritize these axes)
+    # Hormone > Circadian > Blood Flow > Stress
+    tie_break_priority = ["hormone", "circadian", "blood_flow", "stress"]
+
+    # 1. Collect all valid actions and assign them to their "best" axis
+    # We want to show the action in the axis where the user has the LOWEST score (highest need).
+    
+    # Temporary storage for sorting later: { "hormone": [ (action, priority_val), ... ], ... }
+    temp_grouped: dict[str, list[tuple[dict, float]]] = {k: [] for k in grouped_actions}
+
+    for action in ACTIONS_CATALOG:
+        # Filter by answers
+        if not should_recommend(action["id"], answers):
+            continue
+            
+        # Determine which axis this action should belong to
+        # Candidates: axes in action["targets"]
+        targets = action["targets"]
+        if not targets:
+            continue
+            
+        # Find axis with lowest score among targets
+        best_axis = None
+        min_score = 999 
         
-        # If score is high (e.g. > 80), maybe we don't need many recommendations?
-        # But user might still want to see what is good.
-        # We prioritize actions that have high weight for this axis.
+        # We also need to handle the case where scores are equal.
+        # We can iterate through the fixed priority list to resolve ties implicitly 
+        # (or find all min axes and pick top priority).
+        
+        # Let's find all axes with the minimum score
+        candidate_axes = []
+        for axis in targets.keys():
+            s = scores.get(axis, 50)
+            if s < min_score:
+                min_score = s
+                candidate_axes = [axis]
+            elif s == min_score:
+                candidate_axes.append(axis)
+        
+        # Resolve tie using tie_break_priority
+        if len(candidate_axes) == 1:
+            best_axis = candidate_axes[0]
+        else:
+            # Pick the first one that appears in tie_break_priority
+            for p_axis in tie_break_priority:
+                if p_axis in candidate_axes:
+                    best_axis = p_axis
+                    break
+        
+        if best_axis:
+            # Calculate priority/weight for sorting within this axis
+            # We use the weight defined in targets for this specific axis
+            weight = targets[best_axis]
+            temp_grouped[best_axis].append((action, weight))
 
-        relevant_actions = []
-        for action in ACTIONS_CATALOG:
-            # 1. Check answer compatibility
-            if not should_recommend(action["id"], answers):
-                continue
-
-            # 2. Check if action targets this axis
-            if axis in action["targets"]:
-                weight = action["targets"][axis]
-                
-                # Calculate priority for this specific axis
-                # Priority = weight * (Need based on score?)
-                # For grouping, we just want the most effective actions for this axis.
-                priority = weight
-                
-                relevant_actions.append((action, priority))
-
-        # Sort by priority (descending)
-        relevant_actions.sort(key=lambda x: x[1], reverse=True)
-
-        # Convert to RecommendedAction model
-        for action_dict, _ in relevant_actions[:max_actions_per_axis]:
-            # Determine overall priority label
-            # (Just reusing high/medium/low logic or static based on weight)
-            p_val = action_dict["targets"][axis]
-            priority_label = "high" if p_val >= 0.8 else "medium" if p_val >= 0.5 else "low"
-
+    # 2. Sort and formatting
+    for axis, action_list in temp_grouped.items():
+        # Sort by weight descending
+        action_list.sort(key=lambda x: x[1], reverse=True)
+        
+        # Take top N
+        for action_dict, weight in action_list[:max_actions_per_axis]:
+            # Determine priority label
+            priority_label = "high" if weight >= 0.8 else "medium" if weight >= 0.5 else "low"
+            
             grouped_actions[axis].append(
                 RecommendedAction(
                     id=action_dict["id"],
@@ -608,7 +638,7 @@ def get_recommended_actions(
                     reason=action_dict["reason"],
                     explanation=action_dict["explanation"],
                     tips=action_dict.get("tips", []),
-                    targets=list(action_dict["targets"].keys()), # Show all targets
+                    targets=list(action_dict["targets"].keys()),
                     priority=priority_label,
                 )
             )
