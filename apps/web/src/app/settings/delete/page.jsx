@@ -150,7 +150,8 @@ function DeleteSettingsPage() {
     try {
       await deleteUserDataByKeys(user.uid, selected)
       window.alert('選択したデータを削除しました。')
-    } catch {
+    } catch (error) {
+      console.error('Data deletion error:', error)
       window.alert('データ削除に失敗しました。時間をおいて再度お試しください。')
     } finally {
       setIsWorking(false)
