@@ -895,7 +895,8 @@ def mental_shield_discuss_async(
                         "user_id": uid
                     }).encode(),
                     "oidc_token": {
-                        "service_account_email": service_account_email
+                        "service_account_email": service_account_email,
+                        "audience": f"https://{cloud_run_url}"
                     }
                 }
             }
