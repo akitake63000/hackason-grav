@@ -62,9 +62,10 @@ export default function WeeklyPlan() {
                     }
                 }
             } catch (tendencyError) {
-                // 404 means user hasn't completed tendency survey yet - this is normal
-                // Only log non-404 errors
-                if (tendencyError?.statusCode !== 404 && tendencyError?.status !== 404) {
+                // 404 means user hasn't completed tendency survey yet
+                if (tendencyError?.statusCode === 404 || tendencyError?.status === 404) {
+                    setTendencyData(null) // Explicitly set null to trigger "Take Survey" UI
+                } else {
                     console.error('Failed to fetch tendency data:', tendencyError)
                 }
             }
@@ -200,7 +201,7 @@ export default function WeeklyPlan() {
         }
     }
 
-    const handleCreateNewPlan = async () => {
+    const handleCreatePlan = async () => {
         setLoading(true)
         try {
             const res = await apiFetch('/api/v1/lifestyle/plan/generate', { method: 'POST' })
@@ -208,14 +209,20 @@ export default function WeeklyPlan() {
                 // Refresh data to show the new plan
                 await fetchData()
             } else {
-                alert("プラン作成に失敗しました")
+                const error = await res.json()
+                alert(`プラン作成に失敗しました: ${error.detail || '不明なエラー'}`)
             }
         } catch (e) {
-            console.error("Failed to regenerate plan", e)
+            console.error("Failed to generate plan", e)
             alert("プラン作成に失敗しました")
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleCreateNewPlan = async () => {
+        // Alias for expired plan recreation
+        await handleCreatePlan()
     }
 
     const handleGenerateDaily = async () => {
@@ -313,6 +320,31 @@ export default function WeeklyPlan() {
 
     // No plan yet
     if (!plan) {
+        // If tendency data is missing, prioritize asking for survey
+        if (tendencyData === null) {
+            return (
+                <Layout>
+                    <div className={styles.container}>
+                        <div className={styles.content}>
+                            <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
+                                <AlertCircle size={48} color="#f59e0b" style={{ marginBottom: '16px' }} />
+                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                                    診断データがありません
+                                </h2>
+                                <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
+                                    あなたに最適なプランを作成するために、<br />
+                                    まずは生活習慣診断を行ってください。
+                                </p>
+                                <Button onClick={() => router.push('/feature3/tendency')} icon={<ArrowRight size={18} />} iconPosition="right">
+                                    診断を開始する
+                                </Button>
+                            </Card>
+                        </div>
+                    </div>
+                </Layout>
+            )
+        }
+
         return (
             <Layout>
                 <div className={styles.container}>
@@ -320,14 +352,14 @@ export default function WeeklyPlan() {
                         <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
                             <Sparkles size={48} color="#419873" style={{ marginBottom: '16px' }} />
                             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
-                                週間プランがありません
+                                あなただけのAI週間プラン
                             </h2>
                             <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
-                                生活習慣改善レコメンド画面から<br />
-                                AI週間プランを作成してください。
+                                診断結果に基づき、今週取り組むべき<br />
+                                3つのアクションをAIが生成します。
                             </p>
-                            <Button onClick={() => router.push('/feature3/lifestyle-recommend')}>
-                                レコメンド画面へ
+                            <Button onClick={handleCreatePlan} icon={<Sparkles size={18} />}>
+                                AIプランを作成する
                             </Button>
                         </Card>
                     </div>

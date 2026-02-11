@@ -112,25 +112,7 @@ function LifestyleRecommendContent() {
     }
   }
 
-  const handleGeneratePlan = async () => {
-    setGeneratingPlan(true)
-    try {
-      const res = await apiFetch('/api/v1/lifestyle/plan/generate', { method: 'POST' })
-      if (res.ok) {
-        // Navigate to weekly plan page
-        router.push('/feature3/weekly-plan')
-      } else {
-        const errorData = await res.json()
-        console.error("Plan generation failed:", errorData)
-        alert(`プラン作成に失敗しました: ${errorData.detail || '不明なエラー'}`)
-      }
-    } catch (e) {
-      console.error("Failed to generate plan request:", e)
-      alert(`プラン作成に失敗しました: ${e.message}`)
-    } finally {
-      setGeneratingPlan(false)
-    }
-  }
+
 
   const getPriorityInfo = (priority) => {
     switch (priority) {
@@ -283,11 +265,11 @@ function LifestyleRecommendContent() {
               </Button>
             ) : (
               <Button
-                onClick={handleGeneratePlan}
-                disabled={generatingPlan}
-                icon={generatingPlan ? <Loader2 className="animate-spin" size={18} /> : <Calendar size={18} />}
+                onClick={() => router.push('/feature3/weekly-plan')}
+                icon={<ArrowRight size={18} />}
+                iconPosition="right"
               >
-                {generatingPlan ? '作成中...' : 'プランを作成する'}
+                プラン作成へ進む
               </Button>
             )}
           </motion.div>
