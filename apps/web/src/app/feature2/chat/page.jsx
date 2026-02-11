@@ -594,7 +594,7 @@ function Chat() {
       }
     }
 
-    await saveMessage(threadId, newUserMessage)
+    // Firestoreへの保存はバックエンド側で行うためフロントでは省略
 
     try {
       // Use direct Cloud Run URL to avoid Firebase Hosting 60s timeout
@@ -694,8 +694,7 @@ function Chat() {
       setMessages(prev => [...prev, resultMessage])
       setIsRevealing(false)
 
-      // Firestoreに保存
-      await saveMessage(currentThreadId, resultMessage)
+      // Firestoreへの保存はバックエンド側で行う
 
     } catch (err) {
       console.error('Chat API error:', err)

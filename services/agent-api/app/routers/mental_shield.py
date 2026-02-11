@@ -601,22 +601,18 @@ def mental_shield_discuss(
             }
         )
 
-        for card in cards:
-            messages_ref.add(
-                {
-                    "role": "agent",
-                    "agent": card.agent,
-                    "text": card.text,
-                    "createdAt": admin_firestore.SERVER_TIMESTAMP,
-                }
-            )
-
+        all_cards_json = json.dumps(
+            [{"agent": c.agent, "text": c.text} for c in cards],
+            ensure_ascii=False,
+        )
         messages_ref.add(
             {
+                "type": "discussion-result",
                 "role": "agent",
                 "agent": "orchestrator",
-                "text": summary,
+                "summary": summary,
                 "bestAgent": best_agent,
+                "allCards": all_cards_json,
                 "createdAt": admin_firestore.SERVER_TIMESTAMP,
             }
         )
