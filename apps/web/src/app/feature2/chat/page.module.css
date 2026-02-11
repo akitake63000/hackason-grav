@@ -296,6 +296,8 @@
   padding: 12px 14px;
   margin-top: 8px;
   border-left: 3px solid;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .discussionCardLabel {
