@@ -94,17 +94,6 @@ export const QUESTIONS = [
     ],
   },
   {
-    id: 'substances',
-    text: '嗜好品の摂取状況は？',
-    options: [
-      { value: 'none', label: '特になし' },
-      { value: 'caffeine', label: 'カフェイン（コーヒー等）' },
-      { value: 'alcohol', label: 'アルコール' },
-      { value: 'smoking', label: '喫煙' },
-      { value: 'multiple', label: '複数該当' },
-    ],
-  },
-  {
     id: 'water_intake',
     text: '1日の水分摂取量は？',
     options: [
@@ -113,6 +102,17 @@ export const QUESTIONS = [
       { value: 'score_60', label: '1〜1.5L' },
       { value: 'score_40', label: '0.5〜1L' },
       { value: 'score_20', label: '0.5L未満' },
+    ],
+  },
+  {
+    id: 'substances',
+    text: '嗜好品の摂取状況は？',
+    options: [
+      { value: 'none', label: '特になし' },
+      { value: 'caffeine', label: 'カフェイン（コーヒー等）' },
+      { value: 'alcohol', label: 'アルコール' },
+      { value: 'smoking', label: '喫煙' },
+      { value: 'multiple', label: '複数該当' },
     ],
   },
 ]
