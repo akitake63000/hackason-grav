@@ -71,7 +71,7 @@ export default function WeeklyPlan() {
             }
 
             // Get current plan
-            const planRes = await apiFetch('/api/v1/lifestyle/plan/current')
+            const planRes = await apiFetch(`/api/v1/lifestyle/plan/current?t=${Date.now()}`)
             if (planRes.ok) {
                 const planData = await planRes.json()
                 console.log("Plan data loaded:", planData)

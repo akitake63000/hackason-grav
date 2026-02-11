@@ -571,6 +571,8 @@ def generate_plan(
     # Save to today's log
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
     today_str = now.strftime("%Y-%m-%d")
+    if now.hour < 4:
+         today_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     
     db.collection("users").document(uid).collection("plans").document(plan_data["planId"]).collection("dailyActions").document(today_str).set({
         "actions": actions,
