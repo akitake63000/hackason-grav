@@ -300,7 +300,7 @@ async def _generate_missions_with_gemini(
 
 ## targetUrl の定義
 - 写真撮影: "/feature1/capture"
-- 食事記録: "/feature3/meal-record"
+- 食事記録: "/feature3/food-recommend"
 - プラン確認: "/feature3/weekly-plan"
 - その他: null
 
