@@ -36,9 +36,16 @@ const deleteDocsInBatch = async (
 
 const deleteCollection = async (path: string[]) => {
   const db = getFirestoreDb();
-  const snapshot = await getDocs(collection(db, path.join("/")));
-  if (!snapshot.empty) {
-    await deleteDocsInBatch(snapshot.docs);
+  const collectionPath = path.join("/");
+  try {
+    const snapshot = await getDocs(collection(db, collectionPath));
+    if (!snapshot.empty) {
+      await deleteDocsInBatch(snapshot.docs);
+      console.log(`Deleted ${snapshot.size} documents from ${collectionPath}`);
+    }
+  } catch (error) {
+    console.error(`Failed to delete collection ${collectionPath}:`, error);
+    throw error; // Re-throw to let caller handle it
   }
 };
 
@@ -69,26 +76,57 @@ export const deleteUserDataByKeys = async (
   uid: string,
   keys: DeletableDataKey[],
 ): Promise<void> => {
+  const errors: Error[] = [];
+
+  // Delete simple collections
   for (const name of SIMPLE_COLLECTIONS) {
     if (!keys.includes(name)) continue;
-    await deleteCollection(["users", uid, name]);
+    try {
+      await deleteCollection(["users", uid, name]);
+    } catch (error) {
+      console.error(`Failed to delete ${name}:`, error);
+      errors.push(error as Error);
+    }
   }
 
+  // Delete conversations (including messages subcollection)
   if (keys.includes("conversations")) {
-    await deleteConversations(uid);
+    try {
+      await deleteConversations(uid);
+    } catch (error) {
+      console.error("Failed to delete conversations:", error);
+      errors.push(error as Error);
+    }
   }
 
+  // Delete photos from Storage
   if (keys.includes("photos")) {
-    await deleteStoragePrefix(`users/${uid}/photos`);
+    try {
+      await deleteStoragePrefix(`users/${uid}/photos`);
+    } catch (error) {
+      console.error("Failed to delete photos from storage:", error);
+      errors.push(error as Error);
+    }
   }
 
-  // Always delete these collections (not selectable by user, but automatically deleted)
-  await deleteCollection(["users", uid, "dailyMissions"]);
-  await deleteCollection(["users", uid, "visitHistory"]);
-  await deleteCollection(["users", uid, "chatTasks"]);
+  // Delete visitHistory (client can delete this per firestore.rules)
+  // Note: dailyMissions and chatTasks are read-only from client (firestore.rules line 50, 62),
+  // so we skip them to avoid permission errors
+  try {
+    await deleteCollection(["users", uid, "visitHistory"]);
+  } catch (error) {
+    console.warn("Failed to delete visitHistory:", error);
+    // Don't add to errors - this is optional
+  }
+
+  // If any critical errors occurred, throw
+  if (errors.length > 0) {
+    throw new Error(`Failed to delete ${errors.length} collection(s). Check console for details.`);
+  }
 };
 
 export const deleteUserData = async (uid: string): Promise<void> => {
+  // Delete all user data collections
   await deleteUserDataByKeys(uid, [
     "profile",
     "photos",
@@ -101,6 +139,14 @@ export const deleteUserData = async (uid: string): Promise<void> => {
 
   const db = getFirestoreDb();
 
+  // Delete user document (may not exist)
   await deleteDoc(doc(db, "users", uid)).catch(() => undefined);
-  await deleteStoragePrefix(`users/${uid}`);
+
+  // Delete all storage for this user
+  try {
+    await deleteStoragePrefix(`users/${uid}`);
+  } catch (error) {
+    console.warn("Failed to delete user storage:", error);
+    // Continue even if storage deletion fails (may not have any files)
+  }
 };
