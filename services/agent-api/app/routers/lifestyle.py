@@ -523,6 +523,7 @@ class PlanResponse(BaseModel):
     yesterdayLog: dict | None = None # { completedActions: [], date: "YYYY-MM-DD" }
     weeklyStats: dict | None = None # { rate: int, message: str, totalCompleted: int }
     streak: int = 0  # Consecutive days completed
+    weeklyProgress: int = 0 # 0-100% based on 21 actions (3/day * 7days)
 
 
 @router.post("/plan/generate", response_model=PlanResponse)
@@ -588,8 +589,10 @@ def generate_plan(
         startDate=plan_data["startDate"],
         endDate=plan_data["endDate"],
         status="active",
+        status="active",
         todayLog={"completedActions": []},
-        streak=0
+        streak=0,
+        weeklyProgress=0
     )
 
 
@@ -663,7 +666,9 @@ def generate_daily(
         endDate=plan_data["endDate"],
         status="active",
         todayLog=today_log,
-        streak=_calculate_streak(plan_doc) # Helper function
+        todayLog=today_log,
+        streak=_calculate_streak(plan_doc), # Helper function
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference)
     )
 
 
@@ -707,7 +712,23 @@ def _calculate_streak(plan_doc) -> int:
             
     return streak
 
+    return streak
 
+
+def _calculate_weekly_progress(plan_ref) -> int:
+    """Calculate progress percentage based on 21 actions (3 per day * 7 days)"""
+    try:
+        logs = plan_ref.collection("logs").stream()
+        total_completed = 0
+        for log in logs:
+            data = log.to_dict()
+            total_completed += len(data.get("completedActions", []))
+        
+        # Max 21 actions per week
+        progress = int((total_completed / 21) * 100)
+        return min(100, progress)
+    except Exception:
+        return 0
 @router.get("/plan/current", response_model=PlanResponse)
 @limiter.limit("60/minute")
 def get_current_plan(
@@ -792,7 +813,10 @@ def get_current_plan(
         todayLog=today_log,
         yesterdayLog=yesterday_log,
         weeklyStats=weekly_stats,
-        streak=_calculate_streak(plan_doc)
+        yesterdayLog=yesterday_log,
+        weeklyStats=weekly_stats,
+        streak=_calculate_streak(plan_doc),
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference)
     )
 
 
