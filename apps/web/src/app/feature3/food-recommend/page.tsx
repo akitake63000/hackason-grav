@@ -102,49 +102,43 @@ const styles = {
         gap: '8px',
     },
     patternCard: {
-        background: 'rgba(255, 255, 255, 0.8)',
+        background: 'rgba(255, 255, 255, 0.95)',
         border: '1px solid rgba(26, 61, 46, 0.1)',
         borderRadius: '16px',
-        padding: '24px',
+        padding: '0', // Reset padding for inner sections
         marginBottom: '24px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(26, 61, 46, 0.05)',
     },
-    patternLabel: {
-        fontSize: '18px',
+    columnSection: {
+        padding: '24px',
+    },
+    columnLabel: {
+        fontSize: '11px',
         fontWeight: '700',
-        color: '#1a3d2e',
+        color: '#c9a962',
+        textTransform: 'uppercase' as const,
+        letterSpacing: '1px',
         marginBottom: '8px',
         display: 'block',
     },
-    patternDescription: {
-        fontSize: '14px',
-        color: '#635d54',
-        marginBottom: '16px',
-        lineHeight: 1.6,
-    },
-    infoRow: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '12px',
-        marginTop: '16px',
-        paddingTop: '16px',
-        borderTop: '1px solid rgba(0,0,0,0.05)',
-    },
-    infoItem: {
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '4px',
-    },
-    infoLabel: {
-        fontSize: '12px',
-        fontWeight: '600',
-        color: '#c9a962',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.5px',
-    },
-    infoText: {
-        fontSize: '14px',
+    patternName: {
+        fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
+        fontSize: '22px',
+        fontWeight: '600' as const,
         color: '#1a3d2e',
-        lineHeight: 1.6,
+        marginBottom: '8px',
+    },
+    columnText: {
+        fontSize: '15px',
+        color: '#4a4a4a',
+        lineHeight: 1.7,
+        whiteSpace: 'pre-wrap' as const,
+    },
+    divider: {
+        height: '1px',
+        background: 'rgba(26, 61, 46, 0.05)',
+        margin: '0 24px',
     },
     nutrientCard: {
         marginBottom: '16px',
@@ -462,21 +456,27 @@ function FoodRecommendContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1, duration: 0.5 }}
                         >
-                            <span style={styles.patternLabel}>
-                                <Info size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                                現状の分析
-                            </span>
-                            <p style={styles.patternDescription}>{data.patternInfo.description}</p>
+                            {/* Pattern Name Block */}
+                            <div style={styles.columnSection}>
+                                <span style={styles.columnLabel}>あなたのパターン</span>
+                                <h3 style={styles.patternName}>{data.patternInfo.label}</h3>
+                                <p style={styles.columnText}>{data.patternInfo.description}</p>
+                            </div>
 
-                            <div style={styles.infoRow}>
-                                <div style={styles.infoItem}>
-                                    <span style={styles.infoLabel}>原因</span>
-                                    <p style={styles.infoText}>{data.patternInfo.cause}</p>
-                                </div>
-                                <div style={styles.infoItem}>
-                                    <span style={styles.infoLabel}>対策方針</span>
-                                    <p style={styles.infoText}>{data.patternInfo.strategy}</p>
-                                </div>
+                            <div style={styles.divider} />
+
+                            {/* Cause Block */}
+                            <div style={styles.columnSection}>
+                                <span style={styles.columnLabel}>なぜ？</span>
+                                <p style={styles.columnText}>{data.patternInfo.cause}</p>
+                            </div>
+
+                            <div style={styles.divider} />
+
+                            {/* Strategy Block */}
+                            <div style={styles.columnSection}>
+                                <span style={styles.columnLabel}>どうしよう？</span>
+                                <p style={styles.columnText}>{data.patternInfo.strategy}</p>
                             </div>
                         </motion.div>
                     )}

@@ -704,6 +704,27 @@ RECIPE_PROMPT = """\
 """
 
 
+PATTERN_EXPLANATION_PROMPT = """\
+あなたは薄毛治療の専門家で、親しみやすいコラムニストです。
+以下の薄毛パターンについて、薄毛に悩む初心者に向けて、原因と対策を分かりやすく解説してください。
+
+薄毛パターン: {pattern}
+（参考情報: 原因={cause_ref}, 対策={strategy_ref}）
+
+条件:
+- 専門用語を避け、比喩などを交えて親しみやすく解説すること
+- 「原因」と「対策」の2つのセクションに分けること
+- 各セクションは100文字〜150文字程度で簡潔にまとめること
+- 読み手が「なるほど！」と納得し、前向きに取り組めるトーンで書くこと
+
+以下のJSON形式で出力してください（JSON以外は出力しないでください）:
+{{
+  "cause": "コラム風の原因解説テキスト",
+  "strategy": "コラム風の対策解説テキスト"
+}}
+"""
+
+
 # ---------------------------------------------------------------------------
 # ヘルパー関数
 # ---------------------------------------------------------------------------
@@ -860,11 +881,33 @@ def recommend_food_sniper(
     pattern_info = None
     if pattern and pattern in PATTERN_FOOD_MAP:
         info = PATTERN_FOOD_MAP[pattern]
+
+        # デフォルトは静的テキスト（フォールバック用）
+        cause_text = info["cause"]
+        strategy_text = info["strategy"]
+
+        # Gemini動的生成（コラム風解説）
+        if gemini_enabled():
+            try:
+                prompt_text = PATTERN_EXPLANATION_PROMPT.format(
+                    pattern=pattern,
+                    cause_ref=info["cause"],
+                    strategy_ref=info["strategy"]
+                )
+                raw_text_p = generate_text(prompt_text, model=GEMINI_MODEL)
+                data_p = safe_json_load(raw_text_p)
+                # 両方のキーが存在する場合のみ採用
+                if data_p and "cause" in data_p and "strategy" in data_p:
+                    cause_text = data_p["cause"]
+                    strategy_text = data_p["strategy"]
+            except Exception as e:
+                 logging.warning(f"Gemini pattern explanation failed: {e}")
+
         pattern_info = PatternInfo(
             label=info["label"],
             description=info["description"],
-            cause=info["cause"],
-            strategy=info["strategy"],
+            cause=cause_text,
+            strategy=strategy_text,
         )
 
     # Firestore に記録
