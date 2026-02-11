@@ -158,24 +158,16 @@ function Chat() {
       const db = getFirestoreDb()
       const messagesRef = collection(db, 'users', user.uid, 'conversations', tid, 'messages')
 
-      // まず createdAt でソートを試みる
-      let snapshot
-      try {
-        const q = query(messagesRef, orderBy('createdAt', 'asc'))
-        snapshot = await getDocs(q)
-      } catch (err) {
-        // createdAt が存在しない場合、timestamp でソート
-        console.log('Falling back to timestamp sorting')
-        const q = query(messagesRef, orderBy('timestamp', 'asc'))
-        snapshot = await getDocs(q)
-      }
+      // orderBy を使わず全てのメッセージを取得（古いメッセージと新しいメッセージで異なるフィールドがあるため）
+      const snapshot = await getDocs(messagesRef)
 
       if (!snapshot.empty) {
         const history = snapshot.docs.map((docSnap) => {
           const d = docSnap.data()
+          // timestamp と createdAt の両方をサポート
+          const timestamp = d.createdAt || d.timestamp
+
           if (d.type === 'discussion-result') {
-            // timestamp と createdAt の両方をサポート
-            const timestamp = d.createdAt || d.timestamp
             return {
               id: docSnap.id,
               type: 'discussion-result',
@@ -185,11 +177,12 @@ function Chat() {
               time: timestamp?.toDate
                 ? timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
                 : '',
+              // ソート用のタイムスタンプ
+              _timestamp: timestamp?.toDate?.() || new Date(0),
             }
           }
           // text と content の両方をサポート
           const messageText = d.text || d.content || ''
-          const timestamp = d.createdAt || d.timestamp
           return {
             id: docSnap.id,
             type: d.role === 'user' ? 'user' : 'ai',
@@ -198,8 +191,14 @@ function Chat() {
             time: timestamp?.toDate
               ? timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
               : '',
+            // ソート用のタイムスタンプ
+            _timestamp: timestamp?.toDate?.() || new Date(0),
           }
         })
+
+        // JavaScript側で時系列順にソート
+        history.sort((a, b) => a._timestamp - b._timestamp)
+
         setMessages(history)
       }
     } catch (err) {
