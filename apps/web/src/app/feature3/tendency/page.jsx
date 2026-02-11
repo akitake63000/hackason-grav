@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Loader2,
   Info,
+  Sparkles,
 } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
@@ -180,6 +181,24 @@ function Tendency() {
                 4つの主要な指標に基づいたあなたの現状です。<br />
                 各項目のスコアが低いほど、改善の余地が大きいことを示しています。
               </p>
+
+              {resultData.summary && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  background: 'rgba(255, 255, 255, 0.6)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(65, 152, 115, 0.1)',
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'flex-start'
+                }}>
+                  <Sparkles size={20} color="#f59e0b" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <p style={{ fontSize: '14px', color: '#1a3d2e', lineHeight: 1.6, margin: 0, fontWeight: '500' }}>
+                    {resultData.summary}
+                  </p>
+                </div>
+              )}
               <div style={{ marginTop: '16px' }}>
                 <Button size="sm" variant="outline" onClick={handleRediagnose}>
                   もう一度診断する

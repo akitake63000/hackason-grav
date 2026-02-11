@@ -42,6 +42,7 @@ function LifestyleRecommendContent() {
   const [selectedAction, setSelectedAction] = useState(null)
   const [hasPlan, setHasPlan] = useState(false)
   const [generatingPlan, setGeneratingPlan] = useState(false)
+  const [summary, setSummary] = useState(null)
 
   useEffect(() => {
     fetchData()
@@ -89,6 +90,7 @@ function LifestyleRecommendContent() {
       const data = await recRes.json()
       setRecommendations(data.grouped_actions || {})
       setAxisLabels(data.axis_labels)
+      setSummary(data.summary)
 
       // Check if plan exists and is active
       if (planRes.ok) {
@@ -174,6 +176,29 @@ function LifestyleRecommendContent() {
             4つのメカニズム軸の分析結果に基づき、<br />
             今のあなたに必要なアクションを全て表示しています。
           </motion.p>
+
+          {summary && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              style={{ marginBottom: '32px' }}
+            >
+              <Card variant="accent" padding="lg">
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '8px', borderRadius: '50%' }}>
+                    <Sparkles size={20} color="#f59e0b" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1a3d2e', marginBottom: '4px' }}>AI分析サマリー</h3>
+                    <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6, margin: 0 }}>
+                      {summary}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* 4-Axis Recommendations */}
           {AXIS_ORDER.map((axisKey, axisIndex) => {

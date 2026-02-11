@@ -63,12 +63,14 @@ class TendencyResponse(BaseModel):
     scores: dict[str, int]
     dominant_issues: list[str]
     axis_labels: dict[str, dict[str, str]]
+    summary: str | None = None
 
 
 class RecommendationResponse(BaseModel):
     """推奨アクションレスポンス"""
     grouped_actions: dict[str, list[dict]]
     axis_labels: dict[str, dict[str, str]]
+    summary: str | None = None
 
 
 def _season_label(month: int) -> str:
@@ -375,7 +377,29 @@ def tendency(
     result = analyze_tendency_scores(req.answers, hair_analysis=hair_analysis)
     scores = result["scores"]
 
-    # 3. Firestore に保存
+    # 3. Generate AI Summary
+    summary = None
+    model = GEMINI_MODEL_LIGHT or GEMINI_MODEL
+    if gemini_enabled(model):
+        try:
+            # Construct a brief context for Gemini
+            axis_info = ""
+            for axis, score in scores.items():
+                label = AXIS_LABELS.get(axis, {}).get("name", axis)
+                axis_info += f"- {label}: {score}点\n"
+            
+            prompt = (
+                "あなたは毛髪と生活習慣の専門アドバイザーです。"
+                "以下の4軸スコアに基づく現在の状態の分析と、今後の改善に向けた励ましの言葉を、日本語で2〜3文（100文字程度）で作成してください。"
+                "【スコア結果】\n"
+                f"{axis_info}"
+                "\n回答は要約のみを出力してください。"
+            )
+            summary = generate_text(prompt, model=model).strip()
+        except Exception as e:
+            logging.error(f"Failed to generate tendency summary: {e}")
+
+    # 4. Firestore に保存
     try:
         # 4軸名をFirestore設計に合わせてマッピング
         # hormone -> hormonal, blood_flow -> bloodCirculation
@@ -389,6 +413,7 @@ def tendency(
                 "circadian": scores["circadian"],
                 "stress": scores["stress"],
                 "answers": req.answers,  # Save answers for recommendation filtering
+                "summary": summary,
                 "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo")),
                 "hairlineScoreSource": hair_analysis.get("hairlineScore")
                 if hair_analysis
@@ -404,6 +429,7 @@ def tendency(
         scores=scores,
         dominant_issues=result["dominant_issues"],
         axis_labels=AXIS_LABELS,
+        summary=summary,
     )
 
 
@@ -450,6 +476,7 @@ def get_latest_tendency(
         scores=scores,
         dominant_issues=dominant_issues,
         axis_labels=AXIS_LABELS,
+        summary=data.get("summary"),
         updatedAt=data.get("updatedAt"),
     )
 
@@ -480,6 +507,8 @@ def recommendation(
         "stress": stress,
     }
 
+    summary = None
+
     # Fetch latest answers for filtering
     answers = {}
     try:
@@ -488,6 +517,7 @@ def recommendation(
         if doc.exists:
             data = doc.to_dict()
             answers = data.get("answers", {})
+            summary = data.get("summary")
     except Exception as e:
         print(f"Error fetching answers for recommendation: {e}")
 
@@ -496,6 +526,7 @@ def recommendation(
     return RecommendationResponse(
         grouped_actions=grouped_actions,
         axis_labels=AXIS_LABELS,
+        summary=summary,
     )
 
 
