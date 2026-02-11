@@ -58,7 +58,7 @@ function Home() {
   const [missions, setMissions] = useState([])
   const [missionsLoading, setMissionsLoading] = useState(true)
   const [motivationMessage, setMotivationMessage] = useState('今日も髪と向き合う一日を始めましょう')
-  const [motivationLoading, setMotivationLoading] = useState(false)
+  const [motivationLoading, setMotivationLoading] = useState(true)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
