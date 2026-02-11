@@ -389,6 +389,11 @@ async def get_daily_missions(
     """
     Generate 3 personalized daily missions based on comprehensive user activity analysis
 
+    Caching strategy: Generates missions once per day (Asia/Tokyo timezone)
+    - Cached missions are stored in Firestore: users/{uid}/dailyMissions/{YYYY-MM-DD}
+    - Missions are reused throughout the day to avoid unnecessary API calls
+    - Old missions (8+ days) are automatically cleaned up
+
     Analyzes:
     - Photo capture history (last photo date, frequency)
     - Meal logging history (recent activity, trends)
@@ -396,11 +401,34 @@ async def get_daily_missions(
     - 4-axis tendency scores (weakest point)
 
     Returns:
-        MissionResponse with 3 missions, source (personalized/fallback), and timestamp
+        MissionResponse with 3 missions, source (personalized/fallback/cached), and timestamp
     """
     db = get_firestore_client()
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    today_str = now.strftime("%Y-%m-%d")
 
-    # 1. Analyze user activity across all features
+    # 1. Check for cached missions (today's missions already generated)
+    try:
+        cached_mission_doc = db.collection("users").document(uid)\
+            .collection("dailyMissions").document(today_str).get()
+
+        if cached_mission_doc.exists:
+            cached_data = cached_mission_doc.to_dict()
+            missions_data = cached_data.get("missions", [])
+
+            if missions_data and len(missions_data) == 3:
+                logging.info(f"Using cached missions for {today_str}")
+                missions = [MissionAction(**m) for m in missions_data]
+                return MissionResponse(
+                    missions=missions,
+                    source=f"{cached_data.get('source', 'cached')}:cached",
+                    generatedAt=cached_data.get("generatedAt", now.isoformat())
+                )
+    except Exception as e:
+        logging.warning(f"Failed to fetch cached missions: {e}")
+
+    # 2. Generate new missions (no cache found or cache invalid)
+    # 2.1 Analyze user activity across all features
     try:
         metrics = await analyze_user_activity(uid, db)
     except Exception as e:
@@ -418,7 +446,7 @@ async def get_daily_missions(
             "engagement_level": "low"
         }
 
-    # 2. Fetch questionnaire answers for context
+    # 2.2 Fetch questionnaire answers for context
     answers = {}
     try:
         tendency_doc = db.collection("users").document(uid)\
@@ -429,7 +457,7 @@ async def get_daily_missions(
     except Exception as e:
         logging.warning(f"Failed to fetch tendency answers: {e}")
 
-    # 3. Generate missions with Gemini (with fallback)
+    # 2.3 Generate missions with Gemini (with fallback)
     missions = []
     source = "fallback"
 
@@ -441,14 +469,45 @@ async def get_daily_missions(
         except Exception as e:
             logging.error(f"Gemini mission generation failed: {e}", exc_info=True)
 
-    # 4. Use fallback if Gemini failed or returned incomplete results
+    # 2.4 Use fallback if Gemini failed or returned incomplete results
     if not missions or len(missions) < 3:
         logging.info("Using fallback missions")
         missions = _get_fallback_missions(metrics)
         source = "fallback"
 
+    # 3. Save missions to Firestore cache (for reuse throughout the day)
+    try:
+        missions_data = [m.model_dump() for m in missions]
+        db.collection("users").document(uid).collection("dailyMissions").document(today_str).set({
+            "date": today_str,
+            "missions": missions_data,
+            "source": source,
+            "generatedAt": now.isoformat(),
+            "createdAt": firestore.SERVER_TIMESTAMP
+        })
+        logging.info(f"Saved missions to cache for {today_str}")
+    except Exception as e:
+        logging.error(f"Failed to save missions to cache: {e}", exc_info=True)
+
+    # 4. Clean up old missions (8+ days ago)
+    try:
+        cutoff_date = (now - timedelta(days=8)).strftime("%Y-%m-%d")
+        old_missions = db.collection("users").document(uid)\
+            .collection("dailyMissions")\
+            .where("date", "<", cutoff_date)\
+            .limit(50).stream()
+
+        deleted_count = 0
+        for old_mission in old_missions:
+            old_mission.reference.delete()
+            deleted_count += 1
+
+        if deleted_count > 0:
+            logging.info(f"Deleted {deleted_count} old mission records (before {cutoff_date})")
+    except Exception as e:
+        logging.warning(f"Failed to clean up old missions: {e}")
+
     # 5. Return response
-    now = datetime.now(ZoneInfo("Asia/Tokyo"))
     return MissionResponse(
         missions=missions,
         source=source,
