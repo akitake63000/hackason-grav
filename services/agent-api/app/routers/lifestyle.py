@@ -1007,28 +1007,38 @@ def generate_daily(
     # Use history to avoid duplicates? (Feature for later)
     actions = generate_daily_actions(scores, answers)
     
-    # 4. Save
+    # 4. Determine Target Date (Today vs Tomorrow)
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
-    # Day shift logic: if < 4AM, it's "yesterday" (conceptually today for user staying up late)
-    # But for "generating today's plan", user usually does it in the morning.
-    # We stick to standard day logic for generation to avoid confusion.
-    # Or should we respect day shift? If user generates at 2AM, is it for "yesterday" or "today (upcoming)"?
-    # Assuming user generates for the "waking day".
     today_str = now.strftime("%Y-%m-%d")
     if now.hour < 4:
          today_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    plan_doc.reference.collection("dailyActions").document(today_str).set({
+    # Check if today is already confirmed
+    log_doc = plan_doc.reference.collection("logs").document(today_str).get()
+    is_today_confirmed = False
+    if log_doc.exists:
+        data = log_doc.to_dict()
+        if data.get("isConfirmed"):
+            is_today_confirmed = True
+
+    target_date_str = today_str
+    if is_today_confirmed:
+        # If confirmed, generate for tomorrow (relative to "today")
+        target_date_obj = datetime.strptime(today_str, "%Y-%m-%d") + timedelta(days=1)
+        target_date_str = target_date_obj.strftime("%Y-%m-%d")
+
+    # 5. Save Actions
+    plan_doc.reference.collection("dailyActions").document(target_date_str).set({
         "actions": actions,
         "createdAt": now.isoformat()
     })
     
-    # Return updated plan
-    # Need to fetch logs too
-    log_doc = plan_doc.reference.collection("logs").document(today_str).get()
-    today_log = {"completedActions": []}
-    if log_doc.exists:
-        today_log = log_doc.to_dict()
+    # 6. Return Response
+    # Fetch log for the target view date
+    view_log_doc = plan_doc.reference.collection("logs").document(target_date_str).get()
+    view_log = {"completedActions": []}
+    if view_log_doc.exists:
+        view_log = view_log_doc.to_dict()
         
     return PlanResponse(
         planId=plan_data["planId"],
@@ -1037,9 +1047,11 @@ def generate_daily(
         startDate=plan_data["startDate"],
         endDate=plan_data["endDate"],
         status="active",
-        todayLog=today_log,
-        streak=_calculate_streak(plan_doc), # Helper function
-        weeklyProgress=_calculate_weekly_progress(plan_doc.reference, today_str)
+        currentViewDate=target_date_str,
+        todayLog=view_log,
+        streak=_calculate_streak(plan_doc),
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference, today_str),
+        isTodayConfirmed=is_today_confirmed
     )
 
 

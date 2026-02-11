@@ -248,15 +248,21 @@ export default function WeeklyPlan() {
 
         try {
             const today = new Date();
-            let dateStr = plan?.currentViewDate;
+            // Calculate "real today" check string
+            let checkDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            if (today.getHours() < 4) {
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                checkDateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            }
 
-            if (!dateStr) {
-                dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                if (today.getHours() < 4) {
-                    const yesterday = new Date(today);
-                    yesterday.setDate(today.getDate() - 1);
-                    dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-                }
+            // Determine submission date
+            let dateStr = plan?.currentViewDate || checkDateStr;
+
+            // Prevent future submission
+            if (dateStr > checkDateStr) {
+                alert(`${dateStr}のミッションはまだ送信できません。\n当日（朝4時以降）になるまでお待ちください。`);
+                return;
             }
 
             const res = await apiFetch('/api/v1/lifestyle/plan/confirm', {
