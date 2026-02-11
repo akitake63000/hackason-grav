@@ -153,7 +153,7 @@ function Tendency() {
           >
             <Loader2 size={48} color="#419873" />
           </motion.div>
-          <h2 style={{ ...styles.introTitle, marginTop: '24px' }}>AIによるマトリクス分析中...</h2>
+          <h2 className={styles.introTitle} style={{ marginTop: '24px' }}>AIによるマトリクス分析中...</h2>
           <p className={styles.introText}>あなたの生活習慣を4つの育毛メカニズム軸で解析しています</p>
         </div>
       </Layout>
@@ -202,11 +202,11 @@ function Tendency() {
                 };
                 return (
                   <Card key={t.id} className={styles.matrixCard} delay={0.2 + index * 0.1}>
-                    <div style={{ ...styles.matrixIcon, background: t.bg }}>
+                    <div className={styles.matrixIcon} style={{ background: t.bg }}>
                       <t.icon size={24} color={t.color} />
                     </div>
                     <div className={styles.matrixLabel}>{t.name}</div>
-                    <div style={{ ...styles.matrixScore, color: t.color }}>
+                    <div className={styles.matrixScore} style={{ color: t.color }}>
                       <motion.span
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -263,7 +263,7 @@ function Tendency() {
                       </div>
                     </div>
 
-                    <div style={{ ...styles.matrixDesc, marginTop: '12px' }}>{t.desc}</div>
+                    <div className={styles.matrixDesc} style={{ marginTop: '12px' }}>{t.desc}</div>
                   </Card>
                 );
               })}
@@ -304,11 +304,8 @@ function Tendency() {
               {visibleQuestions.map((_, i) => (
                 <div
                   key={i}
-                  style={{
-                    ...styles.stepDot,
-                    ...(i === currentStep ? styles.stepDotActive : {}),
-                    ...(i < currentStep ? { background: '#419873', opacity: 0.5 } : {}),
-                  }}
+                  className={`${styles.stepDot} ${i === currentStep ? styles.stepDotActive : ''}`}
+                  style={i < currentStep ? { background: '#419873', opacity: 0.5 } : undefined}
                 />
               ))}
             </div>
@@ -327,10 +324,7 @@ function Tendency() {
                     {question.options.map((opt) => (
                       <button
                         key={opt.value}
-                        style={{
-                          ...styles.optionButton,
-                          ...(answers[question.id] === opt.value ? styles.optionButtonSelected : {}),
-                        }}
+                        className={`${styles.optionButton} ${answers[question.id] === opt.value ? styles.optionButtonSelected : ''}`}
                         onClick={() => handleOptionSelect(question.id, opt.value)}
                       >
                         {opt.label}
