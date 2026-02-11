@@ -81,6 +81,11 @@ export const deleteUserDataByKeys = async (
   if (keys.includes("photos")) {
     await deleteStoragePrefix(`users/${uid}/photos`);
   }
+
+  // Always delete these collections (not selectable by user, but automatically deleted)
+  await deleteCollection(["users", uid, "dailyMissions"]);
+  await deleteCollection(["users", uid, "visitHistory"]);
+  await deleteCollection(["users", uid, "chatTasks"]);
 };
 
 export const deleteUserData = async (uid: string): Promise<void> => {
