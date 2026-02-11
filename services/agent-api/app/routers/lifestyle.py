@@ -550,6 +550,7 @@ class PlanResponse(BaseModel):
     status: str = "none" # none, active, completed
     
     # Today's status
+    currentViewDate: str | None = None
     todayLog: dict | None = None # { completedActions: [] }
     yesterdayLog: dict | None = None # { completedActions: [], date: "YYYY-MM-DD" }
     weeklyStats: dict | None = None # { rate: int, message: str, totalCompleted: int }
@@ -698,7 +699,7 @@ def generate_daily(
         status="active",
         todayLog=today_log,
         streak=_calculate_streak(plan_doc), # Helper function
-        weeklyProgress=_calculate_weekly_progress(plan_doc.reference)
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference, today_str)
     )
 
 
@@ -748,15 +749,18 @@ def _calculate_streak(plan_doc) -> int:
         return 0
 
 
-def _calculate_weekly_progress(plan_ref) -> int:
-    """Calculate points based on completed actions (5 points each)"""
+def _calculate_weekly_progress(plan_ref, today_str: str) -> int:
+    """Calculate points based on completed actions (5 points each). 
+    Counts confirmed days OR days that have passed (auto-save).
+    """
     try:
         logs = plan_ref.collection("logs").stream()
         total_points = 0
         for log in logs:
+            log_id = log.id # YYYY-MM-DD
             data = log.to_dict()
-            # Only count confirmed days
-            if data.get("isConfirmed"):
+            # Count if manually confirmed OR if the day has passed
+            if data.get("isConfirmed") or log_id < today_str:
                 total_points += len(data.get("completedActions", [])) * 5
         
         return total_points
@@ -818,31 +822,41 @@ def get_current_plan(
         logging.error(f"Error handling plan expiration: {e}")
         weekly_stats = None
 
-    # 3. Get today's actions
+    # 3. Determine view date (Auto-advance if today is confirmed)
     current_date_obj = now
     if now.hour < 4:
         current_date_obj = now - timedelta(days=1)
         
     today_str = current_date_obj.strftime("%Y-%m-%d")
     
-    # Fetch Daily Actions
-    daily_actions_doc = plan_doc.reference.collection("dailyActions").document(today_str).get()
-    target_actions = []
-    if daily_actions_doc.exists:
-        target_actions = daily_actions_doc.to_dict().get("actions", [])
-    else:
-        # No actions generated for today yet
-        target_actions = [] # Empty list prompts frontend to show "Create" button
+    # Check today's confirmation
+    today_log_doc = plan_doc.reference.collection("logs").document(today_str).get()
+    is_today_confirmed = False
+    if today_log_doc.exists:
+        is_today_confirmed = today_log_doc.to_dict().get("isConfirmed", False)
 
-    # 4. Get logs
-    log_doc = plan_doc.reference.collection("logs").document(today_str).get()
-    today_log = {"completedActions": [], "isConfirmed": False}
-    if log_doc.exists:
-        today_log = log_doc.to_dict()
-        if "isConfirmed" not in today_log:
-            today_log["isConfirmed"] = False
+    view_date_obj = current_date_obj
+    if is_today_confirmed:
+        # Advance to tomorrow if today is already done
+        view_date_obj = current_date_obj + timedelta(days=1)
+    
+    view_date_str = view_date_obj.strftime("%Y-%m-%d")
+
+    # 4. Fetch Actions for view date
+    daily_actions_doc = plan_doc.reference.collection("dailyActions").document(view_date_str).get()
+    view_actions = []
+    if daily_actions_doc.exists:
+        view_actions = daily_actions_doc.to_dict().get("actions", [])
+    
+    # 5. Get logs for view date
+    view_log_doc = plan_doc.reference.collection("logs").document(view_date_str).get()
+    view_log = {"completedActions": [], "isConfirmed": False}
+    if view_log_doc.exists:
+        view_log = view_log_doc.to_dict()
+        if "isConfirmed" not in view_log:
+            view_log["isConfirmed"] = False
         
-    # 5. Get Yesterday's log
+    # 6. Get Yesterday's log (Always relative to actual "today")
     yesterday_date_obj = current_date_obj - timedelta(days=1)
     yesterday_str = yesterday_date_obj.strftime("%Y-%m-%d")
     yesterday_doc = plan_doc.reference.collection("logs").document(yesterday_str).get()
@@ -853,18 +867,19 @@ def get_current_plan(
         yesterday_log["completedActions"] = data.get("completedActions", [])
 
     return PlanResponse(
-        planId=plan_data["planId"],
-        theme=plan_data["theme"],
-        targetActions=target_actions,
-        startDate=plan_data["startDate"],
-        endDate=plan_data["endDate"],
-        status=plan_data["status"],
-        todayLog=today_log,
+        planId=plan_doc.id,
+        theme=plan_data.get("theme"),
+        targetActions=view_actions,
+        startDate=plan_data.get("startDate"),
+        endDate=plan_data.get("endDate"),
+        status=plan_data.get("status", "none"),
+        currentViewDate=view_date_str,
+        todayLog=view_log,
         yesterdayLog=yesterday_log,
         weeklyStats=weekly_stats,
         streak=_calculate_streak(plan_doc),
-        weeklyProgress=_calculate_weekly_progress(plan_doc.reference),
-        isTodayConfirmed=today_log.get("isConfirmed", False)
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference, today_str),
+        isTodayConfirmed=view_log.get("isConfirmed", False)
     )
 
 
