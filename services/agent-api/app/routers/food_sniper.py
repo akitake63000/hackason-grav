@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
 class FoodSniperRequest(BaseModel):
     message: Optional[str] = Field(None, max_length=1000, description="User message for food recommendation")
-    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+    hairPattern: Optional[str] = Field(None, description="Hair loss pattern (valid: M字, O字, U字, びまん性, オルセン型, ハミルトン型). Invalid values trigger generic fallback.")
 
     @validator('message')
     def validate_message(cls, v):
@@ -67,7 +67,7 @@ class FoodSniperResponse(BaseModel):
 
 class RecipeRequest(BaseModel):
     foodName: str = Field(..., min_length=1, max_length=100, description="Food name for recipe generation")
-    hairPattern: Optional[str] = Field(None, pattern="^(M字|O字|U字|びまん性|オルセン型|ハミルトン型)$", description="Hair loss pattern")
+    hairPattern: Optional[str] = Field(None, description="Hair loss pattern. Invalid values are ignored.")
 
     @validator('foodName')
     def validate_food_name(cls, v):
@@ -885,7 +885,14 @@ def recommend_food_sniper(
     payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
 ) -> FoodSniperResponse:
     # パターン取得: リクエスト > Firestore の順で探す
+    # パターン取得: リクエスト > Firestore の順で探す
     pattern = payload.hairPattern
+    
+    # リクエストされたパターンが有効な定義済みパターンかチェック
+    # 定義外なら None 扱いにして汎用ロジックへフォールバックさせる
+    if pattern and pattern not in PATTERN_FOOD_MAP:
+        pattern = None
+        
     if not pattern:
         pattern = _get_user_hair_pattern(uid)
 
@@ -960,6 +967,7 @@ def generate_recipe(
 ) -> RecipeResponse:
     """食材名からGeminiでレシピを生成。失敗時はフォールバック。"""
     pattern_context = ""
+    # パターンが有効な場合のみコンテキストに含める
     if payload.hairPattern and payload.hairPattern in PATTERN_FOOD_MAP:
         info = PATTERN_FOOD_MAP[payload.hairPattern]
         pattern_context = (
