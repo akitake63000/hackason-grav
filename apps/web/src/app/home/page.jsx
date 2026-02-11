@@ -254,6 +254,9 @@ function Home() {
             <Sparkles size={16} color="#c9a962" />
             <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
           </div>
+          <p className={styles.statusSubtext}>
+            {streakMessage}
+          </p>
           <div className={styles.statusContent}>
             <span className={styles.statusValue}>{streakDays}</span>
             <span className={styles.statusUnit}>日連続</span>
@@ -261,16 +264,6 @@ function Home() {
             <span className={styles.statusTotal}>通算{totalDays}日利用</span>
           </div>
         </motion.div>
-
-        {/* Streak Message */}
-        <motion.p
-          className={styles.streakMessage}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.22 }}
-        >
-          {streakMessage}
-        </motion.p>
 
         {/* Tips Section */}
         <motion.div
