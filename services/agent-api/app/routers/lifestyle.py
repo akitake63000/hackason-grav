@@ -652,7 +652,7 @@ def _calculate_streak(plan_doc) -> int:
     """Calculate consecutive days with at least 1 action completed"""
     # Simply count backwards from yesterday
     # Or check logs
-    logs = plan_doc.reference.collection("logs").order_by(FieldPath.document_id(), direction="DESCENDING").limit(7).stream()
+    logs = plan_doc.reference.collection("logs").order_by(FieldPath.document_id(), direction="DESCENDING").limit(14).stream()
     
     # Logic: Check consecutive dates
     streak = 0
@@ -714,9 +714,20 @@ def get_current_plan(
     end_date = datetime.fromisoformat(plan_data["endDate"])
     weekly_stats = None
     if now > end_date and now.date() > end_date.date():
-         # ... (calc stats logic) ...
-         # Simplified for this replacement block
-         pass
+         # Calculate weekly stats
+         log_docs = plan_doc.reference.collection("logs").stream()
+         total_completed = sum(len(l.to_dict().get("completedActions", [])) for l in log_docs)
+         start_date_parsed = datetime.fromisoformat(plan_data["startDate"])
+         total_days = (end_date.date() - start_date_parsed.date()).days + 1
+         rate = min(100, int((total_completed / max(1, total_days * 3)) * 100))
+         weekly_stats = {
+             "rate": rate,
+             "totalCompleted": total_completed,
+             "message": "お疲れさまでした！" if rate >= 70 else "次週もがんばりましょう！"
+         }
+         # Update status to completed
+         plan_doc.reference.update({"status": "completed"})
+         plan_data["status"] = "completed"
 
     # 3. Get today's actions
     current_date_obj = now
