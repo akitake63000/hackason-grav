@@ -13,8 +13,11 @@ import {
   Heart,
   Activity,
   Droplets,
-  Brain
+  Brain,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import Button from '@/components/Button'
@@ -43,6 +46,7 @@ function LifestyleRecommendContent() {
   const [hasPlan, setHasPlan] = useState(false)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [summary, setSummary] = useState(null)
+  const [showMechanism, setShowMechanism] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -204,71 +208,115 @@ function LifestyleRecommendContent() {
             </motion.div>
           )}
 
-          {/* 4-Axis Recommendations */}
-          {AXIS_ORDER.map((axisKey, axisIndex) => {
-            const actions = recommendations[axisKey] || []
-            const config = AXIS_CONFIG[axisKey]
-            const axisScore = scores[axisKey] || 0
-            const Icon = config.icon
-
-            if (actions.length === 0) return null
-
-            return (
-              <motion.div
-                key={axisKey}
-                className={styles.axisSection}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: axisIndex * 0.1 }}
+          {/* 4-Axis Mechanism Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{ marginBottom: '32px' }}
+          >
+            <Card variant="default" padding="none">
+              <div
+                className={styles.mechanismHeader}
+                onClick={() => setShowMechanism(!showMechanism)}
+                style={{
+                  padding: '16px 20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  borderBottom: showMechanism ? '1px solid #e5e7eb' : 'none'
+                }}
               >
-                {/* Axis Header */}
-                <div className={styles.axisHeader}>
-                  <div className={styles.axisIcon} style={{ background: config.bg }}>
-                    <Icon size={24} color={config.color} />
-                  </div>
-                  <div>
-                    <div className={styles.axisTitle}>{config.name}</div>
-                    <div style={{ fontSize: '12px', color: '#7f786d' }}>
-                      {actions.length}件のアクション
-                    </div>
-                  </div>
-                  <div className={styles.axisScore} style={{ color: config.color }}>
-                    {axisScore}<span style={{ fontSize: '14px' }}>pts</span>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Brain size={20} color="#419873" />
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#1a3d2e' }}>4軸のメカニズム解説</span>
                 </div>
+                {showMechanism ? <ChevronUp size={20} color="#9ca3af" /> : <ChevronDown size={20} color="#9ca3af" />}
+              </div>
 
-                {/* Actions */}
-                {actions.map((action, actionIndex) => {
-                  const priority = getPriorityInfo(action.priority)
-                  return (
-                    <Card
-                      key={action.id}
-                      className={styles.actionCard}
-                      onClick={() => setSelectedAction(action)}
-                    >
-                      <div className={styles.actionInner}>
-                        <div className={styles.actionEmoji}>{action.emoji}</div>
-                        <div className={styles.actionContent}>
-                          <div className={styles.actionName}>{action.name}</div>
-                          <div className={styles.actionReason}>{action.reason}</div>
-                        </div>
-                        <span
-                          className={styles.priorityBadge}
-                          style={{
-                            color: priority.color,
-                            background: priority.bg,
-                          }}
-                        >
-                          {priority.label}
-                        </span>
-                        <ChevronRight size={18} color="#9ca3af" />
-                      </div>
-                    </Card>
-                  )
-                })}
-              </motion.div>
-            )
-          })}
+              <AnimatePresence>
+                {showMechanism && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div style={{ padding: '20px' }}>
+                      <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px', lineHeight: 1.5 }}>
+                        あなたの診断結果から導き出された、各メカニズム軸の状態とおすすめのアクション一覧です。
+                      </p>
+
+                      {AXIS_ORDER.map((axisKey, axisIndex) => {
+                        const actions = recommendations[axisKey] || []
+                        const config = AXIS_CONFIG[axisKey]
+                        const axisScore = scores[axisKey] || 0
+                        const Icon = config.icon
+
+                        if (actions.length === 0) return null
+
+                        return (
+                          <div key={axisKey} style={{ marginBottom: axisIndex === AXIS_ORDER.length - 1 ? 0 : '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                              <div style={{ background: config.bg, padding: '6px', borderRadius: '50%' }}>
+                                <Icon size={18} color={config.color} />
+                              </div>
+                              <span style={{ fontWeight: '700', fontSize: '14px', color: '#1a3d2e' }}>{config.name}</span>
+                              <span style={{ fontSize: '14px', color: config.color, marginLeft: 'auto', fontWeight: '600' }}>{axisScore}点</span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                              {actions.map((action) => {
+                                const priority = getPriorityInfo(action.priority)
+                                return (
+                                  <div
+                                    key={action.id}
+                                    className={styles.actionCardSmall}
+                                    onClick={() => setSelectedAction(action)}
+                                    style={{
+                                      padding: '12px',
+                                      background: '#f9fafb',
+                                      borderRadius: '8px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '12px',
+                                      cursor: 'pointer',
+                                      border: '1px solid #e5e7eb'
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '20px' }}>{action.emoji}</span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a3d2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {action.name}
+                                      </div>
+                                    </div>
+                                    <span
+                                      style={{
+                                        fontSize: '10px',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: priority.bg,
+                                        color: priority.color,
+                                        fontWeight: '600'
+                                      }}
+                                    >
+                                      {priority.label}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
+          </motion.div>
 
           {/* AI Plan Creation CTA */}
           <motion.div

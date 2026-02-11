@@ -122,7 +122,7 @@ export const CONDITIONAL_QUESTIONS = {
     id: 'smoking_amount',
     text: '1日の喫煙本数は？',
     options: [
-      { value: 'score_100', label: '禁煙中' },
+      { value: 'score_100', label: '禁煙またはもともと吸っていない' },
       { value: 'score_80', label: '1〜5本' },
       { value: 'score_60', label: '6〜10本' },
       { value: 'score_40', label: '11〜20本' },

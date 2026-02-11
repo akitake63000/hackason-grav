@@ -225,19 +225,30 @@ export default function WeeklyPlan() {
         await handleCreatePlan()
     }
 
-    const handleGenerateDaily = async () => {
-        setGenerating(true)
+    const handleConfirmDay = async () => {
+        if (!plan) return
+
         try {
-            const res = await apiFetch('/api/v1/lifestyle/plan/daily/generate', { method: 'POST' })
-            if (res.ok) {
-                await fetchData()
-            } else {
-                alert("アクション生成に失敗しました")
+            const today = new Date();
+            let dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            if (today.getHours() < 4) {
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) {
-            console.error("Failed to generate daily actions", e)
-        } finally {
-            setGenerating(false)
+
+            const res = await apiFetch('/api/v1/lifestyle/plan/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ planId: plan.planId, date: dateStr })
+            })
+
+            if (res.ok) {
+                // Refresh to show updated score and confirmed state
+                await fetchData()
+            }
+        } catch (error) {
+            console.error('Confirmation failed:', error)
         }
     }
 
@@ -253,13 +264,17 @@ export default function WeeklyPlan() {
     }
 
     const isActionCompleted = (actionId) => {
-        return todayLog.some(l => l.actionId === actionId && l.completed)
+        return todayLog.includes(actionId)
     }
 
     const getCompletionRate = () => {
-        if (!plan || !plan.targetActions) return 0
-        const completed = plan.targetActions.filter(a => isActionCompleted(a.id)).length
-        return Math.round((completed / plan.targetActions.length) * 100)
+        if (!plan || !plan.targetActions || plan.targetActions.length === 0) return 0
+        const completedCount = plan.targetActions.filter(a => isActionCompleted(a.id)).length
+        // Ensure steps of 33, 66, 100 for 3 actions
+        if (completedCount === 0) return 0
+        if (completedCount === 1) return 33
+        if (completedCount === 2) return 66
+        return 100
     }
 
     const isPlanExpired = () => {
@@ -423,20 +438,21 @@ export default function WeeklyPlan() {
                                 週間スコア
                             </span>
                             <span style={{ fontSize: '24px', fontWeight: '800', color: '#419873' }}>
-                                {plan.weeklyProgress || 0}<span style={{ fontSize: '14px', fontWeight: 'normal' }}>pts</span>
+                                {plan.weeklyProgress || 0}<span style={{ fontSize: '14px', fontWeight: 'normal' }}>/105pts</span>
                             </span>
                         </div>
                         <div style={{ height: '12px', background: '#e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${plan.weeklyProgress || 0}%` }}
+                                animate={{ width: `${((plan.weeklyProgress || 0) / 105) * 100}%` }}
                                 transition={{ duration: 1.0, ease: "easeOut" }}
                                 style={{ height: '100%', background: 'linear-gradient(90deg, #419873 0%, #34d399 100%)', borderRadius: '6px' }}
                             />
                         </div>
-                        <p style={{ textAlign: 'right', fontSize: '11px', color: '#9c958a', marginTop: '4px' }}>
-                            7日間で100pt目指そう！
-                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                            <p style={{ fontSize: '11px', color: '#9c958a' }}>目標: 85pts以上！</p>
+                            <p style={{ fontSize: '11px', color: '#9c958a' }}>確定分のみ合算されます</p>
+                        </div>
                     </motion.div>
 
                     {/* Streak Badge */}
@@ -526,74 +542,116 @@ export default function WeeklyPlan() {
                             )}
                         </div>
                     ) : (
-                        plan.targetActions.map((action, index) => {
-                            const completed = isActionCompleted(action.id)
-                            const isExpanded = expandedActions[action.id]
-
-                            return (
+                        <>
+                            {plan.isTodayConfirmed ? (
                                 <motion.div
-                                    key={action.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    style={{ textAlign: 'center', padding: '32px 20px', background: 'rgba(65, 152, 115, 0.05)', borderRadius: '24px', border: '1px solid rgba(65, 152, 115, 0.2)' }}
                                 >
-                                    <Card className={styles.actionCard}>
-                                        {/* Header area - Click to expand (except checkbox) */}
-                                        <div
-                                            className={styles.actionHeader}
-                                            onClick={() => toggleAccordion(action.id)}
-                                        >
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleCheckClick(action)
-                                                }}
-                                                className={`${styles.missionCheckbox} ${completed ? styles.missionCheckboxCompleted : ''}`}
-                                            >
-                                                {completed && <CheckCircle size={18} color="#fff" />}
-                                            </div>
-
-                                            <div className={styles.actionName}>
-                                                {action.emoji} {action.name}
-                                            </div>
-
-                                            <div style={{ color: '#9ca3af' }}>
-                                                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                            </div>
-                                        </div>
-
-                                        {/* Content area - Expanded details */}
-                                        <AnimatePresence>
-                                            {isExpanded && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    transition={{ duration: 0.3 }}
-                                                >
-                                                    <div className={styles.actionContent}>
-                                                        <strong>Why?</strong><br />
-                                                        {action.description}
-
-                                                        {!completed && action.targetAxis && (
-                                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', fontSize: '12px', color: '#419873', fontWeight: '600' }}>
-                                                                <TrendingUp size={14} style={{ marginRight: '4px' }} />
-                                                                達成で{action.targetAxis === 'hormone' ? 'ホルモン' :
-                                                                    action.targetAxis === 'circadian' ? '体内時計' :
-                                                                        action.targetAxis === 'blood_flow' ? '血流' : 'ストレス'}スコアUP!
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </Card>
+                                    <div style={{ background: '#419873', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                        <CheckCircle size={32} color="#fff" />
+                                    </div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>本日のミッション完了！</h3>
+                                    <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '20px' }}>
+                                        お疲れさまでした。スコアが反映されました。<br />
+                                        明日もこの調子で頑張りましょう！
+                                    </p>
+                                    <p style={{ fontSize: '12px', color: '#9c958a' }}>
+                                        ※明日のミッションは午前4時以降に表示されます。
+                                    </p>
                                 </motion.div>
-                            )
-                        })
-                    )}
+                            ) : (
+                                <>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {plan.targetActions.map((action, index) => {
+                                            const completed = isActionCompleted(action.id)
+                                            const isExpanded = expandedActions[action.id]
 
-                    {/* Week remaining info */}
+                                            return (
+                                                <motion.div
+                                                    key={action.id}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.1 }}
+                                                >
+                                                    <Card className={styles.actionCard}>
+                                                        <div
+                                                            className={styles.actionHeader}
+                                                            onClick={() => toggleAccordion(action.id)}
+                                                        >
+                                                            <div
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    handleCheckClick(action)
+                                                                }}
+                                                                className={`${styles.missionCheckbox} ${completed ? styles.missionCheckboxCompleted : ''}`}
+                                                            >
+                                                                {completed && <CheckCircle size={18} color="#fff" />}
+                                                            </div>
+
+                                                            <div className={styles.actionName}>
+                                                                {action.emoji} {action.name}
+                                                            </div>
+
+                                                            <div style={{ color: '#9ca3af' }}>
+                                                                {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                            </div>
+                                                        </div>
+
+                                                        <AnimatePresence>
+                                                            {isExpanded && (
+                                                                <motion.div
+                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    transition={{ duration: 0.3 }}
+                                                                >
+                                                                    <div className={styles.actionContent}>
+                                                                        <strong>Why?</strong><br />
+                                                                        {action.description}
+
+                                                                        {!completed && action.targetAxis && (
+                                                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', fontSize: '12px', color: '#419873', fontWeight: '600' }}>
+                                                                                <TrendingUp size={14} style={{ marginRight: '4px' }} />
+                                                                                達成で{action.targetAxis === 'hormone' ? 'ホルモン' :
+                                                                                    action.targetAxis === 'circadian' ? '体内時計' :
+                                                                                        action.targetAxis === 'blood_flow' ? '血流' : 'ストレス'}スコアUP!
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </Card>
+                                                </motion.div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {/* Confirm Button */}
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.5 }}
+                                        style={{ marginTop: '32px' }}
+                                    >
+                                        <Button
+                                            size="full"
+                                            onClick={handleConfirmDay}
+                                            disabled={todayLog.length === 0}
+                                            variant={todayLog.length === 3 ? "primary" : "outline"}
+                                        >
+                                            {todayLog.length === 0 ? "アクションをチェックしてください" : "本日の達成内容を確定する"}
+                                        </Button>
+                                        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '12px' }}>
+                                            確定すると週間スコアに加算されます
+                                        </p>
+                                    </motion.div>
+                                </>
+                            )}
+                        </>
+                    )}
                     {plan.endDate && (
                         <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '32px' }}>
                             <Calendar size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
@@ -645,6 +703,6 @@ export default function WeeklyPlan() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </Layout>
+        </Layout >
     )
 }

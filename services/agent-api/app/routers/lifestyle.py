@@ -554,7 +554,8 @@ class PlanResponse(BaseModel):
     yesterdayLog: dict | None = None # { completedActions: [], date: "YYYY-MM-DD" }
     weeklyStats: dict | None = None # { rate: int, message: str, totalCompleted: int }
     streak: int = 0  # Consecutive days completed
-    weeklyProgress: int = 0 # 0-100% based on 21 actions (3/day * 7days)
+    weeklyProgress: int = 0 # Points (0-105)
+    isTodayConfirmed: bool = False
 
 
 @router.post("/plan/generate", response_model=PlanResponse)
@@ -748,17 +749,17 @@ def _calculate_streak(plan_doc) -> int:
 
 
 def _calculate_weekly_progress(plan_ref) -> int:
-    """Calculate progress percentage based on 21 actions (3 per day * 7 days)"""
+    """Calculate points based on completed actions (5 points each)"""
     try:
         logs = plan_ref.collection("logs").stream()
-        total_completed = 0
+        total_points = 0
         for log in logs:
             data = log.to_dict()
-            total_completed += len(data.get("completedActions", []))
+            # Only count confirmed days
+            if data.get("isConfirmed"):
+                total_points += len(data.get("completedActions", [])) * 5
         
-        # Max 21 actions per week
-        progress = int((total_completed / 21) * 100)
-        return min(100, progress)
+        return total_points
     except Exception:
         return 0
 @router.get("/plan/current", response_model=PlanResponse)
@@ -835,9 +836,11 @@ def get_current_plan(
 
     # 4. Get logs
     log_doc = plan_doc.reference.collection("logs").document(today_str).get()
-    today_log = {"completedActions": []}
+    today_log = {"completedActions": [], "isConfirmed": False}
     if log_doc.exists:
         today_log = log_doc.to_dict()
+        if "isConfirmed" not in today_log:
+            today_log["isConfirmed"] = False
         
     # 5. Get Yesterday's log
     yesterday_date_obj = current_date_obj - timedelta(days=1)
@@ -860,7 +863,8 @@ def get_current_plan(
         yesterdayLog=yesterday_log,
         weeklyStats=weekly_stats,
         streak=_calculate_streak(plan_doc),
-        weeklyProgress=_calculate_weekly_progress(plan_doc.reference)
+        weeklyProgress=_calculate_weekly_progress(plan_doc.reference),
+        isTodayConfirmed=today_log.get("isConfirmed", False)
     )
 
 
@@ -883,3 +887,31 @@ def check_action(
         log_ref.set({"completedActions": firestore.ArrayRemove([req.actionId])}, merge=True)
         
     return {"status": "updated"}
+
+
+class PlanConfirmRequest(BaseModel):
+    planId: str
+    date: str  # YYYY-MM-DD
+
+
+@router.post("/plan/confirm")
+@limiter.limit("20/minute")
+def confirm_day(
+    request: Request,
+    req: PlanConfirmRequest,
+    uid: str = Depends(get_current_uid),
+):
+    """一日のアクションを確定し、スコアを反映させる"""
+    db = get_firestore_client()
+    
+    plan_ref = db.collection("users").document(uid).collection("plans").document(req.planId)
+    log_ref = plan_ref.collection("logs").document(req.date)
+    
+    log_doc = log_ref.get()
+    if not log_doc.exists:
+        # Create empty log if not exists to mark as confirmed
+        log_ref.set({"completedActions": [], "isConfirmed": True, "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo"))})
+    else:
+        log_ref.update({"isConfirmed": True, "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo"))})
+        
+    return {"status": "confirmed"}
