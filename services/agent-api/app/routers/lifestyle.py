@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
 import logging
 import random
@@ -174,6 +174,247 @@ def tip(request: Request, _: str = Depends(get_current_uid)) -> TipResponse:
     except Exception as e:
         logging.error(f"Unexpected error in tip generation: {e}", exc_info=True)
         return TipResponse(tip=_fallback_tip(season), source="fallback")
+
+
+# ---------------------------------------------------------------------------
+# GET /quick-action — クイックアクション提案
+# ---------------------------------------------------------------------------
+
+class QuickActionResponse(BaseModel):
+    """Quick action response"""
+    action: str  # アクション説明（例: 「朝食に亜鉛豊富なナッツを追加」）
+    time_label: str  # 時間帯ラベル（朝/昼/夜）
+    guide: str  # 実行ガイド（「今すぐ始める」で表示）
+    duration_minutes: int  # 所要時間（5分固定）
+    source: str  # "generated" | "cached" | "fallback"
+    generatedAt: str
+
+
+FALLBACK_QUICK_ACTIONS = {
+    "朝": {
+        "action": "朝食に亜鉛豊富なナッツを追加",
+        "guide": "1. アーモンド、カシューナッツ、くるみなどを用意\n2. 朝食に一握り（20-30g）追加\n3. よく噛んで食べる",
+    },
+    "昼": {
+        "action": "ランチ後の5分頭皮マッサージ",
+        "guide": "1. 両手の指の腹を頭皮に当てる\n2. 円を描くように優しくマッサージ\n3. 前頭部→側頭部→後頭部の順に5分間",
+    },
+    "夜": {
+        "action": "寝る前の首・肩ストレッチ",
+        "guide": "1. 首をゆっくり前後左右に倒す（各10秒）\n2. 肩を大きく回す（前後各10回）\n3. 深呼吸しながらリラックス",
+    },
+}
+
+
+def _get_quick_action_time_label(hour: int) -> str:
+    """Simplified time label for quick actions (朝/昼/夜)"""
+    if hour < 5:
+        return "夜"  # 深夜は夜のアクションを提案
+    elif hour < 11:
+        return "朝"
+    elif hour < 17:
+        return "昼"
+    else:
+        return "夜"
+
+
+def _build_quick_action_prompt(
+    time_label: str,
+    metrics: UserActivityMetrics,
+    season: str
+) -> str:
+    """Build Gemini prompt for quick action generation"""
+    return f"""あなたは薄毛対策アプリの生活習慣アドバイザーAIです。
+ユーザーの活動データと現在の状況を分析して、今すぐ実行可能な5分アクションを1つ提案してください。
+
+## 現在の状況
+- 時間帯: {time_label}
+- 季節: {season}
+- ユーザーの弱点軸: {metrics['weakest_axis']} (スコア: {metrics['weakest_score']})
+- エンゲージメント: {metrics['engagement_level']}
+- 食事記録トレンド: {metrics['meal_logging_trend']}
+- プラン実行状況: 連続{metrics['current_streak']}日、完了率{metrics['plan_completion_rate']:.0%}
+
+## アクション生成ルール
+1. 時間帯に適したアクション（朝: 栄養、昼: マッサージ/運動、夜: リラックス）
+2. 5分以内で実行可能
+3. 具体的で実行しやすい
+4. 弱点軸の改善に寄与する内容を優先
+5. 季節を考慮（夏: 水分補給、冬: 保温など）
+
+## 出力形式（JSONのみ）
+{{
+  "action": "簡潔なアクション名（20文字以内）",
+  "guide": "実行手順を3ステップで説明（各ステップ50文字以内）\\n1. ...\\n2. ...\\n3. ..."
+}}
+
+JSONのみ出力してください。"""
+
+
+async def _get_cached_quick_action(
+    uid: str,
+    db: firestore.Client,
+    date_str: str,
+    time_label: str
+) -> QuickActionResponse | None:
+    """Retrieve cached quick action from Firestore"""
+    try:
+        doc_id = f"{date_str}_{time_label}"
+        doc_ref = db.collection("users").document(uid).collection("quickActions").document(doc_id)
+        doc = doc_ref.get()
+
+        if doc.exists:
+            data = doc.to_dict()
+            # Check if cache is still valid (TTL not expired)
+            if data.get("ttl") and data["ttl"].replace(tzinfo=ZoneInfo("UTC")) > datetime.now(ZoneInfo("UTC")):
+                return QuickActionResponse(
+                    action=data["action"],
+                    time_label=data["time_label"],
+                    guide=data["guide"],
+                    duration_minutes=data.get("duration_minutes", 5),
+                    source="cached",
+                    generatedAt=data["generatedAt"]
+                )
+    except Exception as e:
+        logging.warning(f"Failed to retrieve cached quick action: {e}")
+
+    return None
+
+
+async def _cache_quick_action(
+    uid: str,
+    db: firestore.Client,
+    date_str: str,
+    time_label: str,
+    action: str,
+    guide: str,
+    generated_at: str
+) -> None:
+    """Cache quick action to Firestore with TTL"""
+    try:
+        # Calculate TTL (next day 4:00 AM JST)
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        tomorrow = now.date() + timedelta(days=1)
+        ttl = datetime.combine(tomorrow, datetime.min.time().replace(hour=4), tzinfo=ZoneInfo("Asia/Tokyo"))
+
+        doc_id = f"{date_str}_{time_label}"
+        doc_ref = db.collection("users").document(uid).collection("quickActions").document(doc_id)
+
+        doc_ref.set({
+            "action": action,
+            "time_label": time_label,
+            "guide": guide,
+            "duration_minutes": 5,
+            "source": "generated",
+            "generatedAt": generated_at,
+            "ttl": ttl
+        })
+    except Exception as e:
+        logging.warning(f"Failed to cache quick action: {e}")
+
+
+@router.get("/quick-action", response_model=QuickActionResponse)
+@limiter.limit("30/minute")
+async def quick_action(request: Request, uid: str = Depends(get_current_uid)) -> QuickActionResponse:
+    """Generate time-based quick action suggestions"""
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    date_str = now.strftime("%Y-%m-%d")
+    season = _season_label(now.month)
+    time_label = _get_quick_action_time_label(now.hour)
+
+    db = get_firestore_client()
+
+    # Check cache first
+    cached = await _get_cached_quick_action(uid, db, date_str, time_label)
+    if cached:
+        return cached
+
+    # Get fallback action
+    fallback_data = FALLBACK_QUICK_ACTIONS.get(time_label, FALLBACK_QUICK_ACTIONS["朝"])
+
+    model = GEMINI_MODEL_LIGHT or GEMINI_MODEL
+
+    # If Gemini is not available, return fallback
+    if not gemini_enabled(model):
+        return QuickActionResponse(
+            action=fallback_data["action"],
+            time_label=time_label,
+            guide=fallback_data["guide"],
+            duration_minutes=5,
+            source="fallback",
+            generatedAt=now.isoformat()
+        )
+
+    # Analyze user activity
+    try:
+        metrics = await analyze_user_activity(uid, db)
+    except Exception as e:
+        logging.warning(f"Failed to analyze user activity for quick action: {e}")
+        # Use default metrics on error
+        metrics = {
+            "days_since_last_photo": None,
+            "photo_frequency": "inactive",
+            "meals_logged_last_week": 0,
+            "meal_logging_trend": "stable",
+            "current_streak": 0,
+            "plan_completion_rate": 0.0,
+            "weakest_axis": "stress",
+            "weakest_score": 50,
+            "engagement_level": "low"
+        }
+
+    # Generate with Gemini
+    prompt = _build_quick_action_prompt(time_label, metrics, season)
+
+    try:
+        response_text = generate_text(prompt, model=model).strip()
+
+        # Parse JSON response
+        response_data = safe_json_load(response_text)
+
+        if not response_data or "action" not in response_data or "guide" not in response_data:
+            raise ValueError("Invalid response format from Gemini")
+
+        action = response_data["action"].strip()
+        guide = response_data["guide"].strip()
+
+        if not action or not guide:
+            raise ValueError("Empty action or guide from Gemini")
+
+        generated_at = now.isoformat()
+
+        # Cache the result
+        await _cache_quick_action(uid, db, date_str, time_label, action, guide, generated_at)
+
+        return QuickActionResponse(
+            action=action,
+            time_label=time_label,
+            guide=guide,
+            duration_minutes=5,
+            source="generated",
+            generatedAt=generated_at
+        )
+
+    except (ValueError, RuntimeError, KeyError) as e:
+        logging.warning(f"Failed to generate quick action with Gemini: {e}")
+        return QuickActionResponse(
+            action=fallback_data["action"],
+            time_label=time_label,
+            guide=fallback_data["guide"],
+            duration_minutes=5,
+            source="fallback",
+            generatedAt=now.isoformat()
+        )
+    except Exception as e:
+        logging.error(f"Unexpected error in quick action generation: {e}", exc_info=True)
+        return QuickActionResponse(
+            action=fallback_data["action"],
+            time_label=time_label,
+            guide=fallback_data["guide"],
+            duration_minutes=5,
+            source="fallback",
+            generatedAt=now.isoformat()
+        )
 
 
 # ---------------------------------------------------------------------------

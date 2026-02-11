@@ -59,6 +59,9 @@ function Home() {
   const [missionsLoading, setMissionsLoading] = useState(true)
   const [motivationMessage, setMotivationMessage] = useState('今日も髪と向き合う一日を始めましょう')
   const [motivationLoading, setMotivationLoading] = useState(true)
+  const [quickAction, setQuickAction] = useState(null)
+  const [quickActionLoading, setQuickActionLoading] = useState(true)
+  const [showGuide, setShowGuide] = useState(false)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
@@ -291,6 +294,31 @@ function Home() {
       })
   }, [user, streakMessage])
 
+  // クイックアクション取得
+  useEffect(() => {
+    if (!user) return
+
+    setQuickActionLoading(true)
+    apiFetch('/api/v1/lifestyle/quick-action')
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch quick action')
+        return res.json()
+      })
+      .then((data) => {
+        if (data?.action) {
+          setQuickAction(data)
+        }
+      })
+      .catch((error) => {
+        console.error('Quick action fetch error:', error)
+        // エラー時はセクション非表示
+        setQuickAction(null)
+      })
+      .finally(() => {
+        setQuickActionLoading(false)
+      })
+  }, [user])
+
   return (
     <Layout>
       <div className={styles.container}>
@@ -372,6 +400,50 @@ function Home() {
             ))}
           </div>
         </motion.div>
+
+        {/* Quick Action Section */}
+        {!quickActionLoading && quickAction && (
+          <motion.div
+            className={styles.statusCard}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div style={{ marginBottom: '12px' }}>
+              <h4 className={styles.tipsTitle}>⚡ クイックアクション提案</h4>
+              <p style={{ fontSize: 'var(--font-xs)', color: '#7f786d', marginTop: '4px' }}>
+                {quickAction.time_label}にオススメの5分アクション
+              </p>
+            </div>
+
+            <div className={styles.quickActionCard}>
+              <div className={styles.quickActionIcon}>⚡</div>
+              <div className={styles.quickActionContent}>
+                <div className={styles.quickActionTitle}>{quickAction.action}</div>
+                <div className={styles.quickActionDuration}>所要時間: {quickAction.duration_minutes}分</div>
+              </div>
+              <button
+                className={styles.quickActionButton}
+                onClick={() => setShowGuide(!showGuide)}
+              >
+                {showGuide ? '閉じる' : '今すぐ始める'}
+              </button>
+            </div>
+
+            {showGuide && (
+              <motion.div
+                className={styles.quickActionGuide}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+              >
+                <div style={{ whiteSpace: 'pre-line', fontSize: 'var(--font-sm)', color: '#1a3d2e', lineHeight: 1.6 }}>
+                  {quickAction.guide}
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
 
         {/* Features Section */}
         <motion.div

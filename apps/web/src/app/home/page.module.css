@@ -430,3 +430,90 @@
     font-size: clamp(10px, 2.8vw, 11px);
   }
 }
+
+/* Quick Action Card */
+.quickActionCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(65, 152, 115, 0.12);
+}
+
+.quickActionIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickActionContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.quickActionTitle {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: 4px;
+}
+
+.quickActionDuration {
+  font-size: var(--font-xs);
+  color: #7f786d;
+}
+
+.quickActionButton {
+  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.quickActionButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(65, 152, 115, 0.3);
+}
+
+.quickActionButton:active {
+  transform: translateY(0);
+}
+
+.quickActionGuide {
+  background: rgba(65, 152, 115, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  border-left: 3px solid #419873;
+}
+
+@media (max-width: 767px) {
+  .quickActionCard {
+    padding: 12px 14px;
+  }
+
+  .quickActionButton {
+    font-size: clamp(10px, 2.8vw, 11px);
+    padding: 6px 12px;
+  }
+
+  .quickActionTitle {
+    font-size: clamp(12px, 3.5vw, 13px);
+  }
+
+  .quickActionDuration {
+    font-size: clamp(10px, 2.8vw, 11px);
+  }
+}
