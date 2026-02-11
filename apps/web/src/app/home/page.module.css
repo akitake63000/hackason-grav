@@ -19,9 +19,25 @@
   }
 }
 
+/* Header Section (Greeting + Status) */
+.headerSection {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  align-items: flex-start;
+}
+
+@media (max-width: 767px) {
+  .headerSection {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
 /* Greeting Section */
 .greeting {
-  margin-bottom: var(--spacing-lg);
+  flex: 1;
+  min-width: 0;
 }
 
 .greetingText {
@@ -47,8 +63,22 @@
   background: linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(201, 169, 98, 0.05) 100%);
   border-radius: 20px;
   padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
   border: 1px solid rgba(65, 152, 115, 0.12);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Status Card inside headerSection */
+.headerSection .statusCard {
+  margin-bottom: 0;
+  flex-shrink: 0;
+  min-width: 280px;
+}
+
+@media (max-width: 767px) {
+  .headerSection .statusCard {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 @media (max-width: 767px) {
