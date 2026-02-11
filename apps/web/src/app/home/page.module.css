@@ -324,3 +324,79 @@
     font-size: clamp(10px, 2.5vw, 12px);
   }
 }
+
+/* Mission Cards */
+.missionCard {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(65, 152, 115, 0.12);
+  transition: all 0.3s ease;
+}
+
+.missionCard:hover {
+  transform: translateX(4px);
+  border-color: #419873;
+  box-shadow: 0 4px 12px rgba(26, 61, 46, 0.08);
+}
+
+.missionEmoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.missionContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.missionName {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: #1a3d2e;
+  margin-bottom: 2px;
+}
+
+.missionDescription {
+  font-size: var(--font-xs);
+  color: #7f786d;
+  line-height: 1.4;
+}
+
+.missionArrow {
+  color: #b9b3a9;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.missionCard:hover .missionArrow {
+  transform: translateX(4px);
+}
+
+@media (max-width: 767px) {
+  .missionCard {
+    padding: 10px 12px;
+  }
+
+  .missionEmoji {
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .missionName {
+    font-size: clamp(12px, 3.5vw, 13px);
+  }
+
+  .missionDescription {
+    font-size: clamp(10px, 2.8vw, 11px);
+  }
+}
