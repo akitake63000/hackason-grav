@@ -757,22 +757,16 @@ def _execute_discuss_workflow_sync(
             "taskId": task_id,
         })
 
-        # AIレスポンスカード
-        for card in cards:
-            messages_ref.add({
-                "role": "agent",
-                "agent": card.agent,
-                "text": card.text,
-                "createdAt": admin_firestore.SERVER_TIMESTAMP,
-                "taskId": task_id,
-            })
+        # discussion-result形式でまとめて保存（フロントエンドの期待形式）
+        all_cards_json = json.dumps([{"agent": c.agent, "text": c.text} for c in cards], ensure_ascii=False)
 
-        # サマリーメッセージID
         _, message_ref = messages_ref.add({
+            "type": "discussion-result",
             "role": "agent",
             "agent": "orchestrator",
-            "text": summary,
+            "summary": summary,
             "bestAgent": best_agent,
+            "allCards": all_cards_json,
             "createdAt": admin_firestore.SERVER_TIMESTAMP,
             "taskId": task_id,
         })

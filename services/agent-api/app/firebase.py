@@ -1,6 +1,5 @@
 import firebase_admin
 from firebase_admin import auth, firestore
-from .firestore_mock import MockFirestoreClient
 
 from .config import FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET
 
