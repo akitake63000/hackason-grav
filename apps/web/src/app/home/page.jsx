@@ -57,6 +57,8 @@ function Home() {
   const [totalDays, setTotalDays] = useState(0)
   const [missions, setMissions] = useState([])
   const [missionsLoading, setMissionsLoading] = useState(true)
+  const [motivationMessage, setMotivationMessage] = useState('今日も髪と向き合う一日を始めましょう')
+  const [motivationLoading, setMotivationLoading] = useState(false)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
@@ -264,6 +266,31 @@ function Home() {
       })
   }, [user])
 
+  // モチベーションメッセージ取得
+  useEffect(() => {
+    if (!user) return
+
+    setMotivationLoading(true)
+    apiFetch('/api/v1/mental-shield/motivation')
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch motivation')
+        return res.json()
+      })
+      .then((data) => {
+        if (data?.message) {
+          setMotivationMessage(data.message)
+        }
+      })
+      .catch((error) => {
+        console.error('Motivation fetch error:', error)
+        // フォールバック: 既存のstreakMessageロジックを使用
+        setMotivationMessage(streakMessage)
+      })
+      .finally(() => {
+        setMotivationLoading(false)
+      })
+  }, [user, streakMessage])
+
   return (
     <Layout>
       <div className={styles.container}>
@@ -299,7 +326,7 @@ function Home() {
               <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
             </div>
             <p className={styles.statusSubtext}>
-              {streakMessage}
+              {motivationLoading ? '...' : motivationMessage}
             </p>
             <div className={styles.statusContent}>
               <span className={styles.statusValue}>{streakDays}</span>

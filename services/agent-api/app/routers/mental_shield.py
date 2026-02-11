@@ -4,8 +4,9 @@ import logging
 import os
 import threading
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import List, Optional, Tuple, TypedDict
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from firebase_admin import firestore as admin_firestore
@@ -22,6 +23,7 @@ from ..firebase import get_firestore_client
 from ..config import GEMINI_MODEL, GEMINI_MODEL_HEAVY
 from ..middleware.rate_limit import limiter
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
+from ..agents.lifestyle_agent.tools.analyze_user_activity import analyze_user_activity, UserActivityMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -1003,4 +1005,166 @@ def get_task_status(task_id: str, uid: str = Depends(get_current_uid)) -> TaskSt
         finishedAt=finished_at.isoformat() if finished_at else None,
         messageId=task_data.get("messageId"),
         error=task_data.get("error"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# /motivation - ホーム画面用のモチベーションメッセージ生成
+# ---------------------------------------------------------------------------
+
+class MotivationResponse(BaseModel):
+    message: str
+    source: str  # "generated" | "cached" | "fallback"
+    generatedAt: str
+
+
+def _get_fallback_motivation_message(streak_days: int) -> str:
+    """連続日数に基づいたフォールバックメッセージを返す"""
+    if streak_days <= 0:
+        return '今日から一緒に始めましょう'
+    if streak_days < 3:
+        return 'いいスタートです。少しずつ続けましょう'
+    if streak_days < 7:
+        return 'いいペースです。無理なく続けましょう'
+    if streak_days < 14:
+        return '素晴らしい！継続は力なりです'
+    if streak_days < 30:
+        return '継続できています。あと少しで習慣化！'
+    return '習慣化達成！この調子で続けましょう'
+
+
+def _build_motivation_prompt(metrics: UserActivityMetrics, streak_days: int, total_days: int) -> str:
+    """モチベーションメッセージ生成用のGeminiプロンプトを構築"""
+    return f"""あなたは薄毛対策アプリのモチベーション支援AIです。
+ユーザーの活動データを分析して、具体的で励ましになるメッセージを1つ生成してください。
+
+## ユーザー活動データ
+- 連続ログイン: {streak_days}日
+- 通算ログイン: {total_days}日
+- 写真撮影: {metrics['days_since_last_photo']}日前、頻度={metrics['photo_frequency']}
+- 食事記録: 直近1週間で{metrics['meals_logged_last_week']}回、トレンド={metrics['meal_logging_trend']}
+- プラン実行: 連続{metrics['current_streak']}日、完了率={metrics['plan_completion_rate']:.0%}
+- 弱点軸: {metrics['weakest_axis']} (スコア: {metrics['weakest_score']})
+- エンゲージメント: {metrics['engagement_level']}
+
+## メッセージ生成ルール
+1. 具体的な行動を褒める（例: 「今週は食事記録を4回も達成」）
+2. 抽象的な励まし（「頑張って」）は避ける
+3. 進捗や変化に言及する
+4. 前向きで具体的な次の一歩を示唆
+5. 120文字以内で簡潔に
+6. JSON形式で出力: {{"message": "..."}}
+
+JSONのみ出力してください。"""
+
+
+@router.get("/motivation", response_model=MotivationResponse)
+@limiter.limit("30/minute")
+async def get_motivation_message(
+    request: Request, uid: str = Depends(get_current_uid)
+) -> MotivationResponse:
+    """
+    ホーム画面用のパーソナライズされたモチベーションメッセージを生成
+
+    - ユーザーアクティビティデータを分析
+    - Geminiで具体的な励ましメッセージを生成
+    - Firestoreにキャッシュ（翌日4:00AM JSTまで有効）
+    """
+    db = get_firestore_client()
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    today_str = now.strftime("%Y-%m-%d")
+
+    # 1. キャッシュチェック
+    try:
+        cache_ref = db.collection("users").document(uid).collection("motivationMessages").document(today_str)
+        cache_doc = cache_ref.get()
+
+        if cache_doc.exists:
+            cached_data = cache_doc.to_dict()
+            logging.info(f"Using cached motivation message for {today_str}")
+            return MotivationResponse(
+                message=cached_data.get("message", "今日も髪と向き合う一日を始めましょう"),
+                source="cached",
+                generatedAt=cached_data.get("generatedAt", now.isoformat())
+            )
+    except Exception as e:
+        logging.warning(f"Failed to fetch cached motivation message: {e}")
+
+    # 2. ユーザーアクティビティ分析
+    try:
+        metrics = await analyze_user_activity(uid, db)
+    except Exception as e:
+        logging.error(f"Failed to analyze user activity: {e}", exc_info=True)
+        # デフォルトメトリクスを使用
+        metrics: UserActivityMetrics = {
+            "days_since_last_photo": None,
+            "photo_frequency": "inactive",
+            "meals_logged_last_week": 0,
+            "meal_logging_trend": "stable",
+            "current_streak": 0,
+            "plan_completion_rate": 0.0,
+            "weakest_axis": "stress",
+            "weakest_score": 50,
+            "engagement_level": "low"
+        }
+
+    # 3. visitHistoryから連続日数・通算日数を取得
+    streak_days = 0
+    total_days = 0
+    try:
+        profile_ref = db.collection("users").document(uid).collection("profile").document("default")
+        profile_doc = profile_ref.get()
+        if profile_doc.exists:
+            profile_data = profile_doc.to_dict()
+            streak_days = profile_data.get("homeStreakDays", 0)
+            total_days = profile_data.get("homeTotalDays", 0)
+    except Exception as e:
+        logging.warning(f"Failed to fetch streak data: {e}")
+
+    # 4. Geminiでメッセージ生成
+    generated_message = None
+    if gemini_enabled():
+        try:
+            prompt = _build_motivation_prompt(metrics, streak_days, total_days)
+            response_text = generate_text(prompt, model=GEMINI_MODEL, max_output_tokens=200)
+            response_data = safe_json_load(response_text)
+            generated_message = response_data.get("message")
+
+            if generated_message and len(generated_message) > 120:
+                logging.warning(f"Generated message too long ({len(generated_message)} chars), truncating")
+                generated_message = generated_message[:117] + "..."
+        except Exception as e:
+            logging.error(f"Failed to generate motivation message with Gemini: {e}", exc_info=True)
+
+    # 5. フォールバック
+    if not generated_message:
+        generated_message = _get_fallback_motivation_message(streak_days)
+        source = "fallback"
+    else:
+        source = "generated"
+
+    # 6. Firestoreにキャッシュ保存（TTL: 翌日4:00AM JST）
+    try:
+        tomorrow = now.date() + timedelta(days=1)
+        ttl_time = datetime.combine(tomorrow, time(4, 0), tzinfo=ZoneInfo("Asia/Tokyo"))
+
+        cache_ref.set({
+            "message": generated_message,
+            "source": source,
+            "generatedAt": now.isoformat(),
+            "ttl": ttl_time,
+            "metrics": {
+                "streakDays": streak_days,
+                "totalDays": total_days,
+                "engagementLevel": metrics["engagement_level"]
+            }
+        })
+        logging.info(f"Cached motivation message for {today_str}, TTL: {ttl_time.isoformat()}")
+    except Exception as e:
+        logging.error(f"Failed to cache motivation message: {e}", exc_info=True)
+
+    return MotivationResponse(
+        message=generated_message,
+        source=source,
+        generatedAt=now.isoformat()
     )
