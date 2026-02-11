@@ -12,6 +12,33 @@
   --border: #e1d4bf;
   --font-body: "Manrope", "Noto Sans JP", sans-serif;
   --font-display: "Fraunces", "Cormorant Garamond", serif;
+
+  /* Responsive breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  /* Spacing scale (fluid) */
+  --spacing-xs: clamp(4px, 1vw, 8px);
+  --spacing-sm: clamp(8px, 2vw, 12px);
+  --spacing-md: clamp(12px, 3vw, 16px);
+  --spacing-lg: clamp(16px, 4vw, 24px);
+  --spacing-xl: clamp(24px, 6vw, 32px);
+
+  /* Font sizes (fluid) */
+  --font-xs: clamp(10px, 2.5vw, 12px);
+  --font-sm: clamp(12px, 3vw, 14px);
+  --font-base: clamp(14px, 3.5vw, 16px);
+  --font-lg: clamp(16px, 4vw, 18px);
+  --font-xl: clamp(18px, 5vw, 24px);
+  --font-2xl: clamp(24px, 6vw, 32px);
+
+  /* Touch target minimum */
+  --touch-target-min: 44px;
+
+  /* Bottom navigation height (for layout calculations) */
+  --bottom-nav-height: 70px;
 }
 
 html,
@@ -37,6 +64,13 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Small device adjustments */
+@media (max-width: 374px) {
+  :root {
+    --bottom-nav-height: 64px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
