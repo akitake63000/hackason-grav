@@ -106,6 +106,15 @@
   margin-top: var(--spacing-sm);
 }
 
+/* Streak Message */
+.streakMessage {
+  font-size: var(--font-xs);
+  color: #7f786d;
+  margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+}
+
 /* Section Title */
 .sectionTitle {
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;

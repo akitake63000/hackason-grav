@@ -260,10 +260,17 @@ function Home() {
             <span className={styles.statusSeparator}>・</span>
             <span className={styles.statusTotal}>通算{totalDays}日利用</span>
           </div>
-          <p className={styles.statusSubtext}>
-            {streakMessage}
-          </p>
         </motion.div>
+
+        {/* Streak Message */}
+        <motion.p
+          className={styles.streakMessage}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+        >
+          {streakMessage}
+        </motion.p>
 
         {/* Tips Section */}
         <motion.div
