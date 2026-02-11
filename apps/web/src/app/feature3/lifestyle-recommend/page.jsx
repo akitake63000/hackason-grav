@@ -138,15 +138,19 @@ function LifestyleRecommendContent() {
     )
   }
 
-  if (error === '診断データがありません') {
+  if (error) {
     return (
       <Layout>
         <div className={styles.container}>
           <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
-            <h2 className={styles.pageTitle}>診断データがありません</h2>
-            <p className={styles.introText}>まだライフスタイル傾向分析が行われていないようです。</p>
-            <Button onClick={() => router.push('/feature3/tendency')}>
-              傾向分析を始める
+            <h2 className={styles.pageTitle}>{error === '診断データがありません' ? '診断データがありません' : 'エラーが発生しました'}</h2>
+            <p className={styles.introText}>
+              {error === '診断データがありません'
+                ? 'まだライフスタイル傾向分析が行われていないようです。'
+                : 'データの取得中にエラーが発生しました。システムの起動を確認してください。'}
+            </p>
+            <Button onClick={() => router.push(error === '診断データがありません' ? '/feature3/tendency' : '/')}>
+              {error === '診断データがありません' ? '傾向分析を始める' : 'ホームへ戻る'}
             </Button>
           </div>
         </div>
@@ -219,7 +223,7 @@ function LifestyleRecommendContent() {
               >
                 {/* Axis Header */}
                 <div className={styles.axisHeader}>
-                  <div style={{ ...styles.axisIcon, background: config.bg }}>
+                  <div className={styles.axisIcon} style={{ background: config.bg }}>
                     <Icon size={24} color={config.color} />
                   </div>
                   <div>
@@ -228,7 +232,7 @@ function LifestyleRecommendContent() {
                       {actions.length}件のアクション
                     </div>
                   </div>
-                  <div style={{ ...styles.axisScore, color: config.color }}>
+                  <div className={styles.axisScore} style={{ color: config.color }}>
                     {axisScore}<span style={{ fontSize: '14px' }}>pts</span>
                   </div>
                 </div>
@@ -248,11 +252,13 @@ function LifestyleRecommendContent() {
                           <div className={styles.actionName}>{action.name}</div>
                           <div className={styles.actionReason}>{action.reason}</div>
                         </div>
-                        <span style={{
-                          ...styles.priorityBadge,
-                          color: priority.color,
-                          background: priority.bg,
-                        }}>
+                        <span
+                          className={styles.priorityBadge}
+                          style={{
+                            color: priority.color,
+                            background: priority.bg,
+                          }}
+                        >
                           {priority.label}
                         </span>
                         <ChevronRight size={18} color="#9ca3af" />
