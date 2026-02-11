@@ -1,6 +1,58 @@
-# チャット機能 - 応答時間計測スクリプト
+# チャット機能 - 検証スクリプト集
 
-## 概要
+## 1. Firestoreメッセージ読み込み検証 (verify_firestore_messages.py)
+
+### 概要
+
+フロントエンドと同じロジックでFirestoreからメッセージを読み込み、実際にデータが取得できるか確認します。
+
+### 使用方法
+
+#### 1. ユーザーIDの取得
+
+ブラウザのコンソールで以下を実行：
+
+```javascript
+firebase.auth().currentUser.uid
+// または
+console.log(firebase.auth().currentUser.uid)
+```
+
+#### 2. スクリプトの実行
+
+```bash
+cd /home/yujmatsu/projects/hackason-grab/work
+
+# 環境変数で指定
+USER_ID="your-user-id" python3 verify_firestore_messages.py
+
+# または引数で指定
+python3 verify_firestore_messages.py your-user-id default
+
+# 生データも表示する場合
+USER_ID="your-user-id" SHOW_RAW=true python3 verify_firestore_messages.py
+```
+
+### 出力内容
+
+- **メッセージ一覧**: 取得したメッセージの詳細
+- **統計情報**: 総数、ユーザーメッセージ数、AIメッセージ数
+- **デバッグ情報**: Firestoreパス、フィールド名、タイムスタンプ
+- **警告**: メッセージが見つからない場合の可能性リスト
+
+### パラメータ
+
+| 環境変数/引数 | 説明 |
+|--------------|------|
+| `USER_ID` (必須) | FirebaseユーザーID |
+| `THREAD_ID` (オプション) | スレッドID（デフォルト: `default`） |
+| `SHOW_RAW` | `true` を設定すると生データをJSON形式で表示 |
+
+---
+
+## 2. 応答時間計測 (measure_chat_performance.py)
+
+### 概要
 
 FLASHモードとPROモードでチャットの応答時間を計測します。
 

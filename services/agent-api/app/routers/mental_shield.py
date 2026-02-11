@@ -262,9 +262,9 @@ def _style_instruction(style: str, detail: str) -> str:
         "strict": "率直かつ的確に、甘えを許さないストレートな口調で回答してください。",
     }.get(style, "共感しつつも、必要な情報はしっかり伝えるバランスの取れた口調で回答してください。")
     length = {
-        "flash": "回答は3〜4文程度で簡潔にまとめてください。",
-        "pro": "回答はエビデンスや具体例を交えて詳しく説明してください。",
-    }.get(detail, "回答は3〜4文程度で簡潔にまとめてください。")
+        "flash": "回答は300文字程度（5行以内）で簡潔にまとめてください。",
+        "pro": "回答は600文字程度（10行程度）でエビデンスや具体例を交えて詳しく説明してください。",
+    }.get(detail, "回答は300文字程度（5行以内）で簡潔にまとめてください。")
     return f"{tone}\n{length}\n"
 
 
@@ -601,22 +601,18 @@ def mental_shield_discuss(
             }
         )
 
-        for card in cards:
-            messages_ref.add(
-                {
-                    "role": "agent",
-                    "agent": card.agent,
-                    "text": card.text,
-                    "createdAt": admin_firestore.SERVER_TIMESTAMP,
-                }
-            )
-
+        all_cards_json = json.dumps(
+            [{"agent": c.agent, "text": c.text} for c in cards],
+            ensure_ascii=False,
+        )
         messages_ref.add(
             {
+                "type": "discussion-result",
                 "role": "agent",
                 "agent": "orchestrator",
-                "text": summary,
+                "summary": summary,
                 "bestAgent": best_agent,
+                "allCards": all_cards_json,
                 "createdAt": admin_firestore.SERVER_TIMESTAMP,
             }
         )
@@ -895,7 +891,8 @@ def mental_shield_discuss_async(
                         "user_id": uid
                     }).encode(),
                     "oidc_token": {
-                        "service_account_email": service_account_email
+                        "service_account_email": service_account_email,
+                        "audience": f"https://{cloud_run_url}"
                     }
                 }
             }

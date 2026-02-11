@@ -189,21 +189,27 @@ function FoodRecommendContent() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1, duration: 0.5 }}
                         >
-                            <span className={styles.patternLabel}>
-                                <Info size={16} style={{ display: 'inline', marginRight: '6px' }} />
-                                現状の分析
-                            </span>
-                            <p className={styles.patternDescription}>{data.patternInfo.description}</p>
+                            {/* Pattern Name Block */}
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>あなたのパターン</span>
+                                <h3 className={styles.patternName}>{data.patternInfo.label}</h3>
+                                <p className={styles.columnText}>{data.patternInfo.description}</p>
+                            </div>
 
-                            <div className={styles.infoRow}>
-                                <div className={styles.infoItem}>
-                                    <span className={styles.infoLabel}>原因</span>
-                                    <p className={styles.infoText}>{data.patternInfo.cause}</p>
-                                </div>
-                                <div className={styles.infoItem}>
-                                    <span className={styles.infoLabel}>対策方針</span>
-                                    <p className={styles.infoText}>{data.patternInfo.strategy}</p>
-                                </div>
+                            <div className={styles.divider} />
+
+                            {/* Cause Block */}
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>なぜ？</span>
+                                <p className={styles.columnText}>{data.patternInfo.cause}</p>
+                            </div>
+
+                            <div className={styles.divider} />
+
+                            {/* Strategy Block */}
+                            <div className={styles.columnSection}>
+                                <span className={styles.columnLabel}>どうしよう？</span>
+                                <p className={styles.columnText}>{data.patternInfo.strategy}</p>
                             </div>
                         </motion.div>
                     )}
@@ -375,3 +381,4 @@ export default function FoodRecommendPage() {
         </Suspense>
     );
 }
+ 
