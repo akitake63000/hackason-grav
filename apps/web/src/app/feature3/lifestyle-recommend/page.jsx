@@ -47,6 +47,7 @@ function LifestyleRecommendContent() {
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [summary, setSummary] = useState(null)
   const [showMechanism, setShowMechanism] = useState(false)
+  const [expandedAxis, setExpandedAxis] = useState(null)
 
   useEffect(() => {
     fetchData()
@@ -254,60 +255,90 @@ function LifestyleRecommendContent() {
                         const config = AXIS_CONFIG[axisKey]
                         const axisScore = scores[axisKey] || 0
                         const Icon = config.icon
+                        const isExpanded = expandedAxis === axisKey
 
                         if (actions.length === 0) return null
 
                         return (
-                          <div key={axisKey} style={{ marginBottom: axisIndex === AXIS_ORDER.length - 1 ? 0 : '24px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                          <div key={axisKey} style={{ marginBottom: axisIndex === AXIS_ORDER.length - 1 ? 0 : '12px' }}>
+                            <div
+                              onClick={() => setExpandedAxis(isExpanded ? null : axisKey)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '12px 16px',
+                                background: isExpanded ? 'rgba(65, 152, 115, 0.05)' : '#f9fafb',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
                               <div style={{ background: config.bg, padding: '6px', borderRadius: '50%' }}>
                                 <Icon size={18} color={config.color} />
                               </div>
-                              <span style={{ fontWeight: '700', fontSize: '14px', color: '#1a3d2e' }}>{config.name}</span>
-                              <span style={{ fontSize: '14px', color: config.color, marginLeft: 'auto', fontWeight: '600' }}>{axisScore}点</span>
+                              <span style={{ fontWeight: '700', fontSize: '15px', color: '#1a3d2e' }}>{config.name}</span>
+                              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px', color: config.color, fontWeight: '600' }}>{axisScore}点</span>
+                                {isExpanded ? <ChevronUp size={16} color="#9ca3af" /> : <ChevronDown size={16} color="#9ca3af" />}
+                              </div>
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                              {actions.map((action) => {
-                                const priority = getPriorityInfo(action.priority)
-                                return (
-                                  <div
-                                    key={action.id}
-                                    className={styles.actionCardSmall}
-                                    onClick={() => setSelectedAction(action)}
-                                    style={{
-                                      padding: '12px',
-                                      background: '#f9fafb',
-                                      borderRadius: '8px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '12px',
-                                      cursor: 'pointer',
-                                      border: '1px solid #e5e7eb'
-                                    }}
-                                  >
-                                    <span style={{ fontSize: '20px' }}>{action.emoji}</span>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a3d2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {action.name}
-                                      </div>
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: '10px',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: priority.bg,
-                                        color: priority.color,
-                                        fontWeight: '600'
-                                      }}
-                                    >
-                                      {priority.label}
-                                    </span>
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  style={{ overflow: 'hidden' }}
+                                >
+                                  <div style={{ padding: '12px 0 12px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {actions.map((action) => {
+                                      const priority = getPriorityInfo(action.priority)
+                                      return (
+                                        <div
+                                          key={action.id}
+                                          className={styles.actionCardSmall}
+                                          onClick={() => setSelectedAction(action)}
+                                          style={{
+                                            padding: '12px',
+                                            background: '#fff',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            cursor: 'pointer',
+                                            border: '1px solid #f0f0f0',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                                          }}
+                                        >
+                                          <span style={{ fontSize: '20px' }}>{action.emoji}</span>
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a3d2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                              {action.name}
+                                            </div>
+                                          </div>
+                                          <span
+                                            style={{
+                                              fontSize: '10px',
+                                              padding: '2px 6px',
+                                              borderRadius: '4px',
+                                              backgroundColor: priority.bg,
+                                              color: priority.color,
+                                              fontWeight: '600'
+                                            }}
+                                          >
+                                            {priority.label}
+                                          </span>
+                                        </div>
+                                      )
+                                    })}
                                   </div>
-                                )
-                              })}
-                            </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )
                       })}

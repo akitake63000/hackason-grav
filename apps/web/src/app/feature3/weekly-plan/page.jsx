@@ -78,8 +78,12 @@ export default function WeeklyPlan() {
                 setPlan(planData)
 
                 // todayLog is an object { completedActions: [...] } or null
-                const completedIds = planData.todayLog?.completedActions || []
-                setTodayLog(completedIds)  // string[] from backend
+                const rawCompletedItems = planData.todayLog?.completedActions || []
+                const completedIds = rawCompletedItems.map(item =>
+                    typeof item === 'string' ? item : (item.actionId || '')
+                ).filter(id => id !== '')
+
+                setTodayLog(completedIds)
                 setStreak(planData.streak || 0)
 
                 // Calculate bonus scores from completed actions
@@ -106,7 +110,7 @@ export default function WeeklyPlan() {
             if (completedIds.includes(action.id)) {
                 // Add bonus based on action's target axis
                 if (action.targetAxis && bonuses[action.targetAxis] !== undefined) {
-                    bonuses[action.targetAxis] += 2
+                    bonuses[action.targetAxis] += 5
                 }
             }
         })
@@ -125,31 +129,63 @@ export default function WeeklyPlan() {
         }
     }
 
+    const isActionCompleted = (actionId) => {
+        return todayLog.includes(actionId)
+    }
+
+    const completionRate = useMemo(() => {
+        if (!plan || !plan.targetActions || plan.targetActions.length === 0) return 0
+        const completedCount = plan.targetActions.filter(a => isActionCompleted(a.id)).length
+
+        if (completedCount === 0) return 0
+        // Handle 3 actions case specifically as requested (33, 66, 100)
+        if (plan.targetActions.length === 3) {
+            if (completedCount === 1) return 33
+            if (completedCount === 2) return 66
+            return 100
+        }
+        // Fallback for different number of actions
+        return Math.round((completedCount / plan.targetActions.length) * 100)
+    }, [plan, todayLog])
+
     const handleConfirmCheck = async () => {
         if (!confirmingAction) return
 
         try {
             // Optimistic Update
-            const newLog = [...todayLog.filter(id => id !== confirmingAction.id), confirmingAction.id]
-            setTodayLog(newLog)
+            setTodayLog(prev => {
+                const newLog = [...prev.filter(id => id !== confirmingAction.id), confirmingAction.id]
 
-            // Update streak if this is the first completion of the day
-            const completedCount = newLog.length
-            if (completedCount === 1) {
-                setStreak(prev => prev + 1)
-            }
+                // Update streak if this is the first completion of the day
+                if (newLog.length === 1) {
+                    setStreak(s => s + 1)
+                }
+
+                return newLog
+            })
 
             // Update bonus scores locally
             if (confirmingAction.targetAxis) {
                 setBonusScores(prev => ({
                     ...prev,
-                    [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 2
+                    [confirmingAction.targetAxis]: prev[confirmingAction.targetAxis] + 5
                 }))
             }
 
             // API Call
             const today = new Date();
-            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            let dateStr = plan?.currentViewDate;
+
+            if (!dateStr) {
+                dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                // 4AM Rule
+                if (today.getHours() < 4) {
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                }
+            }
+
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -158,13 +194,11 @@ export default function WeeklyPlan() {
 
             if (!res.ok) {
                 // Revert on error
-                setTodayLog(todayLog)
-                if (completedCount === 1) setStreak(prev => prev - 1)
-                // Revert bonus (simplified: just refetch or ignore for now as it's minor)
+                await fetchData() // Simpler than complex revert logic
             }
         } catch (error) {
             console.error('Check failed:', error)
-            setTodayLog(todayLog) // Revert
+            await fetchData() // Revert
         } finally {
             setConfirmingAction(null)
         }
@@ -173,17 +207,27 @@ export default function WeeklyPlan() {
     const handleUncheck = async (actionId) => {
         try {
             // Optimistic Update
-            const newLog = todayLog.filter(id => id !== actionId)
-            setTodayLog(newLog)
-
-            // Update streak if we removed the last completed action
-            const completedCount = newLog.length
-            if (completedCount === 0) {
-                setStreak(prev => Math.max(0, prev - 1))
-            }
+            setTodayLog(prev => {
+                const newLog = prev.filter(id => id !== actionId)
+                if (newLog.length === 0) {
+                    setStreak(s => Math.max(0, s - 1))
+                }
+                return newLog
+            })
 
             const today = new Date();
-            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            let dateStr = plan?.currentViewDate;
+
+            if (!dateStr) {
+                dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                // 4AM Rule
+                if (today.getHours() < 4) {
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                }
+            }
+
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -191,13 +235,42 @@ export default function WeeklyPlan() {
             })
 
             if (!res.ok) {
-                // Revert
-                setTodayLog(todayLog)
-                if (completedCount === 0) setStreak(prev => prev + 1)
+                await fetchData() // Revert
             }
         } catch (error) {
             console.error('Uncheck failed:', error)
-            setTodayLog(todayLog)
+            await fetchData() // Revert
+        }
+    }
+
+    const handleConfirmDay = async () => {
+        if (!plan) return
+
+        try {
+            const today = new Date();
+            let dateStr = plan?.currentViewDate;
+
+            if (!dateStr) {
+                dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                if (today.getHours() < 4) {
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+                }
+            }
+
+            const res = await apiFetch('/api/v1/lifestyle/plan/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ planId: plan.planId, date: dateStr })
+            })
+
+            if (res.ok) {
+                // Refresh to show updated score and confirmed state
+                await fetchData()
+            }
+        } catch (error) {
+            console.error('Confirmation failed:', error)
         }
     }
 
@@ -225,30 +298,22 @@ export default function WeeklyPlan() {
         await handleCreatePlan()
     }
 
-    const handleConfirmDay = async () => {
+    const handleGenerateDaily = async () => {
         if (!plan) return
-
+        setGenerating(true)
         try {
-            const today = new Date();
-            let dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            if (today.getHours() < 4) {
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
-                dateStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-            }
-
-            const res = await apiFetch('/api/v1/lifestyle/plan/confirm', {
+            const res = await apiFetch('/api/v1/lifestyle/plan/daily/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ planId: plan.planId, date: dateStr })
+                body: JSON.stringify({ planId: plan.planId })
             })
-
             if (res.ok) {
-                // Refresh to show updated score and confirmed state
                 await fetchData()
             }
-        } catch (error) {
-            console.error('Confirmation failed:', error)
+        } catch (e) {
+            console.error("Failed to generate daily actions", e)
+        } finally {
+            setGenerating(false)
         }
     }
 
@@ -261,20 +326,6 @@ export default function WeeklyPlan() {
 
     const handleRetakeSurvey = () => {
         router.push('/feature3/tendency')
-    }
-
-    const isActionCompleted = (actionId) => {
-        return todayLog.includes(actionId)
-    }
-
-    const getCompletionRate = () => {
-        if (!plan || !plan.targetActions || plan.targetActions.length === 0) return 0
-        const completedCount = plan.targetActions.filter(a => isActionCompleted(a.id)).length
-        // Ensure steps of 33, 66, 100 for 3 actions
-        if (completedCount === 0) return 0
-        if (completedCount === 1) return 33
-        if (completedCount === 2) return 66
-        return 100
     }
 
     const isPlanExpired = () => {
@@ -479,13 +530,13 @@ export default function WeeklyPlan() {
                                 <Target size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                                 本日の達成状況
                             </span>
-                            <span className={styles.progressValue}>{getCompletionRate()}%</span>
+                            <span className={styles.progressValue}>{completionRate}%</span>
                         </div>
                         <div className={styles.progressBar}>
                             <motion.div
                                 className={styles.progressFill}
                                 initial={{ width: 0 }}
-                                animate={{ width: `${getCompletionRate()}%` }}
+                                animate={{ width: `${completionRate}%` }}
                                 transition={{ duration: 0.5 }}
                             />
                         </div>
@@ -637,10 +688,11 @@ export default function WeeklyPlan() {
                                         style={{ marginTop: '32px' }}
                                     >
                                         <Button
-                                            size="full"
+                                            fullWidth
+                                            size="lg"
                                             onClick={handleConfirmDay}
                                             disabled={todayLog.length === 0}
-                                            variant={todayLog.length === 3 ? "primary" : "outline"}
+                                            variant={completionRate === 100 ? "primary" : "outline"}
                                         >
                                             {todayLog.length === 0 ? "アクションをチェックしてください" : "本日の達成内容を確定する"}
                                         </Button>
