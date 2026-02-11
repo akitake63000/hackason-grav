@@ -703,43 +703,48 @@ def generate_daily(
 
 def _calculate_streak(plan_doc) -> int:
     """Calculate consecutive days with at least 1 action completed"""
-    # Simply count backwards from yesterday
-    # Or check logs
-    logs = plan_doc.reference.collection("logs").order_by(FieldPath.document_id(), direction="DESCENDING").limit(14).stream()
-    
-    # Logic: Check consecutive dates
-    streak = 0
-    now = datetime.now(ZoneInfo("Asia/Tokyo"))
-    # Check yesterday backwards
-    check_date = now - timedelta(days=1)
-    if now.hour < 4:
-        check_date = now - timedelta(days=2)
+    try:
+        # Simply count backwards from yesterday
+        # Or check logs
+        # Note: direction="DESCENDING" -> firestore.Query.DESCENDING
+        logs = plan_doc.reference.collection("logs").order_by(FieldPath.document_id(), direction=firestore.Query.DESCENDING).limit(14).stream()
         
-    # Map logs to dict
-    log_map = {}
-    for log in logs:
-        data = log.to_dict()
-        if data.get("completedActions"):
-            log_map[log.id] = True
+        # Logic: Check consecutive dates
+        streak = 0
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+        # Check yesterday backwards
+        check_date = now - timedelta(days=1)
+        if now.hour < 4:
+            check_date = now - timedelta(days=2)
             
-    # Also check today? If today has completion, streak includes today
-    today_str = now.strftime("%Y-%m-%d")
-    if now.hour < 4:
-        today_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-        
-    if log_map.get(today_str):
-        streak += 1
-        
-    # Count backwards
-    for i in range(14): # Check up to 2 weeks
-        d_str = check_date.strftime("%Y-%m-%d")
-        if log_map.get(d_str):
+        # Map logs to dict
+        log_map = {}
+        for log in logs:
+            data = log.to_dict()
+            if data.get("completedActions"):
+                log_map[log.id] = True
+                
+        # Also check today? If today has completion, streak includes today
+        today_str = now.strftime("%Y-%m-%d")
+        if now.hour < 4:
+            today_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+            
+        if log_map.get(today_str):
             streak += 1
-            check_date -= timedelta(days=1)
-        else:
-            break
             
-    return streak
+        # Count backwards
+        for i in range(14): # Check up to 2 weeks
+            d_str = check_date.strftime("%Y-%m-%d")
+            if log_map.get(d_str):
+                streak += 1
+                check_date -= timedelta(days=1)
+            else:
+                break
+                
+        return streak
+    except Exception as e:
+        logging.error(f"Error calculating streak: {e}")
+        return 0
 
 
 def _calculate_weekly_progress(plan_ref) -> int:
@@ -776,27 +781,41 @@ def get_current_plan(
     plan_doc = docs[0]
     plan_data = plan_doc.to_dict()
     
-    # 2. Check and handle expiration (omitted for brevity, same as before)
+    # 2. Check and handle expiration
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
-    # ... (Expiration check logic same as before, keep if possible) ...
-    # Re-implement expiration check here if replacing entire block
-    end_date = datetime.fromisoformat(plan_data["endDate"])
-    weekly_stats = None
-    if now > end_date and now.date() > end_date.date():
-         # Calculate weekly stats
-         log_docs = plan_doc.reference.collection("logs").stream()
-         total_completed = sum(len(l.to_dict().get("completedActions", [])) for l in log_docs)
-         start_date_parsed = datetime.fromisoformat(plan_data["startDate"])
-         total_days = (end_date.date() - start_date_parsed.date()).days + 1
-         rate = min(100, int((total_completed / max(1, total_days * 3)) * 100))
-         weekly_stats = {
-             "rate": rate,
-             "totalCompleted": total_completed,
-             "message": "お疲れさまでした！" if rate >= 70 else "次週もがんばりましょう！"
-         }
-         # Update status to completed
-         plan_doc.reference.update({"status": "completed"})
-         plan_data["status"] = "completed"
+    
+    def _parse_date(v):
+        if isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            try:
+                # Handle possible 'Z' or offset
+                return datetime.fromisoformat(v.replace('Z', '+00:00'))
+            except Exception:
+                return datetime.now(ZoneInfo("Asia/Tokyo"))
+        return datetime.now(ZoneInfo("Asia/Tokyo"))
+
+    try:
+        end_date = _parse_date(plan_data.get("endDate"))
+        weekly_stats = None
+        if now > end_date and now.date() > end_date.date():
+             # Calculate weekly stats
+             log_docs = plan_doc.reference.collection("logs").stream()
+             total_completed = sum(len(l.to_dict().get("completedActions", [])) for l in log_docs)
+             start_date_parsed = _parse_date(plan_data.get("startDate"))
+             total_days = (end_date.date() - start_date_parsed.date()).days + 1
+             rate = min(100, int((total_completed / max(1, total_days * 3)) * 100))
+             weekly_stats = {
+                 "rate": rate,
+                 "totalCompleted": total_completed,
+                 "message": "お疲れさま！" if rate >= 70 else "次週もがんばろう！"
+             }
+             # Update status to completed
+             plan_doc.reference.update({"status": "completed"})
+             plan_data["status"] = "completed"
+    except Exception as e:
+        logging.error(f"Error handling plan expiration: {e}")
+        weekly_stats = None
 
     # 3. Get today's actions
     current_date_obj = now

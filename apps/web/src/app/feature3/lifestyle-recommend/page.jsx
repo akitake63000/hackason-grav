@@ -142,7 +142,7 @@ function LifestyleRecommendContent() {
     return (
       <Layout>
         <div className={styles.container}>
-          <div style={{ ...styles.content, textAlign: 'center', padding: '60px 20px' }}>
+          <div className={styles.content} style={{ textAlign: 'center', padding: '60px 20px' }}>
             <h2 className={styles.pageTitle}>{error === '診断データがありません' ? '診断データがありません' : 'エラーが発生しました'}</h2>
             <p className={styles.introText}>
               {error === '診断データがありません'
