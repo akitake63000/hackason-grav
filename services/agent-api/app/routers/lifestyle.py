@@ -589,7 +589,6 @@ def generate_plan(
         startDate=plan_data["startDate"],
         endDate=plan_data["endDate"],
         status="active",
-        status="active",
         todayLog={"completedActions": []},
         streak=0,
         weeklyProgress=0
@@ -666,7 +665,6 @@ def generate_daily(
         endDate=plan_data["endDate"],
         status="active",
         todayLog=today_log,
-        todayLog=today_log,
         streak=_calculate_streak(plan_doc), # Helper function
         weeklyProgress=_calculate_weekly_progress(plan_doc.reference)
     )
@@ -710,8 +708,6 @@ def _calculate_streak(plan_doc) -> int:
         else:
             break
             
-    return streak
-
     return streak
 
 
@@ -811,8 +807,6 @@ def get_current_plan(
         endDate=plan_data["endDate"],
         status=plan_data["status"],
         todayLog=today_log,
-        yesterdayLog=yesterday_log,
-        weeklyStats=weekly_stats,
         yesterdayLog=yesterday_log,
         weeklyStats=weekly_stats,
         streak=_calculate_streak(plan_doc),
