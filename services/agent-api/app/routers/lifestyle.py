@@ -737,7 +737,7 @@ def tendency(
             )
             summary = generate_text(prompt, model=model).strip()
         except Exception as e:
-            logging.error(f"Failed to generate tendency summary: {e}")
+            logging.error(f"Failed to generate tendency summary: {e}", exc_info=True)
 
     # 4. Firestore に保存
     try:
@@ -859,7 +859,7 @@ def recommendation(
             answers = data.get("answers", {})
             summary = data.get("summary")
     except Exception as e:
-        print(f"Error fetching answers for recommendation: {e}")
+        logging.error(f"Error fetching answers for recommendation: {e}", exc_info=True)
 
     grouped_actions = get_recommended_actions(scores, answers=answers, max_actions_per_axis=100)
     
@@ -1097,7 +1097,7 @@ def _calculate_streak(plan_doc) -> int:
                 
         return streak
     except Exception as e:
-        logging.error(f"Error calculating streak: {e}")
+        logging.error(f"Error calculating streak: {e}", exc_info=True)
         return 0
 
 
@@ -1116,7 +1116,8 @@ def _calculate_weekly_progress(plan_ref, today_str: str) -> int:
                 total_points += len(data.get("completedActions", [])) * 5
         
         return total_points
-    except Exception:
+    except Exception as e:
+        logging.error(f"Error calculating weekly progress: {e}", exc_info=True)
         return 0
 @router.get("/plan/current", response_model=PlanResponse)
 @limiter.limit("60/minute")
@@ -1148,7 +1149,8 @@ def get_current_plan(
             try:
                 # Handle possible 'Z' or offset
                 return datetime.fromisoformat(v.replace('Z', '+00:00'))
-            except Exception:
+            except Exception as e:
+                logging.error(f"Error parsing date string '{v}': {e}", exc_info=True)
                 return datetime.now(ZoneInfo("Asia/Tokyo"))
         return datetime.now(ZoneInfo("Asia/Tokyo"))
 
@@ -1171,7 +1173,7 @@ def get_current_plan(
              plan_doc.reference.update({"status": "completed"})
              plan_data["status"] = "completed"
     except Exception as e:
-        logging.error(f"Error handling plan expiration: {e}")
+        logging.error(f"Error handling plan expiration: {e}", exc_info=True)
         weekly_stats = None
 
     # 3. Determine view date (Auto-advance if today is confirmed)
