@@ -175,9 +175,9 @@ def mental_shield_chat(
 
     db = get_firestore_client()
     messages_ref = (
-        db.collection("conversations")
+        db.collection("users")
         .document(uid)
-        .collection("threads")
+        .collection("conversations")
         .document(thread_id)
         .collection("messages")
     )
@@ -585,9 +585,9 @@ def mental_shield_discuss(
     if os.getenv("ENV") != "local":
         db = get_firestore_client()
         messages_ref = (
-            db.collection("conversations")
+            db.collection("users")
             .document(uid)
-            .collection("threads")
+            .collection("conversations")
             .document(thread_id)
             .collection("messages")
         )
@@ -741,9 +741,9 @@ def _execute_discuss_workflow_sync(
 
         # Firestore に結果を保存
         messages_ref = (
-            db.collection("conversations")
+            db.collection("users")
             .document(uid)
-            .collection("threads")
+            .collection("conversations")
             .document(thread_id)
             .collection("messages")
         )
