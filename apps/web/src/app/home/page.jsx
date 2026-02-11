@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, MessageCircle, Leaf, ChevronRight, Sparkles } from 'lucide-react'
-import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { getUserProfile } from '@/lib/profile'
@@ -266,11 +265,31 @@ function Home() {
           </p>
         </motion.div>
 
+        {/* Tips Section */}
+        <motion.div
+          className={styles.statusCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <div className={styles.tipsContent}>
+            <span className={styles.tipsEmoji}>💡</span>
+            <div>
+              <h4 className={styles.tipsTitle}>
+                今日のヒント
+              </h4>
+              <p className={styles.tipsText}>
+                {tip}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Features Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
         >
           <h2 className={styles.sectionTitle}>
             機能メニュー
@@ -289,7 +308,7 @@ function Home() {
                   aria-label={`${feature.title} - ${feature.description}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
+                  transition={{ delay: 0.45 + index * 0.1 }}
                   whileHover={{
                     y: -4,
                     borderColor: '#419873',
@@ -313,32 +332,6 @@ function Home() {
               )
             })}
           </div>
-        </motion.div>
-
-        {/* Tips Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className={styles.tipsSection}
-        >
-          <Card
-            variant="accent"
-            padding="lg"
-            delay={0.7}
-          >
-            <div className={styles.tipsContent}>
-              <span className={styles.tipsEmoji}>💡</span>
-              <div>
-                <h4 className={styles.tipsTitle}>
-                  今日のヒント
-                </h4>
-                <p className={styles.tipsText}>
-                  {tip}
-                </p>
-              </div>
-            </div>
-          </Card>
         </motion.div>
         </div>
       </div>
