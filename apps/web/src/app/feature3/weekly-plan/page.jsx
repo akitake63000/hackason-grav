@@ -83,7 +83,7 @@ export default function WeeklyPlan() {
                 setStreak(planData.streak || 0)
 
                 // Calculate bonus scores from completed actions
-                calculateBonusScores(planData, logArray)
+                calculateBonusScores(planData, completedIds)
             }
         } catch (error) {
             // 404 means no data available yet - this is normal, don't log
@@ -548,10 +548,7 @@ export default function WeeklyPlan() {
                                                     e.stopPropagation()
                                                     handleCheckClick(action)
                                                 }}
-                                                style={{
-                                                    ...styles.missionCheckbox,
-                                                    ...(completed ? styles.missionCheckboxCompleted : {})
-                                                }}
+                                                className={`${styles.missionCheckbox} ${completed ? styles.missionCheckboxCompleted : ''}`}
                                             >
                                                 {completed && <CheckCircle size={18} color="#fff" />}
                                             </div>
