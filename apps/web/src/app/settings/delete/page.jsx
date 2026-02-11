@@ -11,6 +11,7 @@ import { useAuth, signOutUser } from '@/lib/auth'
 import { deleteUserData, deleteUserDataByKeys } from '@/lib/userData'
 import { getFirebaseAuth } from '@/lib/firebase'
 import { deleteUser as deleteAuthUser } from 'firebase/auth'
+import { apiFetch } from '@/lib/api'
 
 const styles = {
   container: {
@@ -166,12 +167,28 @@ function DeleteSettingsPage() {
     setIsWorking(true)
     let dataDeleted = false
     try {
-      // Step 1: Delete user data
+      // Step 1: Delete user data (client-side collections)
       await deleteUserData(user.uid)
       dataDeleted = true
       console.log('User data deleted successfully')
 
-      // Step 2: Delete authentication account
+      // Step 2: Delete read-only collections (backend-side)
+      try {
+        const cleanupRes = await apiFetch('/api/v1/lifestyle/cleanup-user-data', {
+          method: 'POST',
+        })
+        if (cleanupRes.ok) {
+          const cleanupData = await cleanupRes.json()
+          console.log('Backend cleanup completed:', cleanupData)
+        } else {
+          console.warn('Backend cleanup failed, but continuing with account deletion')
+        }
+      } catch (cleanupError) {
+        console.warn('Backend cleanup error (non-critical):', cleanupError)
+        // Continue with account deletion even if cleanup fails
+      }
+
+      // Step 3: Delete authentication account
       const auth = getFirebaseAuth()
       if (auth.currentUser) {
         await deleteAuthUser(auth.currentUser)

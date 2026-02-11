@@ -1272,15 +1272,77 @@ def confirm_day(
 ):
     """一日のアクションを確定し、スコアを反映させる"""
     db = get_firestore_client()
-    
+
     plan_ref = db.collection("users").document(uid).collection("plans").document(req.planId)
     log_ref = plan_ref.collection("logs").document(req.date)
-    
+
     log_doc = log_ref.get()
     if not log_doc.exists:
         # Create empty log if not exists to mark as confirmed
         log_ref.set({"completedActions": [], "isConfirmed": True, "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo"))})
     else:
         log_ref.update({"isConfirmed": True, "updatedAt": datetime.now(ZoneInfo("Asia/Tokyo"))})
-        
+
     return {"status": "confirmed"}
+
+
+# ---------------------------------------------------------------------------
+# POST /cleanup-user-data — ユーザーデータクリーンアップ（退会時）
+# ---------------------------------------------------------------------------
+
+@router.post("/cleanup-user-data")
+@limiter.limit("5/minute")
+async def cleanup_user_data(
+    request: Request,
+    uid: str = Depends(get_current_uid)
+):
+    """
+    Delete read-only collections that cannot be deleted from client (firestore.rules).
+    Called during user account deletion to ensure complete data removal.
+
+    Deletes:
+    - dailyMissions: Generated missions (allow write: if false)
+    - chatTasks: Chat-related tasks (allow write: if false)
+
+    Returns:
+        Dict with deletion summary
+    """
+    db = get_firestore_client()
+    deleted_collections = []
+    errors = []
+
+    # Delete dailyMissions collection
+    try:
+        missions_ref = db.collection("users").document(uid).collection("dailyMissions")
+        missions_docs = list(missions_ref.stream())
+
+        if missions_docs:
+            for doc in missions_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"dailyMissions ({len(missions_docs)} docs)")
+            logging.info(f"Deleted {len(missions_docs)} dailyMissions documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete dailyMissions for user {uid}: {e}", exc_info=True)
+        errors.append(f"dailyMissions: {str(e)}")
+
+    # Delete chatTasks collection
+    try:
+        tasks_ref = db.collection("users").document(uid).collection("chatTasks")
+        tasks_docs = list(tasks_ref.stream())
+
+        if tasks_docs:
+            for doc in tasks_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"chatTasks ({len(tasks_docs)} docs)")
+            logging.info(f"Deleted {len(tasks_docs)} chatTasks documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete chatTasks for user {uid}: {e}", exc_info=True)
+        errors.append(f"chatTasks: {str(e)}")
+
+    # Return summary
+    return {
+        "status": "completed",
+        "deleted": deleted_collections,
+        "errors": errors if errors else None,
+        "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat()
+    }
