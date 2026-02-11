@@ -79,15 +79,18 @@ function LifestyleRecommendContent() {
         setScores(fetchedScores)
       }
 
-      // Get recommendations
-      const res = await apiFetch(`/api/v1/lifestyle/recommendation?${query}`)
-      if (!res.ok) throw new Error('推奨アクションの取得に失敗しました')
-      const data = await res.json()
+      // Get recommendations and plan status in parallel
+      const [recRes, planRes] = await Promise.all([
+        apiFetch(`/api/v1/lifestyle/recommendation?${query}`),
+        apiFetch('/api/v1/lifestyle/plan/current'),
+      ])
+
+      if (!recRes.ok) throw new Error('推奨アクションの取得に失敗しました')
+      const data = await recRes.json()
       setRecommendations(data.grouped_actions || {})
       setAxisLabels(data.axis_labels)
 
       // Check if plan exists and is active
-      const planRes = await apiFetch('/api/v1/lifestyle/plan/current')
       if (planRes.ok) {
         const planData = await planRes.json()
 

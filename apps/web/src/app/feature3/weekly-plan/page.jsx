@@ -77,8 +77,8 @@ export default function WeeklyPlan() {
                 setPlan(planData)
 
                 // todayLog is an object { completedActions: [...] } or null
-                const logArray = planData.todayLog?.completedActions || []
-                setTodayLog(logArray)
+                const completedIds = planData.todayLog?.completedActions || []
+                setTodayLog(completedIds)  // string[] from backend
                 setStreak(planData.streak || 0)
 
                 // Calculate bonus scores from completed actions
@@ -99,7 +99,7 @@ export default function WeeklyPlan() {
         if (!plan || !plan.targetActions) return
 
         const bonuses = { hormone: 0, circadian: 0, blood_flow: 0, stress: 0 }
-        const completedIds = log.filter(l => l.completed).map(l => l.actionId)
+        const completedIds = log  // already string[] of actionIds
 
         plan.targetActions.forEach(action => {
             if (completedIds.includes(action.id)) {
@@ -114,7 +114,7 @@ export default function WeeklyPlan() {
     }
 
     const handleCheckClick = (action) => {
-        const isCompleted = todayLog.some(l => l.actionId === action.id && l.completed)
+        const isCompleted = todayLog.includes(action.id)
         if (isCompleted) {
             // Uncheck
             handleUncheck(action.id)
@@ -129,11 +129,11 @@ export default function WeeklyPlan() {
 
         try {
             // Optimistic Update
-            const newLog = [...todayLog.filter(l => l.actionId !== confirmingAction.id), { actionId: confirmingAction.id, completed: true }]
+            const newLog = [...todayLog.filter(id => id !== confirmingAction.id), confirmingAction.id]
             setTodayLog(newLog)
 
             // Update streak if this is the first completion of the day
-            const completedCount = newLog.filter(l => l.completed).length
+            const completedCount = newLog.length
             if (completedCount === 1) {
                 setStreak(prev => prev + 1)
             }
@@ -147,10 +147,12 @@ export default function WeeklyPlan() {
             }
 
             // API Call
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actionId: confirmingAction.id, completed: true }),
+                body: JSON.stringify({ planId: plan.planId, actionId: confirmingAction.id, date: dateStr, completed: true }),
             })
 
             if (!res.ok) {
@@ -170,19 +172,21 @@ export default function WeeklyPlan() {
     const handleUncheck = async (actionId) => {
         try {
             // Optimistic Update
-            const newLog = todayLog.filter(l => l.actionId !== actionId)
+            const newLog = todayLog.filter(id => id !== actionId)
             setTodayLog(newLog)
 
             // Update streak if we removed the last completed action
-            const completedCount = newLog.filter(l => l.completed).length
+            const completedCount = newLog.length
             if (completedCount === 0) {
                 setStreak(prev => Math.max(0, prev - 1))
             }
 
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const res = await apiFetch('/api/v1/lifestyle/plan/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ actionId, completed: false }),
+                body: JSON.stringify({ planId: plan.planId, actionId, date: dateStr, completed: false }),
             })
 
             if (!res.ok) {
