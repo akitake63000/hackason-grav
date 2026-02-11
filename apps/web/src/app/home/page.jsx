@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, MessageCircle, Leaf, ChevronRight, Sparkles } from 'lucide-react'
+import { Camera, MessageCircle, Leaf, ChevronRight, Sparkles, Loader2 } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { getUserProfile } from '@/lib/profile'
@@ -55,7 +55,8 @@ function Home() {
   const [userName, setUserName] = useState('あなた')
   const [streakDays, setStreakDays] = useState(0)
   const [totalDays, setTotalDays] = useState(0)
-  const [tip, setTip] = useState('今日のヒントを準備中です')
+  const [missions, setMissions] = useState([])
+  const [missionsLoading, setMissionsLoading] = useState(true)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
@@ -205,20 +206,61 @@ function Home() {
       })
   }, [user])
 
+  // フォールバックミッション（クライアント側）
+  const getFallbackMissions = () => {
+    return [
+      {
+        id: 'fallback_1',
+        name: '今日の状態を記録しましょう',
+        emoji: '📸',
+        description: '定期的な写真撮影で変化を追跡',
+        actionType: 'reminder',
+        targetUrl: '/feature1/capture',
+        priority: 'high'
+      },
+      {
+        id: 'fallback_2',
+        name: '継続は力なり',
+        emoji: '💪',
+        description: '今日も一歩ずつ前進しましょう',
+        actionType: 'encouragement',
+        targetUrl: null,
+        priority: 'medium'
+      },
+      {
+        id: 'fallback_3',
+        name: '頭皮マッサージ',
+        emoji: '💆',
+        description: '血行促進に効果的です',
+        actionType: 'challenge',
+        targetUrl: null,
+        priority: 'medium'
+      }
+    ]
+  }
+
   useEffect(() => {
     if (!user) return
-    apiFetch('/api/v1/lifestyle/tip')
+
+    setMissionsLoading(true)
+    apiFetch('/api/v1/lifestyle/mission')
       .then(async (res) => {
-        if (!res.ok) throw new Error('failed to load tip')
+        if (!res.ok) throw new Error('failed to load missions')
         return res.json()
       })
       .then((data) => {
-        if (data?.tip) {
-          setTip(data.tip)
+        if (data?.missions && data.missions.length > 0) {
+          setMissions(data.missions)
+        } else {
+          setMissions(getFallbackMissions())
         }
       })
-      .catch(() => {
-        setTip('頭皮マッサージは血行促進に効果的です。指の腹で優しく揉みほぐしましょう。')
+      .catch((error) => {
+        console.error('Mission fetch error:', error)
+        setMissions(getFallbackMissions())
+      })
+      .finally(() => {
+        setMissionsLoading(false)
       })
   }, [user])
 
@@ -265,23 +307,39 @@ function Home() {
           </div>
         </motion.div>
 
-        {/* Tips Section */}
+        {/* Missions Section */}
         <motion.div
           className={styles.statusCard}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <div className={styles.tipsContent}>
-            <span className={styles.tipsEmoji}>💡</span>
-            <div>
-              <h4 className={styles.tipsTitle}>
-                今日のヒント
-              </h4>
-              <p className={styles.tipsText}>
-                {tip}
-              </p>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h4 className={styles.tipsTitle}>💪 今日のミッション</h4>
+            {missionsLoading && <Loader2 size={16} className="animate-spin" color="#419873" />}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {missions.map((mission, index) => (
+              <motion.div
+                key={mission.id}
+                className={styles.missionCard}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + index * 0.1 }}
+                onClick={() => mission.targetUrl && router.push(mission.targetUrl)}
+                style={{ cursor: mission.targetUrl ? 'pointer' : 'default' }}
+              >
+                <div className={styles.missionEmoji}>{mission.emoji}</div>
+                <div className={styles.missionContent}>
+                  <div className={styles.missionName}>{mission.name}</div>
+                  <div className={styles.missionDescription}>{mission.description}</div>
+                </div>
+                {mission.targetUrl && (
+                  <ChevronRight size={18} className={styles.missionArrow} />
+                )}
+              </motion.div>
+            ))}
           </div>
         </motion.div>
 

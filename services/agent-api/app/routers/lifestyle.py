@@ -30,6 +30,7 @@ from ..agents.lifestyle_agent.tools.recommend_actions import (
     AXIS_LABELS,
 )
 from ..agents.lifestyle_agent.tools.generate_plan import generate_weekly_plan, generate_daily_actions
+from ..agents.lifestyle_agent.tools.analyze_user_activity import analyze_user_activity, UserActivityMetrics
 
 router = APIRouter(prefix="/api/v1/lifestyle", tags=["lifestyle"])
 
@@ -173,6 +174,345 @@ def tip(request: Request, _: str = Depends(get_current_uid)) -> TipResponse:
     except Exception as e:
         logging.error(f"Unexpected error in tip generation: {e}", exc_info=True)
         return TipResponse(tip=_fallback_tip(season), source="fallback")
+
+
+# ---------------------------------------------------------------------------
+# GET /mission — パーソナライズされた今日のミッション
+# ---------------------------------------------------------------------------
+
+class MissionAction(BaseModel):
+    """Individual mission action"""
+    id: str
+    name: str  # "写真撮影から3日経過しています"
+    emoji: str  # "📸"
+    description: str  # Detailed explanation
+    actionType: str  # "reminder" | "encouragement" | "challenge"
+    targetUrl: str | None  # Navigation URL (e.g., "/feature1/capture")
+    priority: str  # "high" | "medium" | "low"
+
+
+class MissionResponse(BaseModel):
+    """Daily missions response"""
+    missions: list[MissionAction]  # Always 3 missions
+    source: str  # "personalized" | "fallback"
+    generatedAt: str
+
+
+def _get_fallback_missions(metrics: UserActivityMetrics) -> list[MissionAction]:
+    """Generate static missions based on user metrics (fallback when Gemini fails)"""
+    missions = []
+
+    # Mission 1: Photo reminder (if 3+ days since last photo or never captured)
+    if metrics["days_since_last_photo"] is None or metrics["days_since_last_photo"] >= 3:
+        missions.append(MissionAction(
+            id="fallback_photo",
+            name="今日の状態を写真で記録しましょう",
+            emoji="📸",
+            description="定期的な記録が進捗把握に役立ちます。",
+            actionType="reminder",
+            targetUrl="/feature1/capture",
+            priority="high"
+        ))
+
+    # Mission 2: Streak encouragement (if streak >= 3) or Plan check (if streak < 3)
+    if metrics["current_streak"] >= 3:
+        missions.append(MissionAction(
+            id="fallback_streak",
+            name=f"{metrics['current_streak']}日連続達成中!",
+            emoji="🔥",
+            description="この調子で継続しましょう。",
+            actionType="encouragement",
+            targetUrl=None,
+            priority="medium"
+        ))
+    else:
+        missions.append(MissionAction(
+            id="fallback_plan",
+            name="今日のプランをチェックしましょう",
+            emoji="✅",
+            description="3つのアクションを実践して継続記録を伸ばしましょう。",
+            actionType="reminder",
+            targetUrl="/feature3/weekly-plan",
+            priority="high"
+        ))
+
+    # Mission 3: Weak axis-based action suggestion
+    axis_actions = {
+        "hormone": ("23時までの就寝", "🌙", "成長ホルモン分泌を促進しましょう。"),
+        "circadian": ("朝日を浴びる", "☀️", "体内時計をリセットしましょう。"),
+        "blood_flow": ("頭皮マッサージ", "💆", "血行を促進しましょう。"),
+        "stress": ("深呼吸をする", "🌬️", "リラックスタイムを作りましょう。")
+    }
+
+    action_data = axis_actions.get(
+        metrics["weakest_axis"],
+        ("リラックスタイム", "😌", "心身を整えましょう。")
+    )
+    missions.append(MissionAction(
+        id="fallback_axis",
+        name=action_data[0],
+        emoji=action_data[1],
+        description=action_data[2],
+        actionType="challenge",
+        targetUrl=None,
+        priority="medium"
+    ))
+
+    # Ensure exactly 3 missions
+    return missions[:3]
+
+
+async def _generate_missions_with_gemini(
+    metrics: UserActivityMetrics,
+    answers: dict
+) -> list[MissionAction]:
+    """Generate personalized missions using Gemini AI"""
+
+    # Build user context in natural language
+    days_since_photo = metrics["days_since_last_photo"]
+    photo_status = f"最終撮影から{days_since_photo}日経過" if days_since_photo is not None else "写真未撮影"
+
+    user_context = f"""
+- 写真撮影: {photo_status}
+- 食事記録: 先週{metrics['meals_logged_last_week']}回記録
+- 継続記録: {metrics['current_streak']}日連続
+- 弱点軸: {metrics['weakest_axis']}（スコア{metrics['weakest_score']}）
+- 活動レベル: {metrics['engagement_level']}
+    """
+
+    prompt = f"""
+あなたは薄毛対策アプリの「今日のミッション」生成AIです。
+ユーザーの行動履歴を分析し、今日取り組むべき3つのミッションを提案してください。
+
+## ユーザーの状況
+{user_context}
+
+## ミッション生成ルール
+1. 必ず3つのミッションを生成
+2. 優先順位: 長期間未実施 > 弱軸改善 > ポジティブ励まし
+3. トーン: 優しく、前向き、押し付けがましくない
+4. 具体性: 「今日やるべきこと」を明確に
+
+## actionType の定義
+- "reminder": 長期間実施していないことのリマインダー
+- "encouragement": 継続中の行動への励まし
+- "challenge": 新しいチャレンジ提案
+
+## targetUrl の定義
+- 写真撮影: "/feature1/capture"
+- 食事記録: "/feature3/food-recommend"
+- プラン確認: "/feature3/weekly-plan"
+- その他: null
+
+## 出力形式（JSON）
+{{
+  "missions": [
+    {{
+      "id": "mission_1",
+      "name": "写真撮影から3日経過しています",
+      "emoji": "📸",
+      "description": "定期的な記録が大切です。今日の状態を記録して変化を追いましょう。",
+      "actionType": "reminder",
+      "targetUrl": "/feature1/capture",
+      "priority": "high"
+    }},
+    {{
+      "id": "mission_2",
+      "name": "7日連続達成！この調子です",
+      "emoji": "🔥",
+      "description": "継続することで習慣化につながります。",
+      "actionType": "encouragement",
+      "targetUrl": null,
+      "priority": "medium"
+    }},
+    {{
+      "id": "mission_3",
+      "name": "頭皮マッサージで血行促進",
+      "emoji": "💆",
+      "description": "指の腹で優しく揉みほぐしましょう。",
+      "actionType": "challenge",
+      "targetUrl": null,
+      "priority": "medium"
+    }}
+  ]
+}}
+    """
+
+    try:
+        response = generate_text(prompt, model=GEMINI_MODEL_LIGHT)
+        data = safe_json_load(response)
+
+        if not data or "missions" not in data:
+            logging.warning("Gemini response missing 'missions' field")
+            return []
+
+        missions = []
+        for m in data.get("missions", [])[:3]:
+            try:
+                missions.append(MissionAction(
+                    id=m.get("id", f"gemini_{uuid.uuid4().hex[:8]}"),
+                    name=m["name"],
+                    emoji=m.get("emoji", "💡"),
+                    description=m["description"],
+                    actionType=m.get("actionType", "challenge"),
+                    targetUrl=m.get("targetUrl"),
+                    priority=m.get("priority", "medium")
+                ))
+            except (KeyError, ValueError) as e:
+                logging.warning(f"Failed to parse mission: {e}")
+                continue
+
+        # If less than 3, supplement with fallback
+        while len(missions) < 3:
+            fallback_missions = _get_fallback_missions(metrics)
+            for fb_mission in fallback_missions:
+                if len(missions) >= 3:
+                    break
+                # Avoid duplicates by checking ID prefix
+                if not any(m.id.startswith("fallback_") for m in missions):
+                    missions.append(fb_mission)
+                    break
+
+        return missions[:3]
+
+    except Exception as e:
+        logging.error(f"Gemini mission generation failed: {e}", exc_info=True)
+        return []
+
+
+@router.get("/mission", response_model=MissionResponse)
+@limiter.limit("30/minute")
+async def get_daily_missions(
+    request: Request,
+    uid: str = Depends(get_current_uid)
+) -> MissionResponse:
+    """
+    Generate 3 personalized daily missions based on comprehensive user activity analysis
+
+    Caching strategy: Generates missions once per day (Asia/Tokyo timezone)
+    - Cached missions are stored in Firestore: users/{uid}/dailyMissions/{YYYY-MM-DD}
+    - Missions are reused throughout the day to avoid unnecessary API calls
+    - Old missions (8+ days) are automatically cleaned up
+
+    Analyzes:
+    - Photo capture history (last photo date, frequency)
+    - Meal logging history (recent activity, trends)
+    - Plan completion status (streak, completion rate)
+    - 4-axis tendency scores (weakest point)
+
+    Returns:
+        MissionResponse with 3 missions, source (personalized/fallback/cached), and timestamp
+    """
+    db = get_firestore_client()
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    today_str = now.strftime("%Y-%m-%d")
+
+    # 1. Check for cached missions (today's missions already generated)
+    try:
+        cached_mission_doc = db.collection("users").document(uid)\
+            .collection("dailyMissions").document(today_str).get()
+
+        if cached_mission_doc.exists:
+            cached_data = cached_mission_doc.to_dict()
+            missions_data = cached_data.get("missions", [])
+
+            if missions_data and len(missions_data) == 3:
+                logging.info(f"Using cached missions for {today_str}")
+                missions = [MissionAction(**m) for m in missions_data]
+                return MissionResponse(
+                    missions=missions,
+                    source=f"{cached_data.get('source', 'cached')}:cached",
+                    generatedAt=cached_data.get("generatedAt", now.isoformat())
+                )
+    except Exception as e:
+        logging.warning(f"Failed to fetch cached missions: {e}")
+
+    # 2. Generate new missions (no cache found or cache invalid)
+    # 2.1 Analyze user activity across all features
+    try:
+        metrics = await analyze_user_activity(uid, db)
+    except Exception as e:
+        logging.error(f"Failed to analyze user activity: {e}", exc_info=True)
+        # Use safe defaults if analysis fails
+        metrics: UserActivityMetrics = {
+            "days_since_last_photo": None,
+            "photo_frequency": "inactive",
+            "meals_logged_last_week": 0,
+            "meal_logging_trend": "stable",
+            "current_streak": 0,
+            "plan_completion_rate": 0.0,
+            "weakest_axis": "stress",
+            "weakest_score": 50,
+            "engagement_level": "low"
+        }
+
+    # 2.2 Fetch questionnaire answers for context
+    answers = {}
+    try:
+        tendency_doc = db.collection("users").document(uid)\
+            .collection("tendencyScores").document("latest").get()
+        if tendency_doc.exists:
+            data = tendency_doc.to_dict()
+            answers = data.get("answers", {})
+    except Exception as e:
+        logging.warning(f"Failed to fetch tendency answers: {e}")
+
+    # 2.3 Generate missions with Gemini (with fallback)
+    missions = []
+    source = "fallback"
+
+    if gemini_enabled():
+        try:
+            missions = await _generate_missions_with_gemini(metrics, answers)
+            if missions and len(missions) == 3:
+                source = "personalized"
+        except Exception as e:
+            logging.error(f"Gemini mission generation failed: {e}", exc_info=True)
+
+    # 2.4 Use fallback if Gemini failed or returned incomplete results
+    if not missions or len(missions) < 3:
+        logging.info("Using fallback missions")
+        missions = _get_fallback_missions(metrics)
+        source = "fallback"
+
+    # 3. Save missions to Firestore cache (for reuse throughout the day)
+    try:
+        missions_data = [m.model_dump() for m in missions]
+        db.collection("users").document(uid).collection("dailyMissions").document(today_str).set({
+            "date": today_str,
+            "missions": missions_data,
+            "source": source,
+            "generatedAt": now.isoformat(),
+            "createdAt": firestore.SERVER_TIMESTAMP
+        })
+        logging.info(f"Saved missions to cache for {today_str}")
+    except Exception as e:
+        logging.error(f"Failed to save missions to cache: {e}", exc_info=True)
+
+    # 4. Clean up old missions (8+ days ago)
+    try:
+        cutoff_date = (now - timedelta(days=8)).strftime("%Y-%m-%d")
+        old_missions = db.collection("users").document(uid)\
+            .collection("dailyMissions")\
+            .where("date", "<", cutoff_date)\
+            .limit(50).stream()
+
+        deleted_count = 0
+        for old_mission in old_missions:
+            old_mission.reference.delete()
+            deleted_count += 1
+
+        if deleted_count > 0:
+            logging.info(f"Deleted {deleted_count} old mission records (before {cutoff_date})")
+    except Exception as e:
+        logging.warning(f"Failed to clean up old missions: {e}")
+
+    # 5. Return response
+    return MissionResponse(
+        missions=missions,
+        source=source,
+        generatedAt=now.isoformat()
+    )
 
 
 # ---------------------------------------------------------------------------

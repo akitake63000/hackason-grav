@@ -54,6 +54,13 @@ service cloud.firestore {
         // ユーザーは自分の訪問履歴のみ読み書き可能
         allow read, write: if isOwner(uid);
       }
+
+      match /dailyMissions/{dateKey} {
+        // ユーザーは自分の今日のミッションのみ読み取り可能
+        // 書き込みはバックエンドのみ（セキュリティ上）
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
     }
   }
 }
