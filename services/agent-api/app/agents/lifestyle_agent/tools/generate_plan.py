@@ -9,6 +9,56 @@ import json
 from typing import TypedDict, List
 from .recommend_actions import ACTIONS_CATALOG, should_recommend
 
+class RecommendedAction(TypedDict):
+    id: str
+    name: str
+    emoji: str
+    description: str
+    targetAxis: str # hormone, circadian, blood_flow, stress
+    priority: str # high, medium, low
+
+class WeeklyPlan(TypedDict):
+    planId: str
+    startDate: str
+    endDate: str
+    theme: str
+    targetActions: List[RecommendedAction] # Initially empty or just for Day 1
+    createdScores: dict
+
+def generate_weekly_plan(scores: dict[str, int], answers: dict[str, str]) -> WeeklyPlan:
+    """
+    Generate the skeleton of a weekly plan (Theme & Dates).
+    Daily actions will be generated on demand.
+    """
+    
+    # 1. Identify weak points for Theme
+    weak_points = [k for k, v in scores.items() if v < 60]
+    sorted_axes = sorted(scores.items(), key=lambda x: x[1])
+    weakest_axis = sorted_axes[0][0] if sorted_axes else "stress"
+
+    themes = {
+        "hormone": ["成長ホルモン活性化週間", "睡眠の質 徹底改善ウィーク", "細胞修復・再生チャレンジ"],
+        "circadian": ["体内時計リセット週間", "朝活・リズム調整ウィーク", "自律神経整えチャレンジ"],
+        "blood_flow": ["全身血流アップ週間", "巡りを良くする7日間", "冷え・コリ解消チャレンジ"],
+        "stress": ["ストレスデトックス週間", "心と体の休息ウィーク", "コルチゾール抑制チャレンジ"],
+    }
+    theme = random.choice(themes.get(weakest_axis, ["生活習慣見直し週間"]))
+
+    # 2. Build Plan Object (Empty actions for now, user will generate daily)
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    end = now + timedelta(days=6)
+    
+    plan: WeeklyPlan = {
+        "planId": f"plan_{int(now.timestamp())}",
+        "startDate": now.isoformat(),
+        "endDate": end.isoformat(),
+        "theme": theme,
+        "targetActions": [], # Empty initially
+        "createdScores": scores
+    }
+    
+    return plan
+
 def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], history: List[str] = None) -> List[RecommendedAction]:
     """
     Select 3 specific actions for TODAY from the catalog based on scores.
