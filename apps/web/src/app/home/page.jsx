@@ -37,7 +37,7 @@ const features = [
     icon: MessageCircle,
     gradient: gradientStyles.gold,
     path: '/feature2/chat',
-    badge: 'NEW',
+    badge: null,
   },
   {
     id: 'lifestyle',
