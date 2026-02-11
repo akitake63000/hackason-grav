@@ -149,7 +149,21 @@ function DeleteSettingsPage() {
     if (!window.confirm(message)) return
     setIsWorking(true)
     try {
+      // Delete selected client-side collections
       await deleteUserDataByKeys(user.uid, selected)
+
+      // Always delete read-only collections (dailyMissions, chatTasks) via backend
+      try {
+        const cleanupRes = await apiFetch('/api/v1/lifestyle/cleanup-user-data', {
+          method: 'POST',
+        })
+        if (!cleanupRes.ok) {
+          console.warn('Backend cleanup failed, but continuing')
+        }
+      } catch (cleanupError) {
+        console.warn('Backend cleanup error (non-critical):', cleanupError)
+      }
+
       window.alert('選択したデータを削除しました。')
     } catch (error) {
       console.error('Data deletion error:', error)
@@ -166,13 +180,16 @@ function DeleteSettingsPage() {
     }
     setIsWorking(true)
     let dataDeleted = false
+    let backendCleanupCompleted = false
     try {
       // Step 1: Delete user data (client-side collections)
+      console.log('Step 1: Deleting client-side data...')
       await deleteUserData(user.uid)
       dataDeleted = true
       console.log('User data deleted successfully')
 
       // Step 2: Delete read-only collections (backend-side)
+      console.log('Step 2: Deleting backend data (dailyMissions, chatTasks)...')
       try {
         const cleanupRes = await apiFetch('/api/v1/lifestyle/cleanup-user-data', {
           method: 'POST',
@@ -180,15 +197,20 @@ function DeleteSettingsPage() {
         if (cleanupRes.ok) {
           const cleanupData = await cleanupRes.json()
           console.log('Backend cleanup completed:', cleanupData)
+          backendCleanupCompleted = true
         } else {
-          console.warn('Backend cleanup failed, but continuing with account deletion')
+          const errorText = await cleanupRes.text()
+          console.error('Backend cleanup failed:', cleanupRes.status, errorText)
+          throw new Error(`Backend cleanup failed: ${cleanupRes.status}`)
         }
       } catch (cleanupError) {
-        console.warn('Backend cleanup error (non-critical):', cleanupError)
-        // Continue with account deletion even if cleanup fails
+        console.error('Backend cleanup error:', cleanupError)
+        // Do NOT continue if backend cleanup fails - throw error to prevent incomplete deletion
+        throw new Error(`バックエンドデータ削除に失敗しました: ${cleanupError.message}`)
       }
 
       // Step 3: Delete authentication account
+      console.log('Step 3: Deleting authentication account...')
       const auth = getFirebaseAuth()
       if (auth.currentUser) {
         await deleteAuthUser(auth.currentUser)
@@ -208,18 +230,27 @@ function DeleteSettingsPage() {
           (dataDeleted ? '※ データは削除されています。' : '')
         )
       } else {
-        window.alert(
-          '退会処理に失敗しました。\n\n' +
-          (dataDeleted ?
-            'データは削除されましたが、アカウントの削除に失敗しました。\n' +
-            'サポートにお問い合わせください。\n\n' : '') +
-          `エラーコード: ${code || 'unknown'}\n` +
-          `詳細: ${error?.message || error}`
-        )
+        let message = '退会処理に失敗しました。\n\n'
+
+        if (dataDeleted && backendCleanupCompleted) {
+          message += 'データは削除されましたが、アカウントの削除に失敗しました。\n' +
+                     'サポートにお問い合わせください。\n\n'
+        } else if (dataDeleted && !backendCleanupCompleted) {
+          message += '一部のデータ削除に失敗しました。\n' +
+                     'ホーム画面の「今日のミッション」が残っている可能性があります。\n' +
+                     '再度退会手続きを行ってください。\n\n'
+        } else {
+          message += 'データ削除に失敗しました。\n' +
+                     '再度退会手続きを行ってください。\n\n'
+        }
+
+        message += `エラー: ${error?.message || error}`
+
+        window.alert(message)
       }
 
-      if (dataDeleted) {
-        // Data was deleted, so sign out anyway
+      if (dataDeleted && backendCleanupCompleted) {
+        // Both data deletions succeeded, so sign out anyway
         await signOutUser()
         router.push('/login')
       }
