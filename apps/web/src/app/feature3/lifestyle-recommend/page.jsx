@@ -113,7 +113,12 @@ function LifestyleRecommendContent() {
       }
 
     } catch (err) {
-      setError(err.message === 'NO_DATA' ? '診断データがありません' : err.message)
+      // 404エラー（診断データなし）の場合
+      if (err.statusCode === 404 || err.message === 'NO_DATA' || err.code === 'NOT_FOUND') {
+        setError('診断データがありません')
+      } else {
+        setError(err.message)
+      }
     } finally {
       setLoading(false)
     }
