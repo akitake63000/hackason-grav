@@ -299,13 +299,13 @@ function LifestyleRecommendContent() {
               </p>
             </div>
 
-            {selectedAction.why && (
+            {(selectedAction.explanation || selectedAction.why) && (
               <div style={{ marginBottom: '20px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
                   なぜ効果的？
                 </h4>
                 <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6 }}>
-                  {selectedAction.why}
+                  {selectedAction.explanation || selectedAction.why}
                 </p>
               </div>
             )}

@@ -431,7 +431,7 @@ ACTIONS_CATALOG: list[dict] = [
 ]
 
 
-def _should_recommend(action_id: str, answers: dict[str, str]) -> bool:
+def should_recommend(action_id: str, answers: dict[str, str]) -> bool:
     """
     Check if an action is appropriate based on user answers.
     """
@@ -493,7 +493,7 @@ def get_recommended_actions(
         relevant_actions = []
         for action in ACTIONS_CATALOG:
             # 1. Check answer compatibility
-            if not _should_recommend(action["id"], answers):
+            if not should_recommend(action["id"], answers):
                 continue
 
             # 2. Check if action targets this axis

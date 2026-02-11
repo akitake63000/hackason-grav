@@ -491,7 +491,7 @@ def recommendation(
     except Exception as e:
         print(f"Error fetching answers for recommendation: {e}")
 
-    grouped_actions = get_recommended_actions(scores, answers=answers)
+    grouped_actions = get_recommended_actions(scores, answers=answers, max_actions_per_axis=100)
     
     return RecommendationResponse(
         grouped_actions=grouped_actions,
