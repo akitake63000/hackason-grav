@@ -411,8 +411,36 @@ export default function WeeklyPlan() {
                         今日のミッション
                     </motion.h1>
 
+                    {/* Weekly Progress Bar */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        style={{ marginBottom: '24px' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'flex-end' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1a3d2e' }}>
+                                週間スコア
+                            </span>
+                            <span style={{ fontSize: '24px', fontWeight: '800', color: '#419873' }}>
+                                {plan.weeklyProgress || 0}<span style={{ fontSize: '14px', fontWeight: 'normal' }}>pts</span>
+                            </span>
+                        </div>
+                        <div style={{ height: '12px', background: '#e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${plan.weeklyProgress || 0}%` }}
+                                transition={{ duration: 1.0, ease: "easeOut" }}
+                                style={{ height: '100%', background: 'linear-gradient(90deg, #419873 0%, #34d399 100%)', borderRadius: '6px' }}
+                            />
+                        </div>
+                        <p style={{ textAlign: 'right', fontSize: '11px', color: '#9c958a', marginTop: '4px' }}>
+                            7日間で100pt目指そう！
+                        </p>
+                    </motion.div>
+
                     {/* Streak Badge */}
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                         <motion.div
                             className={styles.streakBadge}
                             initial={{ scale: 0 }}
