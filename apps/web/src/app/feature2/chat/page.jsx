@@ -157,7 +157,7 @@ function Chat() {
     try {
       const db = getFirestoreDb()
       const messagesRef = collection(db, 'users', user.uid, 'conversations', tid, 'messages')
-      const q = query(messagesRef, orderBy('timestamp', 'asc'))
+      const q = query(messagesRef, orderBy('createdAt', 'asc'))
       const snapshot = await getDocs(q)
       if (!snapshot.empty) {
         const history = snapshot.docs.map((docSnap) => {
@@ -169,8 +169,8 @@ function Chat() {
               bestCard: d.bestCard ? JSON.parse(d.bestCard) : null,
               summary: d.summary || '',
               allCards: d.allCards ? JSON.parse(d.allCards) : [],
-              time: d.timestamp?.toDate
-                ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+              time: d.createdAt?.toDate
+                ? d.createdAt.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
                 : '',
             }
           }
@@ -178,9 +178,9 @@ function Chat() {
             id: docSnap.id,
             type: d.role === 'user' ? 'user' : 'ai',
             agent: d.agent || 'orchestrator',
-            text: d.content,
-            time: d.timestamp?.toDate
-              ? d.timestamp.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+            text: d.text,
+            time: d.createdAt?.toDate
+              ? d.createdAt.toDate().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
               : '',
           }
         })
