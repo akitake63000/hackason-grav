@@ -49,12 +49,12 @@
 
 @media (hover: hover) {
   .menuButton:hover {
-    background: rgba(229, 23, 23, 0.08);
+    background: rgba(6, 147, 227, 0.08);
   }
 }
 
 .menuButton:active {
-  background: rgba(229, 23, 23, 0.12);
+  background: rgba(6, 147, 227, 0.12);
   transform: scale(0.95);
 }
 

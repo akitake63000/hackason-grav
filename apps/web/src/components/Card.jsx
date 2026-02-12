@@ -29,8 +29,8 @@ const variants = {
     backdropFilter: 'none',
   },
   accent: {
-    background: 'linear-gradient(135deg, #ffe5e5 0%, #fff5f5 100%)',
-    border: '1px solid rgba(229, 23, 23, 0.2)',
+    background: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)',
+    border: '1px solid rgba(6, 147, 227, 0.2)',
   },
 }
 

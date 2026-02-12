@@ -64,7 +64,7 @@
   height: 40px;
   min-width: 40px;
   min-height: 40px;
-  background: linear-gradient(135deg, #E51717 0%, #c11414 100%);
+  background: linear-gradient(135deg, #0693e3 0%, #0570b8 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -111,7 +111,7 @@
 
 @media (hover: hover) {
   .navItem:hover {
-    background: rgba(229, 23, 23, 0.05);
+    background: rgba(6, 147, 227, 0.05);
   }
 }
 
@@ -120,14 +120,14 @@
 }
 
 .navItemActive {
-  background: rgba(229, 23, 23, 0.1);
-  color: #E51717;
+  background: rgba(6, 147, 227, 0.1);
+  color: #0693e3;
   font-weight: 600;
 }
 
 @media (hover: hover) {
   .navItemActive:hover {
-    background: rgba(229, 23, 23, 0.15);
+    background: rgba(6, 147, 227, 0.15);
   }
 }
 
@@ -156,7 +156,7 @@
 
 @media (hover: hover) {
   .subNavItem:hover {
-    background: rgba(229, 23, 23, 0.08);
+    background: rgba(6, 147, 227, 0.08);
   }
 }
 
@@ -165,8 +165,8 @@
 }
 
 .subNavItemActive {
-  color: #E51717;
-  background: rgba(229, 23, 23, 0.08);
+  color: #0693e3;
+  background: rgba(6, 147, 227, 0.08);
   font-weight: 500;
 }
 
@@ -211,7 +211,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #E51717 0%, #c11414 100%);
+  background: linear-gradient(90deg, #0693e3 0%, #0570b8 100%);
   z-index: 9999;
   transform-origin: left;
 }
@@ -225,7 +225,7 @@
   height: 50%;
   background: radial-gradient(
     ellipse at center,
-    rgba(229, 23, 23, 0.05) 0%,
+    rgba(6, 147, 227, 0.05) 0%,
     transparent 70%
   );
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;

@@ -48,12 +48,12 @@
 
 @media (hover: hover) {
   .bottomNavItem:hover {
-    background: rgba(229, 23, 23, 0.05);
+    background: rgba(6, 147, 227, 0.05);
   }
 }
 
 .bottomNavItem:active {
-  background: rgba(229, 23, 23, 0.08);
+  background: rgba(6, 147, 227, 0.08);
 }
 
 /* Bottom Nav Label */
@@ -65,7 +65,7 @@
 }
 
 .bottomNavLabelActive {
-  color: #E51717;
+  color: #0693e3;
 }
 
 /* Responsive adjustments for smaller screens */

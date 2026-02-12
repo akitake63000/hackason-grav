@@ -26,7 +26,7 @@ function BottomNav({ isMobile, items, isActive, onNavigate }) {
           >
             <Icon
               size={22}
-              color={active ? '#E51717' : '#888888'}
+              color={active ? '#0693e3' : '#888888'}
               strokeWidth={active ? 2.5 : 2}
             />
             <span className={`${styles.bottomNavLabel} ${active ? styles.bottomNavLabelActive : ''}`}>
