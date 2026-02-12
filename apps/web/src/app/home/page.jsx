@@ -10,6 +10,12 @@ import { getUserProfile } from '@/lib/profile'
 import { apiFetch } from '@/lib/api'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
+import {
+  GreetingSkeleton,
+  StatusCardSkeleton,
+  MissionsSectionSkeleton,
+  SectionPlaceholder
+} from '@/components/SkeletonLoader'
 import styles from './page.module.css'
 
 // Inline styles for dynamic gradient values
@@ -316,86 +322,99 @@ function Home() {
         {/* Header Section: Greeting + Status */}
         <div className={styles.headerSection}>
           {/* Greeting */}
-          <motion.div
-            className={styles.greeting}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <h1 className={styles.greetingText}>
-              {greeting}、
-              <br />
-              <span className={styles.highlight}>{profile.userName}</span>
-            </h1>
-            <p className={styles.greetingSubtext}>
-              今日も髪と向き合う一日を始めましょう
-            </p>
-          </motion.div>
+          {homeData.isLoading ? (
+            <GreetingSkeleton />
+          ) : (
+            <motion.div
+              className={styles.greeting}
+              initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <h1 className={styles.greetingText}>
+                {greeting}、
+                <br />
+                <span className={styles.highlight}>{profile.userName}</span>
+              </h1>
+              <p className={styles.greetingSubtext}>
+                今日も髪と向き合う一日を始めましょう
+              </p>
+            </motion.div>
+          )}
 
           {/* Status Card */}
-          <motion.div
-            className={styles.statusCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className={styles.statusHeader}>
-              <Sparkles size={16} color="#c9a962" />
-              <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
-            </div>
-            <p className={styles.statusSubtext}>
-              {homeData.isLoading ? '...' : homeData.motivationMessage}
-            </p>
-            <div className={styles.statusContent}>
-              <span className={styles.statusValue}>{profile.streakDays}</span>
-              <span className={styles.statusUnit}>日連続</span>
-              <span className={styles.statusSeparator}>・</span>
-              <span className={styles.statusTotal}>通算{profile.totalDays}日利用</span>
-            </div>
-          </motion.div>
+          {homeData.isLoading ? (
+            <StatusCardSkeleton />
+          ) : (
+            <motion.div
+              className={styles.statusCard}
+              initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className={styles.statusHeader}>
+                <Sparkles size={16} color="#c9a962" />
+                <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
+              </div>
+              <p className={styles.statusSubtext}>
+                {homeData.motivationMessage}
+              </p>
+              <div className={styles.statusContent}>
+                <span className={styles.statusValue}>{profile.streakDays}</span>
+                <span className={styles.statusUnit}>日連続</span>
+                <span className={styles.statusSeparator}>・</span>
+                <span className={styles.statusTotal}>通算{profile.totalDays}日利用</span>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Missions Section */}
-        <motion.div
-          className={styles.statusCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h4 className={styles.tipsTitle}>💪 今日のミッション</h4>
-            {homeData.isLoading && <Loader2 size={16} className="animate-spin" color="#419873" />}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {homeData.missions.map((mission, index) => (
-              <motion.div
-                key={mission.id}
-                className={styles.missionCard}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                onClick={() => mission.targetUrl && router.push(mission.targetUrl)}
-                style={{ cursor: mission.targetUrl ? 'pointer' : 'default' }}
-              >
-                <div className={styles.missionEmoji}>{mission.emoji}</div>
-                <div className={styles.missionContent}>
-                  <div className={styles.missionName}>{mission.name}</div>
-                  <div className={styles.missionDescription}>{mission.description}</div>
-                </div>
-                {mission.targetUrl && (
-                  <ChevronRight size={18} className={styles.missionArrow} />
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Quick Action Section */}
-        {!homeData.isLoading && homeData.quickAction && (
+        {homeData.isLoading ? (
+          <MissionsSectionSkeleton />
+        ) : (
           <motion.div
             className={styles.statusCard}
-            initial={{ opacity: 0, y: 20 }}
+            initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 className={styles.tipsTitle}>💪 今日のミッション</h4>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {homeData.missions.map((mission, index) => (
+                <motion.div
+                  key={mission.id}
+                  className={styles.missionCard}
+                  initial={homeData.isFirstLoad ? { opacity: 0, x: -20 } : false}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
+                  onClick={() => mission.targetUrl && router.push(mission.targetUrl)}
+                  style={{ cursor: mission.targetUrl ? 'pointer' : 'default' }}
+                >
+                  <div className={styles.missionEmoji}>{mission.emoji}</div>
+                  <div className={styles.missionContent}>
+                    <div className={styles.missionName}>{mission.name}</div>
+                    <div className={styles.missionDescription}>{mission.description}</div>
+                  </div>
+                  {mission.targetUrl && (
+                    <ChevronRight size={18} className={styles.missionArrow} />
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Quick Action Section */}
+        {homeData.isLoading ? (
+          <SectionPlaceholder minHeight="160px" />
+        ) : homeData.quickAction && (
+          <motion.div
+            className={styles.statusCard}
+            initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
@@ -436,10 +455,12 @@ function Home() {
         )}
 
         {/* Quick Q&A Section */}
-        {!homeData.isLoading && homeData.quickQA && (
+        {homeData.isLoading ? (
+          <SectionPlaceholder minHeight="200px" />
+        ) : homeData.quickQA && (
           <motion.div
             className={styles.statusCard}
-            initial={{ opacity: 0, y: 20 }}
+            initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
@@ -471,7 +492,7 @@ function Home() {
 
         {/* Features Section */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={homeData.isFirstLoad ? { opacity: 0, y: 20 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
@@ -490,7 +511,7 @@ function Home() {
                   className={styles.featureCard}
                   onClick={() => router.push(feature.path)}
                   aria-label={`${feature.title} - ${feature.description}`}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={homeData.isFirstLoad ? { opacity: 0, x: -20 } : false}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.45 + index * 0.1 }}
                   whileHover={{
