@@ -487,6 +487,629 @@ FALLBACK_QUESTIONS = [
     "食事で気をつけることは？"
 ]
 
+# 性別・年齢を考慮したパーソナライズ質問マッピング
+# 構造: PERSONALIZED_QUESTIONS[concern][gender][age_group] = [questions]
+PERSONALIZED_QUESTIONS = {
+    "thinning": {
+        "male": {
+            "20s": [
+                "20代男性のAGA、進行を止められる？",
+                "若ハゲの原因と対策を教えて",
+                "親族に薄毛が多い場合の予防法は？"
+            ],
+            "30s": [
+                "30代のAGA治療、今始めるべき？",
+                "仕事のストレスで抜け毛が増えた",
+                "男性型脱毛症の初期症状は？"
+            ],
+            "40s+": [
+                "40代からのAGA治療は遅い？",
+                "加齢とAGAの違いを教えて",
+                "ミノキシジルやフィナステリドの効果は？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "若い女性の薄毛、原因は何？",
+                "ダイエットと髪の関係を教えて",
+                "ヘアカラー・パーマは薄毛に影響する？"
+            ],
+            "30s": [
+                "30代女性の薄毛、ホルモンの影響は？",
+                "仕事と家庭の両立でストレスが…髪への影響は？",
+                "女性用育毛剤は効果ある？"
+            ],
+            "40s+": [
+                "更年期と薄毛の関係を教えて",
+                "40代からの女性ホルモン減少対策は？",
+                "閉経後のヘアケアで気をつけることは？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "20代の薄毛は回復可能？早期ケアのポイントは？",
+                "若いうちから始めるべき頭皮ケアは？",
+                "学生・新社会人でもできる予算内のケアは？"
+            ],
+            "30s": [
+                "30代の薄毛対策、今からでも間に合う？",
+                "仕事のストレスと薄毛の関係は？",
+                "忙しい日々でも続けられるケア方法は？"
+            ],
+            "40s+": [
+                "40代からの本格的な薄毛対策は？",
+                "加齢による薄毛とホルモンバランスの関係は？",
+                "効果が出やすいケア方法を教えて"
+            ]
+        }
+    },
+    "hairline": {
+        "male": {
+            "20s": [
+                "M字ハゲの進行を止めたい",
+                "20代で生え際が後退、どうすれば？",
+                "前髪のセットで生え際を目立たせない方法は？"
+            ],
+            "30s": [
+                "30代でM字が目立ってきた、対策は？",
+                "生え際の後退を遅らせる方法は？",
+                "おでこが広くなってきた…改善できる？"
+            ],
+            "40s+": [
+                "40代の生え際後退、植毛は選択肢？",
+                "前髪が薄くなった時のヘアスタイルは？",
+                "生え際のケア、今からでも効果ある？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "前髪が薄くなってきた気がする",
+                "生え際の産毛を太くする方法は？",
+                "おでこの生え際ケア、何から始める？"
+            ],
+            "30s": [
+                "30代女性、前髪のボリュームが減った",
+                "生え際が目立つ時のヘアアレンジは？",
+                "分け目を変えるべき？生え際の負担を減らす方法"
+            ],
+            "40s+": [
+                "年齢とともに前髪が細くなる原因は？",
+                "生え際の後退を目立たなくするカラーリングは？",
+                "40代からの前髪ケア、効果的な方法は？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "生え際の後退を防ぐには？",
+                "前髪のボリュームを保つコツは？",
+                "生え際マッサージは効果的ですか？"
+            ],
+            "30s": [
+                "生え際が気になり始めた…今できることは？",
+                "前髪が薄い時のスタイリング術は？",
+                "生え際の血行改善方法を教えて"
+            ],
+            "40s+": [
+                "生え際の年齢変化、自然なこと？対策すべき？",
+                "前髪エリアの育毛、何が効果的？",
+                "生え際を守るヘアケア習慣は？"
+            ]
+        }
+    },
+    "crown": {
+        "male": {
+            "20s": [
+                "つむじが薄い、AGAの始まり？",
+                "20代でO字ハゲ、進行を止めたい",
+                "頭頂部の薄毛、早期対策は何？"
+            ],
+            "30s": [
+                "つむじ周りが透けて見える…治療すべき？",
+                "30代のO字型AGA、効果的な対策は？",
+                "頭頂部の薄毛、隠すより治す方法は？"
+            ],
+            "40s+": [
+                "つむじの薄毛が目立つ、今からできることは？",
+                "頭頂部の薄毛改善、40代からでも間に合う？",
+                "O字ハゲの進行を遅らせるには？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "つむじが目立つのは髪質のせい？",
+                "頭頂部のボリュームを出す方法は？",
+                "分け目とつむじが気になる時の対策は？"
+            ],
+            "30s": [
+                "30代女性、つむじ周りが薄い気がする",
+                "頭頂部の分け目が広がってきた",
+                "つむじの薄毛、ホルモンバランスの影響？"
+            ],
+            "40s+": [
+                "更年期でつむじが薄くなる？",
+                "頭頂部の薄毛、年齢的に仕方ない？",
+                "つむじ周りの髪を増やす方法はある？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "頭頂部の薄毛対策は？",
+                "つむじの目立ちを抑えるには？",
+                "頭皮の血行改善の方法を教えて"
+            ],
+            "30s": [
+                "つむじ周りが気になり始めた、何から？",
+                "頭頂部のボリュームアップ方法は？",
+                "つむじの薄毛予防、今できることは？"
+            ],
+            "40s+": [
+                "年齢による頭頂部の変化、対策はある？",
+                "つむじの薄毛改善、効果的な方法は？",
+                "頭頂部の育毛ケア、何を試すべき？"
+            ]
+        }
+    },
+    "volume": {
+        "male": {
+            "20s": [
+                "髪が細くて腰がない、太くできる？",
+                "ボリュームが出ないヘアスタイルの悩み",
+                "猫っ毛を改善する方法はある？"
+            ],
+            "30s": [
+                "30代で髪のコシがなくなってきた",
+                "ボリュームダウン、老けて見える…対策は？",
+                "細くなった髪を太くする方法は？"
+            ],
+            "40s+": [
+                "年齢とともに髪が細くペタンコに",
+                "ボリュームアップのスタイリング術は？",
+                "細い髪でも立体感を出すには？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "髪が細くてスタイリングが決まらない",
+                "ボリュームが欲しい！パーマは逆効果？",
+                "ぺったんこ髪をふんわりさせるには？"
+            ],
+            "30s": [
+                "30代でボリュームが減った気がする",
+                "出産後、髪が細くなった",
+                "トップのボリュームを出す方法は？"
+            ],
+            "40s+": [
+                "40代、髪のハリ・コシがなくなった",
+                "ボリュームダウンを改善するケアは？",
+                "年齢による髪の細さ、どうケアする？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "ボリュームアップの方法は？",
+                "ドライヤーの使い方のコツは？",
+                "スタイリングで気をつけることは？"
+            ],
+            "30s": [
+                "髪のボリュームが減ってきた、原因は？",
+                "ふんわりヘアを作るドライ方法は？",
+                "ボリュームアップシャンプーは効果ある？"
+            ],
+            "40s+": [
+                "年齢によるボリュームダウン、改善できる？",
+                "ペタンコ髪を立ち上げるスタイリングは？",
+                "ボリュームを保つヘアケア習慣は？"
+            ]
+        }
+    },
+    "shedding": {
+        "male": {
+            "20s": [
+                "シャンプー時の抜け毛が多い、AGAの兆候？",
+                "20代で抜け毛が増えた、原因は？",
+                "抜け毛を減らす洗髪方法は？"
+            ],
+            "30s": [
+                "30代で急に抜け毛が増えた",
+                "ストレスと抜け毛の関係を知りたい",
+                "抜け毛対策、何から始めるべき？"
+            ],
+            "40s+": [
+                "40代の抜け毛、自然な老化？それとも対策必要？",
+                "季節の変わり目に抜け毛が増える",
+                "抜け毛を減らす生活習慣は？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "ブラッシング時の抜け毛が気になる",
+                "シャンプーで髪が抜けるのは普通？異常？",
+                "抜け毛を減らすシャンプー選びのコツは？"
+            ],
+            "30s": [
+                "30代で抜け毛が増えた、ホルモンの影響？",
+                "出産後の抜け毛がひどい",
+                "季節性の抜け毛、対策はある？"
+            ],
+            "40s+": [
+                "更年期で抜け毛が増える？",
+                "40代の抜け毛、どこまでが正常範囲？",
+                "抜け毛予防、今からできることは？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "抜け毛を減らすには？",
+                "シャンプーの選び方は？",
+                "ストレスと抜け毛の関係は？"
+            ],
+            "30s": [
+                "急に抜け毛が増えた、何が原因？",
+                "抜け毛が多い時のヘアケアは？",
+                "抜け毛対策に効果的な栄養素は？"
+            ],
+            "40s+": [
+                "年齢による抜け毛増加、対策は？",
+                "抜け毛を減らす頭皮ケア方法は？",
+                "抜け毛予防に効果的な習慣は？"
+            ]
+        }
+    },
+    "scalp": {
+        "male": {
+            "20s": [
+                "頭皮が脂っぽい、薄毛に影響する？",
+                "頭皮のかゆみと抜け毛の関係は？",
+                "頭皮ケア、何から始めるべき？"
+            ],
+            "30s": [
+                "30代で頭皮の乾燥が気になる",
+                "頭皮環境と薄毛の関係を知りたい",
+                "頭皮マッサージの正しいやり方は？"
+            ],
+            "40s+": [
+                "頭皮が硬い、血行不良が薄毛の原因？",
+                "40代の頭皮ケア、何を重視すべき？",
+                "頭皮の老化を防ぐ方法は？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "頭皮が敏感で合うシャンプーがない",
+                "頭皮のニオイが気になる、ケア方法は？",
+                "頭皮の乾燥とフケ、どう改善する？"
+            ],
+            "30s": [
+                "30代で頭皮トラブルが増えた",
+                "頭皮のかゆみ・赤み、原因は何？",
+                "頭皮環境を整えるケア方法は？"
+            ],
+            "40s+": [
+                "更年期で頭皮が乾燥しやすくなった",
+                "40代の頭皮ケア、保湿が大事？",
+                "頭皮の老化サイン、どう対処する？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "頭皮ケアのポイントは？",
+                "頭皮の乾燥対策は？",
+                "マッサージの正しいやり方は？"
+            ],
+            "30s": [
+                "頭皮環境を整えるには？",
+                "頭皮トラブル、何から改善すべき？",
+                "頭皮マッサージは毎日すべき？"
+            ],
+            "40s+": [
+                "年齢による頭皮の変化、ケア方法は？",
+                "頭皮の健康を保つ習慣は？",
+                "頭皮ケアに効果的な製品は？"
+            ]
+        }
+    },
+    "stress": {
+        "male": {
+            "20s": [
+                "仕事のストレスで抜け毛が増えた",
+                "ストレス性の薄毛は治る？",
+                "円形脱毛症になった、どうすれば？"
+            ],
+            "30s": [
+                "30代、仕事のプレッシャーで髪が抜ける",
+                "ストレスと男性ホルモンの関係は？",
+                "ストレス軽減で抜け毛は減る？"
+            ],
+            "40s+": [
+                "40代のストレス性脱毛、回復する？",
+                "ストレス管理と育毛の両立方法は？",
+                "仕事の疲れが髪に影響している？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "ストレスで円形脱毛症になった",
+                "仕事のプレッシャーで髪が薄くなる？",
+                "ストレス性の抜け毛、どうケアする？"
+            ],
+            "30s": [
+                "30代女性、仕事と家庭のストレスで抜け毛が",
+                "ストレスによる女性ホルモンの乱れが心配",
+                "リラックス方法と育毛ケアの関係は？"
+            ],
+            "40s+": [
+                "更年期のストレスと抜け毛の関係は？",
+                "40代女性のストレス管理、髪への影響は？",
+                "心の健康と髪の健康の関係を知りたい"
+            ]
+        },
+        "all": {
+            "20s": [
+                "ストレス性の薄毛対策は？",
+                "リラックス方法を教えて",
+                "睡眠と髪の関係は？"
+            ],
+            "30s": [
+                "ストレスで抜け毛が増えた、どうすれば？",
+                "ストレス軽減に効果的な方法は？",
+                "仕事のストレスと薄毛の関係は？"
+            ],
+            "40s+": [
+                "年齢とストレス、髪への影響は？",
+                "ストレス管理で髪は改善する？",
+                "心と体のケアで育毛効果はある？"
+            ]
+        }
+    },
+    "postpartum": {
+        "male": {
+            "20s": [
+                "パートナーの産後脱毛、どうサポートできる？",
+                "妻の産後の髪の変化を理解したい",
+                "産後ケア、夫ができることは？"
+            ],
+            "30s": [
+                "妻の産後脱毛、夫としてできることは？",
+                "産後の妻の髪の悩み、どう励ます？",
+                "パートナーの産後ケアをサポートしたい"
+            ],
+            "40s+": [
+                "妻の産後の変化を理解したい",
+                "産後のパートナーをどう支える？",
+                "家族として産後ケアをサポートする方法は？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "産後脱毛はいつ戻りますか？",
+                "授乳中でもできるケアは？",
+                "20代の産後ケア、栄養面のポイントは？"
+            ],
+            "30s": [
+                "30代の産後脱毛、回復に時間がかかる？",
+                "二人目出産後、一人目より抜け毛が多い理由は？",
+                "育児ストレスと髪の関係は？"
+            ],
+            "40s+": [
+                "40代の産後脱毛、ホルモンバランスは？",
+                "高齢出産後の回復を早めるには？",
+                "更年期と産後脱毛の重なりが心配"
+            ]
+        },
+        "all": {
+            "20s": [
+                "産後脱毛の回復期間は？",
+                "授乳期のヘアケアで気をつけることは？",
+                "産後の栄養補給、髪に良い食べ物は？"
+            ],
+            "30s": [
+                "30代の産後脱毛、いつまで続く？",
+                "産後の抜け毛対策、何ができる？",
+                "育児中でもできる簡単ヘアケアは？"
+            ],
+            "40s+": [
+                "40代の産後脱毛、特別なケアは必要？",
+                "産後の髪の回復、年齢の影響は？",
+                "高齢出産後のヘアケアのポイントは？"
+            ]
+        }
+    },
+    "prevention": {
+        "male": {
+            "20s": [
+                "AGAになる前にできる予防法は？",
+                "親がハゲているので早めに対策したい",
+                "20代から始める薄毛予防は何？"
+            ],
+            "30s": [
+                "30代からの薄毛予防、遅くない？",
+                "今は大丈夫だけど将来が心配",
+                "予防的な育毛ケア、何をすべき？"
+            ],
+            "40s+": [
+                "40代から始める予防ケアは効果ある？",
+                "年齢に応じた予防方法を知りたい",
+                "これ以上薄くならないための対策は？"
+            ]
+        },
+        "female": {
+            "20s": [
+                "母が薄毛なので予防したい",
+                "20代からできる薄毛予防は？",
+                "将来のために今できることは？"
+            ],
+            "30s": [
+                "30代女性の薄毛予防、何が大事？",
+                "出産前後の予防ケアは？",
+                "女性ホルモンを保つ生活習慣は？"
+            ],
+            "40s+": [
+                "更年期に備えた予防ケアは？",
+                "40代からの薄毛予防、効果的な方法は？",
+                "年齢による髪の変化を遅らせるには？"
+            ]
+        },
+        "all": {
+            "20s": [
+                "今からできる予防法は？",
+                "生活習慣で気をつけることは？",
+                "頭皮環境を整えるには？"
+            ],
+            "30s": [
+                "30代から始める薄毛予防は？",
+                "予防的ヘアケア、何を重視すべき？",
+                "将来のために今できることは？"
+            ],
+            "40s+": [
+                "40代からの予防ケア、遅くない？",
+                "年齢に応じた予防方法を知りたい",
+                "これ以上進行させないための対策は？"
+            ]
+        }
+    }
+}
+
+
+def _calculate_age_group(birth_date: str | None) -> str:
+    """
+    生年月日から年齢グループを計算
+
+    Args:
+        birth_date: "YYYY-MM-DD" 形式の生年月日
+
+    Returns:
+        "20s", "30s", "40s+", または "unknown"
+    """
+    if not birth_date:
+        return "unknown"
+
+    try:
+        birth = datetime.strptime(birth_date, "%Y-%m-%d").date()
+        today = datetime.now(ZoneInfo("Asia/Tokyo")).date()
+        age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
+
+        if age < 30:
+            return "20s"
+        elif age < 40:
+            return "30s"
+        else:
+            return "40s+"
+    except (ValueError, AttributeError):
+        return "unknown"
+
+
+def _normalize_gender(gender: str | None) -> str:
+    """
+    性別値を質問ルックアップ用に正規化
+
+    Args:
+        gender: "male", "female", "prefer-not-to-say", None等
+
+    Returns:
+        "male", "female", または "all"
+    """
+    if gender in ["male", "female"]:
+        return gender
+    return "all"  # prefer-not-to-say, None, 不正値は全て"all"扱い
+
+
+def _select_question_for_concern(
+    concern: str,
+    gender: str,
+    age_group: str
+) -> str | None:
+    """
+    特定のconcernに対して1つの質問を選択（フォールバックチェーン付き）
+
+    フォールバック順序:
+    1. concern → gender → age_group
+    2. concern → "all" → age_group
+    3. concern → gender → "unknown"
+    4. concern → "all" → "unknown"
+    5. CONCERN_QUESTIONS[concern] (レガシー互換)
+    6. FALLBACK_QUESTIONS
+
+    Args:
+        concern: お悩みカテゴリ（"thinning", "hairline"等）
+        gender: 正規化済み性別（"male", "female", "all"）
+        age_group: 年齢グループ（"20s", "30s", "40s+", "unknown"）
+
+    Returns:
+        選択された質問文字列、または None
+    """
+    concern_data = PERSONALIZED_QUESTIONS.get(concern)
+    if not concern_data:
+        # 後方互換性: レガシーマッピングを確認
+        legacy_questions = CONCERN_QUESTIONS.get(concern)
+        if legacy_questions:
+            return random.choice(legacy_questions)
+        return random.choice(FALLBACK_QUESTIONS)
+
+    # 性別特化 + 年齢グループ
+    if gender in concern_data:
+        gender_data = concern_data[gender]
+        if age_group in gender_data and gender_data[age_group]:
+            return random.choice(gender_data[age_group])
+        if "unknown" in gender_data and gender_data["unknown"]:
+            return random.choice(gender_data["unknown"])
+
+    # 性別中立 + 年齢グループ
+    if "all" in concern_data:
+        all_data = concern_data["all"]
+        if age_group in all_data and all_data[age_group]:
+            return random.choice(all_data[age_group])
+        if "unknown" in all_data and all_data["unknown"]:
+            return random.choice(all_data["unknown"])
+
+    # 最終フォールバック
+    return random.choice(FALLBACK_QUESTIONS)
+
+
+def _get_personalized_questions(
+    concern_areas: list[str],
+    gender: str | None,
+    birth_date: str | None
+) -> tuple[list[str], str]:
+    """
+    concern + gender + ageに基づいて3つの質問を選択
+
+    Args:
+        concern_areas: お悩みカテゴリのリスト
+        gender: 性別（"male", "female", "prefer-not-to-say", None等）
+        birth_date: 生年月日（"YYYY-MM-DD"形式）
+
+    Returns:
+        (questions: list[str], source: str)
+        source = "personalized" | "fallback"
+    """
+    normalized_gender = _normalize_gender(gender)
+    age_group = _calculate_age_group(birth_date)
+
+    # concernAreasのバリデーション
+    if concern_areas:
+        concern_areas = [c for c in concern_areas if isinstance(c, str)]
+
+    if not concern_areas:
+        return random.sample(FALLBACK_QUESTIONS, 3), "fallback"
+
+    # 上位3つのconcernから各1問選択
+    top_concerns = concern_areas[:3]
+    questions = []
+
+    for concern in top_concerns:
+        question = _select_question_for_concern(concern, normalized_gender, age_group)
+        if question:
+            questions.append(question)
+
+    # 3問に満たない場合はフォールバックで補完
+    while len(questions) < 3:
+        fallback = random.choice(FALLBACK_QUESTIONS)
+        if fallback not in questions:
+            questions.append(fallback)
+
+    source = "personalized" if len(questions) > 0 else "fallback"
+    return questions[:3], source
+
 
 def _get_quick_qa_questions(concern_areas: list[str]) -> list[str]:
     """concernAreasに基づいて3つの質問を選択"""
@@ -519,10 +1142,10 @@ def _get_quick_qa_questions(concern_areas: list[str]) -> list[str]:
 @limiter.limit("30/minute")
 async def quick_qa(request: Request, uid: str = Depends(get_current_uid)) -> QuickQAResponse:
     """
-    ユーザーのconcernAreasに基づいて3つの質問を推奨
+    ユーザーのconcernAreas、gender、birthDateに基づいて3つの質問を推奨
 
-    - Profile の concernAreas を読み取り
-    - 事前定義マッピングから質問を選択
+    - Profile の concernAreas, gender, birthDate を読み取り
+    - 性別・年齢グループを考慮してパーソナライズされた質問を選択
     - Firestoreにキャッシュ（TTL: 翌日4:00AM JST）
     """
     db = get_firestore_client()
@@ -549,19 +1172,23 @@ async def quick_qa(request: Request, uid: str = Depends(get_current_uid)) -> Qui
     except Exception as e:
         logging.warning(f"Failed to fetch cached quick Q&A: {e}")
 
-    # 2. Profileから concernAreas 取得
+    # 2. Profileから concernAreas, gender, birthDate 取得
     concern_areas = []
+    gender = None
+    birth_date = None
     try:
         profile_ref = db.collection("users").document(uid).collection("profile").document("default")
         profile_doc = profile_ref.get()
         if profile_doc.exists:
-            concern_areas = profile_doc.to_dict().get("concernAreas", [])
+            profile_data = profile_doc.to_dict()
+            concern_areas = profile_data.get("concernAreas", [])
+            gender = profile_data.get("gender")
+            birth_date = profile_data.get("birthDate")
     except Exception as e:
-        logging.warning(f"Failed to fetch profile concernAreas: {e}")
+        logging.warning(f"Failed to fetch profile data: {e}")
 
-    # 3. 質問生成
-    questions = _get_quick_qa_questions(concern_areas)
-    source = "personalized" if concern_areas else "fallback"
+    # 3. パーソナライズされた質問生成
+    questions, source = _get_personalized_questions(concern_areas, gender, birth_date)
 
     # 4. キャッシュ保存（TTL: 翌日4:00AM JST）
     try:
@@ -572,9 +1199,13 @@ async def quick_qa(request: Request, uid: str = Depends(get_current_uid)) -> Qui
             "questions": questions,
             "source": source,
             "generatedAt": now.isoformat(),
-            "ttl": ttl_time
+            "ttl": ttl_time,
+            # デバッグ用メタデータ
+            "gender": gender,
+            "ageGroup": _calculate_age_group(birth_date),
+            "concernCount": len(concern_areas)
         })
-        logging.info(f"Cached quick Q&A for {uid}, TTL: {ttl_time.isoformat()}")
+        logging.info(f"Cached personalized quick Q&A for {uid} (gender={gender}, age={_calculate_age_group(birth_date)}), TTL: {ttl_time.isoformat()}")
     except Exception as e:
         logging.error(f"Failed to cache quick Q&A: {e}", exc_info=True)
 
