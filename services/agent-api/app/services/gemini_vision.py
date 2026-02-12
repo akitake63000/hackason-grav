@@ -175,3 +175,91 @@ def analyze_image_bytes(image_bytes: bytes, gender: Optional[str] = "prefer-not-
     except Exception as e:
         logger.exception(f"Gemini Vision API Error: {e}")
         return VisionResult(score=0.0, notes=f"Analysis error: {str(e)}")
+
+
+def analyze_scan_images(
+    side_bytes: bytes,
+    front_bytes: bytes,
+    top_bytes: bytes,
+    gender: Optional[str] = "prefer-not-to-say",
+    device_type: Optional[str] = "pc"
+) -> VisionResult:
+    """
+    Analyzes 3 images (Side, Front, Top) to provide an integrated diagnosis.
+    - Side: Baseline (healthiest part).
+    - Top: Focus area for thinning.
+    - Front: Receding hairline check.
+    """
+    if not vision_enabled():
+         return VisionResult(score=0.0, notes="Vision API not enabled")
+
+    try:
+        # Initialize client
+        if GOOGLE_GENAI_USE_VERTEXAI:
+            client = genai.Client(
+                vertexai=True,
+                project=GOOGLE_CLOUD_PROJECT,
+                location=GOOGLE_CLOUD_LOCATION,
+                http_options=HttpOptions(api_version="v1")
+            )
+        else:
+            client = genai.Client(http_options=HttpOptions(api_version="v1"))
+
+        prompt = f"""
+        You are an expert trichologist. Analyze these 3 images of a user's head:
+        1. Side (Ear area) - Use this as the "Healthy Baseline" for density.
+        2. Front (Hairline) - Check for recession.
+        3. Top (Vertex) - Check for thinning relative to Side.
+
+        **Context**:
+        - Device: {device_type.upper()} camera. Image quality may vary.
+        - **IMPORTANT INCLUSIVITY NOTE**: The user may have White, Gray, or Blonde hair. Do NOT interpret light hair color itself as thinning. Focus on the VISIBLE SCALP DENSITY contrast between the Side (baseline) and Top.
+
+        **Task**:
+        1. Compare the hair density of the TOP against the SIDE.
+        2. If Top density << Side density, indicate thinning.
+        3. If Top density ~= Side density, it is healthy.
+
+        **Output format (JSON)**:
+        - "score": Float (0-100). 100 = No thinning (Top matches Side). Lower score = Significant difference.
+        - "hairType": Hamilton-Norwood (Male) or Ludwig (Female).
+        - "pattern": One of ["M字", "O字", "U字", "びまん性", "オルセン型", "ハミルトン型", "None"].
+        - "scalpCondition": One of ["良好", "乾燥", "脂性", "炎症", "フケが多い"].
+        - "quality": "good", "fair", or "poor".
+        - "notes": Professional summary in Japanese (approx 50 chars), specifically mentioning the comparison result (e.g., "側頭部と比較して頭頂部の密度が...").
+        """
+
+        response = client.models.generate_content(
+            model=GEMINI_MODEL_VISION,
+            contents=[
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=prompt),
+                        types.Part.from_bytes(data=side_bytes, mime_type="image/jpeg"),
+                        types.Part.from_bytes(data=front_bytes, mime_type="image/jpeg"),
+                        types.Part.from_bytes(data=top_bytes, mime_type="image/jpeg"),
+                    ]
+                )
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+
+        logger.info(f"Gemini Scan Response: {response.text}")
+        data = json.loads(response.text)
+
+        score = float(data.get("score", 0.0))
+        return VisionResult(
+            score=score,
+            notes=data.get("notes"),
+            hairType=data.get("hairType"),
+            pattern=data.get("pattern"),
+            scalpCondition=data.get("scalpCondition"),
+            quality=data.get("quality")
+        )
+
+    except Exception as e:
+        logger.exception(f"Gemini Scan Analysis Error: {e}")
+        return VisionResult(score=0.0, notes=f"Scan analysis error: {str(e)}")
