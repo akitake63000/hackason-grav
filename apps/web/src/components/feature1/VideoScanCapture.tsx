@@ -640,19 +640,49 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
                     {getInstructionText()}
                 </h3>
 
-                {!isTransitioning && (
-                    <div className={styles.buttonGroup}>
-                        <button onClick={handleBack} className={styles.iconButton}>
+                <div className={styles.controlsBottom}>
+                    {/* Back Button: Hide on Front phase */}
+                    {!isTransitioning && phase !== 'front' && (
+                        <button onClick={handleBack} className={styles.backButton}>
                             <RotateCcw size={24} />
+                            <span className={styles.backLabel}>戻る</span>
                         </button>
-                        <button onClick={() => setProgress(100)} className={styles.shutterButton}>
-                            <div className={styles.shutterInner} />
-                        </button>
-                        <button onClick={handleRetake} className={styles.iconButton}>
-                            <RefreshCw size={24} />
-                        </button>
+                    )}
+
+                    {/* Captured Images Gallery */}
+                    <div className={styles.galleryContainer}>
+                        <AnimatePresence mode='popLayout'>
+                            {['front', 'top', 'side'].map((p) => {
+                                const imgUrl = images[p as keyof typeof images];
+                                if (!imgUrl) return null;
+                                return (
+                                    <motion.div
+                                        key={p}
+                                        className={styles.thumbnailWrapper}
+                                        initial={{ opacity: 0, y: -20, scale: 0.8 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    >
+                                        <img src={imgUrl} alt={p} className={styles.thumbnail} />
+                                        <div className={styles.checkMark}>✓</div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
                     </div>
-                )}
+
+                    {/* Forward Button: Show ONLY if image for current phase exists (Retake Skip) */}
+                    {!isTransitioning && images[phase as keyof typeof images] && (
+                        <button onClick={() => {
+                            if (phase === 'front') startTransition('top');
+                            else if (phase === 'top') startTransition('side');
+                            else if (phase === 'side') setPhase('complete');
+                        }} className={styles.forwardButton}>
+                            <ArrowRight size={24} />
+                            <span className={styles.backLabel}>進む</span>
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
