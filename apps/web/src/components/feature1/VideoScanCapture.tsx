@@ -32,9 +32,13 @@ const REQUIRED_GOOD_FRAMES = 60; // Frames needed to complete a phase (approx 1-
 // Angle Thresholds (Degrees)
 const POSE_THRESHOLDS = {
     FRONT: { yaw: 15, pitch: 15 },
-    SIDE: { yawMin: 15 }, // Relaxed from 25
-    TOP: { pitchMin: 20 } // must be > 20 (looking down)
+    SIDE: { yawMin: 15 },
+    TOP: { pitchMin: 30 } // Increased to 30 as requested
 };
+
+// ... inside component ...
+
+
 
 
 interface VideoScanCaptureProps {
@@ -116,6 +120,20 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         };
     }, [onError]);
 
+
+    // Initialize Camera Stream
+
+
+    // Clean up buffers on phase change to prevent "Bleed over" of frames
+    useEffect(() => {
+        if (phase !== 'guide' && phase !== 'complete') {
+            goodFrameCount.current = 0;
+            bestShotBuffer.current = null;
+            previousFrameData.current = null;
+            setProgress(0);
+            setFeedback(null);
+        }
+    }, [phase]);
 
     // Initialize Camera Stream
     useEffect(() => {
@@ -328,45 +346,45 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         // A. Head Pose Check
         const { yaw, pitch, faceDetected } = currentPose.current;
         let poseValid = false;
-        let poseFeedback = null;
+        let poseFeedback: string | null = null;
         const yAbs = Math.abs(yaw);
         const pAbs = Math.abs(pitch);
 
-        if (phase === 'front') {
-            if (!faceDetected) {
-                poseFeedback = "顔が検出されません";
-            } else if (yAbs > POSE_THRESHOLDS.FRONT.yaw) {
-                poseFeedback = "正面を向いてください";
-            } else if (pAbs > POSE_THRESHOLDS.FRONT.pitch) {
-                poseFeedback = "正面を向いてください";
-            } else {
-                poseValid = true;
+        const checkPoseValidity = () => {
+            if (phase === 'front') {
+                if (!faceDetected) return "顔が検出されません";
+                if (yAbs > POSE_THRESHOLDS.FRONT.yaw) return "正面を向いてください";
+                if (pAbs > POSE_THRESHOLDS.FRONT.pitch) return "正面を向いてください";
+                return true;
             }
-        }
-        else if (phase === 'top') {
-            // Top: Pitch Down > 20 OR No Face
-            if (faceDetected) {
-                if (pitch > 20) {
-                    poseValid = true;
-                    poseFeedback = null;
+            else if (phase === 'top') {
+                // Top: Must be looking down properly OR Face not detected (assumed showing top of head)
+                if (faceDetected) {
+                    if (pitch < POSE_THRESHOLDS.TOP.pitchMin) {
+                        return "もっと深く頭を下げてください";
+                    }
+                    return true;
                 } else {
-                    poseFeedback = "頭を下げてください";
+                    // Face lost -> Assume Top of Head is visible
+                    return true;
                 }
-            } else {
-                // No face detected -> Assumed Top of Head visible
-                poseValid = true;
-                poseFeedback = null;
             }
-        }
-        else if (phase === 'side') {
-            if (!faceDetected) {
-                // If face is lost, user might have turned too far.
-                poseFeedback = "顔が見えません。少し正面に戻してください";
-            } else if (Math.abs(yaw) < POSE_THRESHOLDS.SIDE.yawMin) {
-                poseFeedback = "横を向いてください";
-            } else {
-                poseValid = true;
+            else if (phase === 'side') {
+                if (!faceDetected) return "顔が見えません。少し正面に戻してください";
+                if (yAbs < POSE_THRESHOLDS.SIDE.yawMin) return "横を向いてください";
+                return true;
             }
+            return false;
+        };
+
+        const validity = checkPoseValidity();
+
+        if (validity === true) {
+            poseValid = true;
+            poseFeedback = null;
+        } else {
+            poseValid = false;
+            poseFeedback = typeof validity === 'string' ? validity : "位置を調整してください";
         }
 
         if (!poseValid) {
