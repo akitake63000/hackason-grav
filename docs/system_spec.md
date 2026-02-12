@@ -1,12 +1,13 @@
 # HairGuard Agent システム仕様書
 
-最終更新: 2026-02-11
+最終更新: 2026-02-12
 
 ## 1. 概要
 薄毛対策の継続を支えるMVP。
 Firebase Hosting + Cloud Run + Firebase（Auth/Firestore/Storage）を中心に構成し、レポート/メンタル支援は Vertex AI（Gemini）連携に対応。
 
 **Phase 1-3実装完了**: 非同期チャット処理、Cloud Tasks統合、Sentry監視
+**最新機能**: ホーム画面UX最適化（スケルトンローディング、並列API取得）、性別対応型髪分析、AIモチベーションメッセージ、Quick Q&A機能
 
 ---
 
@@ -93,15 +94,48 @@ sequenceDiagram
 ### 3.2 画面一覧
 | 画面 | パス | 概要 |
 |---|---|---|
-| Home | `/` | MVP概要と導線 |
+| **Home** | `/home` | **パーソナライズドダッシュボード（今日のミッション、Quick Action、Quick Q&A、AIモチベーションメッセージ）** |
 | Login | `/login` | Googleログイン |
 | Check-in | `/checkin` | 写真アップロード & 解析起動 |
 | Dashboard | `/dashboard` | 進捗グラフ / 週次レポート |
 | Mental Shield | `/mental-shield` | 3人格の相談回答（旧同期版） |
-| **Feature2 Chat** | `/feature2/chat` | **非同期チャット（Phase 1-3実装）** |
+| **Feature2 Chat** | `/feature2/chat` | **非同期チャット（Phase 1-3実装）+ Quick Q&A自動入力対応** |
 | Food Sniper | `/food-sniper` | 食材 & 店舗提案 + 履歴 |
 
-### 3.3 Feature2 Chat の実装詳細
+### 3.3 Home 画面の実装詳細
+
+**ファイル**: `apps/web/src/app/home/page.jsx`
+
+**主要機能**:
+1. **並列API取得**: 4つのAPIを `Promise.allSettled()` で同時実行
+   - `/api/v1/lifestyle/mission` - 今日のミッション（3つ）
+   - `/api/v1/mental-shield/motivation` - AIモチベーションメッセージ
+   - `/api/v1/lifestyle/quick-action` - 時間帯別5分アクション提案
+   - `/api/v1/lifestyle/quick-qa` - concernArea連動質問（3つ）
+
+2. **スケルトンローディング**: 読み込み中に固定レイアウトを表示
+   - `GreetingSkeleton` - 挨拶セクション
+   - `StatusCardSkeleton` - 継続記録カード
+   - `MissionsSectionSkeleton` - ミッションセクション
+   - `SectionPlaceholder` - Quick Action / Q&A
+
+3. **パフォーマンス最適化**:
+   - **状態統合**: 8つの独立state → 3つ（profile, homeData, showGuide）
+   - **単一レンダリング**: 1回のsetStateで全データ更新
+   - **アニメーション最適化**: 初回のみ実行（`isFirstLoad` フラグ）
+
+4. **Quick Q&A連携**: 質問タップでChat画面に自動遷移
+   - SessionStorageに質問を保存
+   - `/feature2/chat` に遷移後、入力フィールドに自動展開
+
+**パフォーマンス改善結果**:
+| 指標 | Before | After | 改善率 |
+|------|--------|-------|--------|
+| Time to Interactive | ~2050ms | ~500ms | 4倍高速化 |
+| 再レンダリング回数 | 5回 | 1回 | 5分の1 |
+| Cumulative Layout Shift | 0.25+ | <0.1目標 | 大幅削減 |
+
+### 3.4 Feature2 Chat の実装詳細
 
 **ファイル**: `apps/web/src/app/feature2/chat/page.jsx`
 
@@ -148,12 +182,16 @@ sequenceDiagram
 | メソッド | パス | 説明 | 認証 |
 |---|---|---|---|
 | GET | `/api/health` | ヘルスチェック | 不要 |
-| POST | `/api/v1/photos/analyze` | 画像解析（髪密度指数） | 必須 |
+| **POST** | `/api/v1/photos/analyze` | **画像解析（性別対応：Hamilton-Norwood/Ludwig）** | 必須 |
 | POST | `/api/v1/reports/generate` | 週次レポート生成 | 必須 |
 | POST | `/api/v1/mental-shield/chat` | 3人格メンタル支援（同期版） | 必須 |
 | **POST** | `/api/v1/mental-shield/chat/discuss-async` | **非同期チャット（Phase 1-3）** | 必須 |
 | **POST** | `/api/v1/mental-shield/tasks/{taskId}/execute` | **タスク実行（Cloud Tasks専用）** | OIDC |
 | **GET** | `/api/v1/mental-shield/tasks/{taskId}` | **タスク状態取得** | 必須 |
+| **GET** | `/api/v1/mental-shield/motivation` | **AIモチベーションメッセージ生成** | 必須 |
+| **GET** | `/api/v1/lifestyle/mission` | **今日のミッション（3つ）** | 必須 |
+| **GET** | `/api/v1/lifestyle/quick-action` | **時間帯別5分アクション提案** | 必須 |
+| **GET** | `/api/v1/lifestyle/quick-qa` | **concernArea連動質問（3つ）** | 必須 |
 | POST | `/api/v1/food-sniper/recommend` | 食材/店舗提案 | 必須 |
 
 ### 4.3 主要リクエスト/レスポンス概要
@@ -197,10 +235,87 @@ sequenceDiagram
   }
   ```
 
+#### `/api/v1/mental-shield/motivation` （新規）
+- **入力**: なし（認証されたユーザーのuidから自動取得）
+- **出力**:
+  ```json
+  {
+    "message": "今週は食事記録を4回も達成しました。小さな継続が大きな変化を生みます",
+    "source": "generated|cached|fallback",
+    "generatedAt": "2026-02-12T09:00:00+09:00"
+  }
+  ```
+- **生成ロジック**:
+  - ユーザーアクティビティメトリクスを分析（写真撮影頻度、食事記録、プラン実行状況、弱点軸）
+  - Geminiで具体的な行動を褒めるメッセージを生成
+  - Firestoreに日次キャッシュ（TTL: 翌日4:00AM JST）
+
+#### `/api/v1/lifestyle/mission` （新規）
+- **入力**: なし（認証されたユーザーのuidから自動取得）
+- **出力**:
+  ```json
+  {
+    "missions": [
+      {
+        "id": "mission_1",
+        "name": "今日の状態を記録しましょう",
+        "emoji": "📸",
+        "description": "定期的な写真撮影で変化を追跡",
+        "actionType": "reminder",
+        "targetUrl": "/feature1/capture",
+        "priority": "high"
+      }
+    ],
+    "source": "generated|cached|fallback"
+  }
+  ```
+- **生成ロジック**:
+  - ユーザーアクティビティを分析（長期未実施項目、弱点軸）
+  - Geminiで優先順位付きの3つのミッションを生成
+  - Firestoreに日次キャッシュ
+
+#### `/api/v1/lifestyle/quick-action` （新規）
+- **入力**: なし（現在時刻とユーザーアクティビティから自動判定）
+- **出力**:
+  ```json
+  {
+    "action": "朝食に亜鉛豊富なナッツを追加",
+    "time_label": "朝",
+    "guide": "1. アーモンド、カシューナッツ、くるみなどを用意\n2. 朝食に一握り（20-30g）追加\n3. よく噛んで食べる",
+    "duration_minutes": 5,
+    "source": "generated|cached|fallback",
+    "generatedAt": "2026-02-12T08:30:00+09:00"
+  }
+  ```
+- **時間帯別フォールバック**:
+  - 朝（5-11時）: 栄養系アクション
+  - 昼（11-17時）: マッサージ/運動系アクション
+  - 夜（17時-）: リラックス系アクション
+
+#### `/api/v1/lifestyle/quick-qa` （新規）
+- **入力**: なし（ユーザーのconcernAreasから自動取得）
+- **出力**:
+  ```json
+  {
+    "questions": [
+      "生え際の後退を防ぐには？",
+      "ストレス性の薄毛対策は？",
+      "今日からできるケアを教えて"
+    ],
+    "source": "personalized|fallback",
+    "generatedAt": "2026-02-12T09:00:00+09:00"
+  }
+  ```
+- **質問選択ロジック**:
+  - concernAreas（thinning, hairline, crown, volume, shedding, scalp, stress, postpartum, prevention）ごとに3つの質問を事前定義
+  - ユーザーの上位3つのconcernから各1つランダム選択
+  - concernAreasが未設定の場合はフォールバック質問3つ
+
 #### 既存エンドポイント
 - `/api/v1/photos/analyze`
-  - 入力: `photoId`, `storagePath`, `capturedAt`, `roiPreset`
-  - 出力: `densityIndex`, `deltaVsPrev`, `deltaVsBase`, `quality`, `analysisId`
+  - 入力: `photoId`, `storagePath`, `capturedAt`, `roiPreset`, **`gender`（新規）**
+  - 出力: `densityIndex`, `deltaVsPrev`, `deltaVsBase`, `quality`, `analysisId`, **`hairType`, `pattern`（新規）**
+  - **性別対応**: 男性=Hamilton-Norwood（M字/O字/U字）、女性=Ludwig（びまん性/オルセン型/ハミルトン型）
 - `/api/v1/reports/generate`
   - 入力: `periodDays`
   - 出力: `highlights`, `nextActions`, `rawText`
@@ -640,6 +755,24 @@ hackason-grab/
 
 ## 9. 主要な変更履歴
 
+### 2026-02-12
+- **ホーム画面UX最適化** (commit: `dcf6e87`, PR#16)
+  - スケルトンローディング実装 (commit: `eba0671`)
+  - 並列API取得による高速化（2050ms → 500ms、4倍改善） (commit: `a6cf097`)
+  - 状態統合（8つ → 3つ）とアニメーション最適化
+  - 新規コンポーネント: `SkeletonLoader.jsx`, `SkeletonLoader.module.css`
+- **性別対応型髪分析機能** (commit: `2dbffd0`, PR#17)
+  - Hamilton-Norwood スケール（男性：M字/O字/U字パターン）
+  - Ludwig スケール（女性：びまん性/オルセン型/ハミルトン型パターン）
+  - Gemini Vision プロンプトの性別対応化
+- **Quick Q&A機能改善**
+  - concernArea連動質問生成 (commit: `54b1887`)
+  - sessionStorage方式への移行 (commit: `0a899a9`)
+  - auto-submit修正 (commits: `8a14cc5`, `0e091b2`)
+- **AIモチベーションメッセージ機能** (commit: `d56f86b`)
+  - ユーザーアクティビティ分析に基づくパーソナライズメッセージ
+  - Firestore日次キャッシュ（TTL: 翌日4:00AM JST）
+
 ### 2026-02-11
 - **Phase 1-3実装完了**: 非同期チャット処理
   - Cloud Tasks統合 (commit: `857f8e0`)
@@ -704,12 +837,26 @@ python-dotenv==1.2.1
 
 ## 11. パフォーマンス
 
-### 11.1 計測結果（work/measure_chat_performance.py）
+### 11.1 ホーム画面最適化結果（2026-02-12）
+| 指標 | Before | After | 改善率 |
+|------|--------|-------|--------|
+| **Time to Interactive** | ~2050ms | ~500ms | **4倍高速化** |
+| **再レンダリング回数** | 5回 | 1回 | **5分の1** |
+| **Cumulative Layout Shift** | 0.25+ | <0.1目標 | **大幅削減** |
+| **Layout Shift回数** | 3-5回 | 0-1回 | **最小化** |
+
+**最適化手法**:
+- 並列API呼び出し（`Promise.allSettled()`）
+- 単一状態更新（1回のsetState）
+- スケルトンローディング（固定レイアウト）
+- アニメーション最適化（初回のみ実行）
+
+### 11.2 チャット処理性能（work/measure_chat_performance.py）
 - **FLASH モード**: 84.43秒（gemini-2.5-flash）
 - **PRO モード**: 309.03秒（gemini-2.5-pro）
 - **倍率**: 3.66倍
 
-### 11.2 改善提案（Phase 4）
+### 11.3 改善提案（Phase 4）
 詳細: `docs/chat-async-performance-improvement-proposal.md`
 
 - **Phase 4-1**: Round 1 並列化 + 9分強制完了 → 33%削減
@@ -843,7 +990,12 @@ python3 verify_firestore_messages.py <user-id> default
 
 | ファイル | 説明 |
 |---------|------|
-| `services/agent-api/app/routers/mental_shield.py` | LangGraphワークフロー、非同期エンドポイント |
+| **`apps/web/src/app/home/page.jsx`** | **ホーム画面（並列API取得、スケルトンローディング、Quick Q&A連携）** |
+| **`apps/web/src/components/SkeletonLoader.jsx`** | **スケルトンコンポーネント群** |
+| **`services/agent-api/app/routers/lifestyle.py`** | **Lifestyle API（Mission, Quick Action, Quick Q&A）** |
+| `services/agent-api/app/routers/mental_shield.py` | LangGraphワークフロー、非同期エンドポイント、モチベーションメッセージ |
+| **`services/agent-api/app/routers/photos.py`** | **写真解析API（性別対応型）** |
+| **`services/agent-api/app/services/gemini_vision.py`** | **Gemini Vision Service（Hamilton-Norwood/Ludwig）** |
 | `apps/web/src/app/feature2/chat/page.jsx` | 非同期チャットUI、Firestoreリスナー |
 | `services/agent-api/app/monitoring/sentry.py` | Sentry統合 |
 | `firestore.rules` | Firestoreセキュリティルール |
