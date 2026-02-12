@@ -1,8 +1,6 @@
 'use client'
 
-console.log('[Quick Q&A Debug] page.jsx loaded - TOP LEVEL')
-
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import Layout from '@/components/Layout'
@@ -11,8 +9,6 @@ import { useAuth, getIdToken } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import styles from './page.module.css'
-
-console.log('[Quick Q&A Debug] All imports completed')
 
 // 初期メッセージ
 const initialMessages = [
@@ -130,31 +126,31 @@ function validateDirectApiUrl(urlString) {
   }
 }
 
-// Persistent debug logging helper
+// Persistent debug logging helper (only in development)
 function debugLog(message, data = null) {
-  const timestamp = new Date().toISOString()
-  const logEntry = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data) : ''}`
+  if (process.env.NODE_ENV !== 'production') {
+    const timestamp = new Date().toISOString()
+    const logEntry = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data) : ''}`
 
-  // Log to console
-  console.log(logEntry)
+    // Log to console
+    console.log(logEntry)
 
-  // Log to localStorage (persist through page transitions) - client-side only
-  if (typeof window !== 'undefined') {
-    try {
-      const logs = JSON.parse(localStorage.getItem('chat_debug_logs') || '[]')
-      logs.push({ timestamp, message, data })
-      // Keep only last 50 logs
-      if (logs.length > 50) logs.shift()
-      localStorage.setItem('chat_debug_logs', JSON.stringify(logs))
-    } catch (e) {
-      console.error('Failed to write debug log to localStorage:', e)
+    // Log to sessionStorage (persist through page transitions) - client-side only
+    if (typeof window !== 'undefined') {
+      try {
+        const logs = JSON.parse(sessionStorage.getItem('chat_debug_logs') || '[]')
+        logs.push({ timestamp, message, data })
+        // Keep only last 50 logs
+        if (logs.length > 50) logs.shift()
+        sessionStorage.setItem('chat_debug_logs', JSON.stringify(logs))
+      } catch (e) {
+        console.error('Failed to write debug log to sessionStorage:', e)
+      }
     }
   }
 }
 
 function Chat() {
-  debugLog('[Quick Q&A Debug] Chat function called - ENTRY POINT')
-
   const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
@@ -169,21 +165,16 @@ function Chat() {
   const [chatStyle, setChatStyle] = useState('balanced')
   const [chatDetail, setChatDetail] = useState('flash')
   const [pendingTaskId, setPendingTaskId] = useState(null)
-  const [pollingIntervalId, setPollingIntervalId] = useState(null)
   const [showDebugPanel, setShowDebugPanel] = useState(false)
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
   const hasSetQuestionRef = useRef(false) // フラグ: 質問を設定済みか
-
-  debugLog('[Quick Q&A Debug] All hooks completed', { userExists: !!user, inputValue })
-
-  // デバッグ: コンポーネントマウント時のログ
-  debugLog('[Quick Q&A Debug] Chat component rendering', { inputValue, user: !!user, hasSetQuestion: hasSetQuestionRef.current })
+  const pollingIntervalIdRef = useRef(null) // ポーリングInterval ID（メモリリーク防止のためuseRefで管理）
+  const prefillQuestionRef = useRef(null) // プレフィル質問（auto-submit用）
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false) // Auto-submit flag for Quick Q&A
 
   useEffect(() => {
-    debugLog('[Quick Q&A Debug] Component mounted')
     return () => {
-      debugLog('[Quick Q&A Debug] Component unmounting')
       isUnmountedRef.current = true
     }
   }, [])
@@ -248,9 +239,9 @@ function Chat() {
   // ページ読み込み時に未完了タスクをチェック
   useEffect(() => {
     const checkPendingTask = async () => {
-      const pendingTask = localStorage.getItem('pending_chat_task')
-      const pendingThread = localStorage.getItem('pending_chat_thread')
-      const taskCreatedAt = localStorage.getItem('pending_chat_task_created_at')
+      const pendingTask = sessionStorage.getItem('pending_chat_task')
+      const pendingThread = sessionStorage.getItem('pending_chat_thread')
+      const taskCreatedAt = sessionStorage.getItem('pending_chat_task_created_at')
 
       if (pendingTask && pendingThread) {
         // タスク作成時刻をチェック（10分以上経過していたら状態確認）
@@ -286,9 +277,9 @@ function Chat() {
             }
 
             // いずれの場合もLocalStorageはクリア
-            localStorage.removeItem('pending_chat_task')
-            localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
+            sessionStorage.removeItem('pending_chat_task')
+            sessionStorage.removeItem('pending_chat_thread')
+            sessionStorage.removeItem('pending_chat_task_created_at')
             return
           }
         }
@@ -305,15 +296,16 @@ function Chat() {
 
     // クリーンアップ: リスナー/ポーリング停止
     return () => {
-      if (pollingIntervalId) {
-        // pollingIntervalIdはintervalまたはunsubscribe関数
-        if (typeof pollingIntervalId === 'function') {
+      if (pollingIntervalIdRef.current) {
+        // pollingIntervalIdRefはintervalまたはunsubscribe関数
+        if (typeof pollingIntervalIdRef.current === 'function') {
           // Firestoreリスナーのunsubscribe
-          pollingIntervalId()
+          pollingIntervalIdRef.current()
         } else {
           // ポーリングのinterval
-          clearInterval(pollingIntervalId)
+          clearInterval(pollingIntervalIdRef.current)
         }
+        pollingIntervalIdRef.current = null
       }
     }
   }, []) // 空の依存配列で初回のみ実行
@@ -322,40 +314,41 @@ function Chat() {
   useEffect(() => {
     // 既に質問を設定済み、またはユーザーが未ログインの場合はスキップ
     if (hasSetQuestionRef.current || !user) {
-      debugLog('[Quick Q&A] Skipping localStorage check', {
-        hasSetQuestion: hasSetQuestionRef.current,
-        userExists: !!user
-      })
       return
     }
-
-    debugLog('[Quick Q&A] useEffect triggered!', { userExists: !!user })
 
     // クライアントサイドでのみ実行
     if (typeof window === 'undefined') {
-      debugLog('[Quick Q&A] Server-side rendering, skipping')
       return
     }
 
-    const prefillQuestion = localStorage.getItem('chat_prefill_question')
-    debugLog('[Quick Q&A] localStorage check', { prefillQuestion })
+    const prefillQuestion = sessionStorage.getItem('chat_prefill_question')
 
     if (prefillQuestion) {
-      debugLog('[Quick Q&A] Setting prefilled question from localStorage', { prefillQuestion })
       setInputValue(prefillQuestion)
-      localStorage.removeItem('chat_prefill_question') // 使用後は削除
+      prefillQuestionRef.current = prefillQuestion // 元の値を保持
+      sessionStorage.removeItem('chat_prefill_question') // 使用後は削除
       hasSetQuestionRef.current = true // フラグを立てて2回目の実行を防ぐ
-      debugLog('[Quick Q&A] Input value set successfully', { newInputValue: prefillQuestion })
-
-      // 自動送信: ホーム画面からの遷移時のみ
-      setTimeout(() => {
-        handleSend()
-        debugLog('[Quick Q&A] Auto-submitted question')
-      }, 100) // Small delay to ensure state is updated
-    } else {
-      debugLog('[Quick Q&A] No question found in localStorage')
+      setShouldAutoSubmit(true) // Set flag to trigger auto-submit after state updates
     }
   }, [user]) // user が利用可能になったら実行（inputValueは除外して無限ループを防ぐ）
+
+  // Auto-submit when inputValue is set and shouldAutoSubmit flag is true
+  useEffect(() => {
+    // ユーザーが編集していないか、かつ処理中でない場合のみ自動送信
+    if (
+      shouldAutoSubmit &&
+      inputValue.trim() &&
+      inputValue === prefillQuestionRef.current && // ユーザーが編集していないことを確認
+      !isLoading &&
+      !isRevealing &&
+      !pendingTaskId // pendingTaskIdがないことを確認（重複送信防止）
+    ) {
+      setShouldAutoSubmit(false) // Reset flag to prevent re-triggering
+      prefillQuestionRef.current = null // Reset after use
+      handleSend()
+    }
+  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing])
 
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
@@ -433,11 +426,11 @@ function Chat() {
           if (!snapshot.exists()) {
             console.warn('Task not found:', taskId)
             unsubscribe()
-            setPollingIntervalId(null)
+            pollingIntervalIdRef.current = null
             setPendingTaskId(null)
-            localStorage.removeItem('pending_chat_task')
-            localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
+            sessionStorage.removeItem('pending_chat_task')
+            sessionStorage.removeItem('pending_chat_thread')
+            sessionStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
             return
           }
@@ -452,11 +445,11 @@ function Chat() {
 
             // リスナー停止
             unsubscribe()
-            setPollingIntervalId(null)
+            pollingIntervalIdRef.current = null
             setPendingTaskId(null)
-            localStorage.removeItem('pending_chat_task')
-            localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
+            sessionStorage.removeItem('pending_chat_task')
+            sessionStorage.removeItem('pending_chat_thread')
+            sessionStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
 
           } else if (taskData.status === 'failed' || taskData.status === 'timeout') {
@@ -465,11 +458,11 @@ function Chat() {
             setError(`回答の生成に失敗しました: ${taskData.error || '不明なエラー'}`)
 
             unsubscribe()
-            setPollingIntervalId(null)
+            pollingIntervalIdRef.current = null
             setPendingTaskId(null)
-            localStorage.removeItem('pending_chat_task')
-            localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
+            sessionStorage.removeItem('pending_chat_task')
+            sessionStorage.removeItem('pending_chat_thread')
+            sessionStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
           }
           // queued/running の場合は継続
@@ -481,8 +474,8 @@ function Chat() {
         }
       )
 
-      // unsubscribe関数をpollingIntervalIdとして保存（cleanup用）
-      setPollingIntervalId(unsubscribe)
+      // unsubscribe関数をpollingIntervalIdRefとして保存（cleanup用）
+      pollingIntervalIdRef.current = unsubscribe
 
     } catch (error) {
       console.error('Failed to start Firestore listener:', error)
@@ -512,11 +505,11 @@ function Chat() {
           if (response.status === 404) {
             console.warn('Task not found:', taskId)
             clearInterval(interval)
-            setPollingIntervalId(null)
+            pollingIntervalIdRef.current = null
             setPendingTaskId(null)
-            localStorage.removeItem('pending_chat_task')
-            localStorage.removeItem('pending_chat_thread')
-            localStorage.removeItem('pending_chat_task_created_at')
+            sessionStorage.removeItem('pending_chat_task')
+            sessionStorage.removeItem('pending_chat_thread')
+            sessionStorage.removeItem('pending_chat_task_created_at')
             setIsLoading(false)
           }
           return
@@ -531,11 +524,11 @@ function Chat() {
 
           // ポーリング停止
           clearInterval(interval)
-          setPollingIntervalId(null)
+          pollingIntervalIdRef.current = null
           setPendingTaskId(null)
-          localStorage.removeItem('pending_chat_task')
-          localStorage.removeItem('pending_chat_thread')
-          localStorage.removeItem('pending_chat_task_created_at')
+          sessionStorage.removeItem('pending_chat_task')
+          sessionStorage.removeItem('pending_chat_thread')
+          sessionStorage.removeItem('pending_chat_task_created_at')
           setIsLoading(false)
 
         } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
@@ -544,11 +537,11 @@ function Chat() {
           setError(`回答の生成に失敗しました: ${taskStatus.error || '不明なエラー'}`)
 
           clearInterval(interval)
-          setPollingIntervalId(null)
+          pollingIntervalIdRef.current = null
           setPendingTaskId(null)
-          localStorage.removeItem('pending_chat_task')
-          localStorage.removeItem('pending_chat_thread')
-          localStorage.removeItem('pending_chat_task_created_at')
+          sessionStorage.removeItem('pending_chat_task')
+          sessionStorage.removeItem('pending_chat_thread')
+          sessionStorage.removeItem('pending_chat_task_created_at')
           setIsLoading(false)
         }
         // queued/running の場合は継続
@@ -558,7 +551,7 @@ function Chat() {
       }
     }, 3000) // 3秒間隔
 
-    setPollingIntervalId(interval)
+    pollingIntervalIdRef.current = interval
   }
 
   // 非同期チャット送信
@@ -626,8 +619,8 @@ function Chat() {
     }
   }
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading || isRevealing) return
+  const handleSend = useCallback(async () => {
+    if (!inputValue.trim() || isLoading || isRevealing || pendingTaskId) return
 
     const now = new Date()
     const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
@@ -783,7 +776,7 @@ function Chat() {
       setRevealingAgent(null)
       setDiscussionMessages([])
     }
-  }
+  }, [inputValue, isLoading, isRevealing, pendingTaskId, user, threadId, chatStyle, chatDetail])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -872,13 +865,6 @@ function Chat() {
   }
 
   const isBusy = isLoading || isRevealing || pendingTaskId !== null
-
-  debugLog('[Quick Q&A Debug] About to render JSX', {
-    inputValue,
-    userExists: !!user,
-    hasSetQuestion: hasSetQuestionRef.current,
-    isBusy
-  })
 
   return (
     <Layout>
@@ -1085,66 +1071,6 @@ function Chat() {
       </div>
 
       <div className={styles.inputArea}>
-        {/* Debug Log Toggle - Inline Button */}
-        <div style={{ padding: '8px 12px', background: 'rgba(65, 152, 115, 0.05)', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#7f786d' }}>🐛 デバッグログ</span>
-          <button
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-            style={{
-              background: showDebugPanel ? '#419873' : '#e5e7eb',
-              color: showDebugPanel ? 'white' : '#1a3d2e',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '4px 12px',
-              fontSize: '12px',
-              cursor: 'pointer',
-              fontWeight: '600',
-            }}
-          >
-            {showDebugPanel ? '非表示' : '表示'}
-          </button>
-        </div>
-
-        {/* Debug Panel - Inline Display */}
-        {showDebugPanel && (
-          <div style={{
-            maxHeight: '200px',
-            overflow: 'auto',
-            background: '#f9fafb',
-            padding: '12px',
-            fontSize: '11px',
-            fontFamily: 'monospace',
-            lineHeight: '1.6',
-            borderBottom: '1px solid #e5e7eb',
-          }}>
-            {(() => {
-              try {
-                const logs = JSON.parse(localStorage.getItem('chat_debug_logs') || '[]')
-                if (logs.length === 0) {
-                  return <div style={{ color: '#7f786d', textAlign: 'center' }}>ログがありません</div>
-                }
-                return logs.map((log, idx) => (
-                  <div key={idx} style={{ marginBottom: '8px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' }}>
-                    <div style={{ color: '#6b7280', fontSize: '10px' }}>
-                      {new Date(log.timestamp).toLocaleTimeString('ja-JP')}
-                    </div>
-                    <div style={{ color: '#1a3d2e', wordBreak: 'break-all' }}>
-                      {log.message}
-                    </div>
-                    {log.data && (
-                      <div style={{ color: '#419873', fontSize: '10px', marginTop: '4px' }}>
-                        {JSON.stringify(log.data)}
-                      </div>
-                    )}
-                  </div>
-                ))
-              } catch (e) {
-                return <div style={{ color: '#dc2626' }}>ログの読み込みエラー: {e.message}</div>
-              }
-            })()}
-          </div>
-        )}
-
         {pendingTaskId && (
           <div className={styles.processingIndicator}>
             <span className={styles.spinner}>⏳</span>
@@ -1152,10 +1078,6 @@ function Chat() {
           </div>
         )}
         <div className={styles.inputContainer}>
-          {(() => {
-            debugLog('[Quick Q&A] Rendering input field', { inputValue, hasSetQuestion: hasSetQuestionRef.current })
-            return null
-          })()}
           <input
             type="text"
             className={styles.textInput}

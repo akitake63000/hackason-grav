@@ -348,8 +348,8 @@ function Home() {
 
   // Quick Q&A質問クリック時のハンドラー
   const handleQuestionClick = (question) => {
-    // LocalStorageに質問を保存
-    localStorage.setItem('chat_prefill_question', question)
+    // SessionStorageに質問を保存（セッション終了時に自動削除）
+    sessionStorage.setItem('chat_prefill_question', question)
     // Chat画面に遷移
     router.push('/feature2/chat')
   }

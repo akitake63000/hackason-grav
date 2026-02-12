@@ -517,3 +517,78 @@
     font-size: clamp(10px, 2.8vw, 11px);
   }
 }
+
+/* Quick Q&A Button */
+.qaButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(65, 152, 115, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.qaButton:hover {
+  border-color: #419873;
+  box-shadow: 0 4px 12px rgba(65, 152, 115, 0.1);
+  transform: translateX(4px);
+}
+
+.qaButton:active {
+  transform: scale(0.98);
+}
+
+.qaButton:focus-visible {
+  outline: 2px solid #419873;
+  outline-offset: 2px;
+  border-color: #419873;
+}
+
+.qaIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qaText {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-sm);
+  color: #1a3d2e;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.qaArrow {
+  color: #7f786d;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.qaButton:hover .qaArrow {
+  transform: translateX(4px);
+}
+
+@media (max-width: 767px) {
+  .qaButton {
+    padding: 10px 14px;
+  }
+
+  .qaIcon {
+    font-size: 16px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .qaText {
+    font-size: clamp(12px, 3.5vw, 13px);
+  }
+}

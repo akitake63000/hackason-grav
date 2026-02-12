@@ -266,15 +266,19 @@ async def _get_cached_quick_action(
         if doc.exists:
             data = doc.to_dict()
             # Check if cache is still valid (TTL not expired)
-            if data.get("ttl") and data["ttl"].replace(tzinfo=ZoneInfo("UTC")) > datetime.now(ZoneInfo("UTC")):
-                return QuickActionResponse(
-                    action=data["action"],
-                    time_label=data["time_label"],
-                    guide=data["guide"],
-                    duration_minutes=data.get("duration_minutes", 5),
-                    source="cached",
-                    generatedAt=data["generatedAt"]
-                )
+            ttl = data.get("ttl")
+            if ttl:
+                # timezone-awareの場合はastimezone、naiveの場合はreplaceを使用
+                ttl_utc = ttl.astimezone(ZoneInfo("UTC")) if ttl.tzinfo else ttl.replace(tzinfo=ZoneInfo("UTC"))
+                if ttl_utc > datetime.now(ZoneInfo("UTC")):
+                    return QuickActionResponse(
+                        action=data["action"],
+                        time_label=data["time_label"],
+                        guide=data["guide"],
+                        duration_minutes=data.get("duration_minutes", 5),
+                        source="cached",
+                        generatedAt=data["generatedAt"]
+                    )
     except Exception as e:
         logging.warning(f"Failed to retrieve cached quick action: {e}")
 
@@ -415,6 +419,170 @@ async def quick_action(request: Request, uid: str = Depends(get_current_uid)) ->
             source="fallback",
             generatedAt=now.isoformat()
         )
+
+
+# ---------------------------------------------------------------------------
+# GET /quick-qa — クイックQ&A（concernAreas に基づく質問推奨）
+# ---------------------------------------------------------------------------
+
+class QuickQAResponse(BaseModel):
+    """Quick Q&A response"""
+    questions: list[str]  # 3つの質問
+    source: str  # "personalized" | "fallback"
+    generatedAt: str
+
+
+# concernArea ごとの質問マッピング（各3つ）
+CONCERN_QUESTIONS = {
+    "thinning": [
+        "細い髪を太くする方法はありますか？",
+        "髪のハリ・コシを取り戻すには？",
+        "栄養面で気をつけることは？"
+    ],
+    "hairline": [
+        "生え際の後退を防ぐには？",
+        "前髪のボリュームを保つコツは？",
+        "マッサージは効果的ですか？"
+    ],
+    "crown": [
+        "頭頂部の薄毛対策は？",
+        "つむじの目立ちを抑えるには？",
+        "血行改善の方法を教えて"
+    ],
+    "volume": [
+        "ボリュームアップの方法は？",
+        "ドライヤーの使い方のコツは？",
+        "スタイリングで気をつけることは？"
+    ],
+    "shedding": [
+        "抜け毛を減らすには？",
+        "シャンプーの選び方は？",
+        "ストレスと抜け毛の関係は？"
+    ],
+    "scalp": [
+        "頭皮ケアのポイントは？",
+        "頭皮の乾燥対策は？",
+        "マッサージの正しいやり方は？"
+    ],
+    "stress": [
+        "ストレス性の薄毛対策は？",
+        "リラックス方法を教えて",
+        "睡眠と髪の関係は？"
+    ],
+    "postpartum": [
+        "産後脱毛はいつ戻りますか？",
+        "授乳中でもできるケアは？",
+        "栄養面で意識することは？"
+    ],
+    "prevention": [
+        "今からできる予防法は？",
+        "生活習慣で気をつけることは？",
+        "頭皮環境を整えるには？"
+    ]
+}
+
+FALLBACK_QUESTIONS = [
+    "薄毛対策で一番大切なことは？",
+    "今日からできるケアを教えて",
+    "食事で気をつけることは？"
+]
+
+
+def _get_quick_qa_questions(concern_areas: list[str]) -> list[str]:
+    """concernAreasに基づいて3つの質問を選択"""
+    # 型チェック: 文字列のみをフィルタリング（異常値を除外）
+    if concern_areas:
+        concern_areas = [c for c in concern_areas if isinstance(c, str)]
+
+    if not concern_areas:
+        return random.sample(FALLBACK_QUESTIONS, 3)
+
+    # 上位3つのconcern（または全て、3未満の場合）
+    top_concerns = concern_areas[:3]
+
+    questions = []
+    for concern in top_concerns:
+        concern_qs = CONCERN_QUESTIONS.get(concern, FALLBACK_QUESTIONS)
+        # 各concernから1つランダムに選択
+        questions.append(random.choice(concern_qs))
+
+    # 3つに満たない場合はフォールバックで補完
+    while len(questions) < 3:
+        fallback = random.choice(FALLBACK_QUESTIONS)
+        if fallback not in questions:
+            questions.append(fallback)
+
+    return questions[:3]
+
+
+@router.get("/quick-qa", response_model=QuickQAResponse)
+@limiter.limit("30/minute")
+async def quick_qa(request: Request, uid: str = Depends(get_current_uid)) -> QuickQAResponse:
+    """
+    ユーザーのconcernAreasに基づいて3つの質問を推奨
+
+    - Profile の concernAreas を読み取り
+    - 事前定義マッピングから質問を選択
+    - Firestoreにキャッシュ（TTL: 翌日4:00AM JST）
+    """
+    db = get_firestore_client()
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+
+    # 1. キャッシュチェック
+    try:
+        qa_ref = db.collection("users").document(uid).collection("quickQA").document("latest")
+        qa_doc = qa_ref.get()
+
+        if qa_doc.exists:
+            cached_data = qa_doc.to_dict()
+            ttl = cached_data.get("ttl")
+            if ttl:
+                # timezone-awareの場合はastimezone、naiveの場合はreplaceを使用
+                ttl_utc = ttl.astimezone(ZoneInfo("UTC")) if ttl.tzinfo else ttl.replace(tzinfo=ZoneInfo("UTC"))
+                if ttl_utc > datetime.now(ZoneInfo("UTC")):
+                    logging.info(f"Using cached quick Q&A for {uid}")
+                    return QuickQAResponse(
+                        questions=cached_data.get("questions", FALLBACK_QUESTIONS[:3]),
+                        source=cached_data.get("source", "fallback"),
+                        generatedAt=cached_data.get("generatedAt", now.isoformat())
+                    )
+    except Exception as e:
+        logging.warning(f"Failed to fetch cached quick Q&A: {e}")
+
+    # 2. Profileから concernAreas 取得
+    concern_areas = []
+    try:
+        profile_ref = db.collection("users").document(uid).collection("profile").document("default")
+        profile_doc = profile_ref.get()
+        if profile_doc.exists:
+            concern_areas = profile_doc.to_dict().get("concernAreas", [])
+    except Exception as e:
+        logging.warning(f"Failed to fetch profile concernAreas: {e}")
+
+    # 3. 質問生成
+    questions = _get_quick_qa_questions(concern_areas)
+    source = "personalized" if concern_areas else "fallback"
+
+    # 4. キャッシュ保存（TTL: 翌日4:00AM JST）
+    try:
+        tomorrow = now.date() + timedelta(days=1)
+        ttl_time = datetime.combine(tomorrow, time(4, 0), tzinfo=ZoneInfo("Asia/Tokyo"))
+
+        qa_ref.set({
+            "questions": questions,
+            "source": source,
+            "generatedAt": now.isoformat(),
+            "ttl": ttl_time
+        })
+        logging.info(f"Cached quick Q&A for {uid}, TTL: {ttl_time.isoformat()}")
+    except Exception as e:
+        logging.error(f"Failed to cache quick Q&A: {e}", exc_info=True)
+
+    return QuickQAResponse(
+        questions=questions,
+        source=source,
+        generatedAt=now.isoformat()
+    )
 
 
 # ---------------------------------------------------------------------------
