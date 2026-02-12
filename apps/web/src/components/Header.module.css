@@ -6,7 +6,7 @@
   right: 0;
   height: calc(60px + env(safe-area-inset-top, 0px));
   background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(26, 61, 46, 0.08);
+  border-bottom: 1px solid #eee;
   z-index: 90;
   display: flex;
   align-items: center;
@@ -43,18 +43,18 @@
   border: none;
   cursor: pointer;
   border-radius: 10px;
-  color: #1a3d2e;
+  color: #313131;
   transition: background 0.2s ease;
 }
 
 @media (hover: hover) {
   .menuButton:hover {
-    background: rgba(26, 61, 46, 0.08);
+    background: rgba(229, 23, 23, 0.08);
   }
 }
 
 .menuButton:active {
-  background: rgba(26, 61, 46, 0.12);
+  background: rgba(229, 23, 23, 0.12);
   transform: scale(0.95);
 }
 
@@ -63,7 +63,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   flex: 1;
   text-align: center;
 }

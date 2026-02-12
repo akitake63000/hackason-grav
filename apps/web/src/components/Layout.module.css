@@ -2,7 +2,7 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #f8f6f2;
+  background: #ffffff;
 }
 
 /* Loading State */
@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f6f2;
-  color: #7f786d;
+  background: #ffffff;
+  color: #888888;
   font-size: var(--font-sm);
   font-family: 'DM Sans', 'Noto Sans JP', sans-serif;
 }
@@ -21,7 +21,7 @@
 .sidebar {
   width: 280px;
   background: rgba(255, 255, 255, 0.95);
-  border-right: 1px solid rgba(26, 61, 46, 0.08);
+  border-right: 1px solid #eee;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -52,7 +52,7 @@
 /* Logo Section */
 .logo {
   padding: clamp(16px, 4vw, 24px);
-  border-bottom: 1px solid rgba(26, 61, 46, 0.06);
+  border-bottom: 1px solid #eee;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -64,7 +64,7 @@
   height: 40px;
   min-width: 40px;
   min-height: 40px;
-  background: linear-gradient(135deg, #1a3d2e 0%, #347a5c 100%);
+  background: linear-gradient(135deg, #E51717 0%, #c11414 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -76,7 +76,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: clamp(15px, 2.8vw, 17px);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -102,7 +102,7 @@
   border: none;
   width: 100%;
   text-align: left;
-  color: #635d54;
+  color: #888888;
   font-size: var(--font-sm);
   font-weight: 500;
   /* Touch target size */
@@ -111,7 +111,7 @@
 
 @media (hover: hover) {
   .navItem:hover {
-    background: rgba(26, 61, 46, 0.05);
+    background: rgba(229, 23, 23, 0.05);
   }
 }
 
@@ -120,14 +120,14 @@
 }
 
 .navItemActive {
-  background: rgba(65, 152, 115, 0.1);
-  color: #1a3d2e;
+  background: rgba(229, 23, 23, 0.1);
+  color: #E51717;
   font-weight: 600;
 }
 
 @media (hover: hover) {
   .navItemActive:hover {
-    background: rgba(65, 152, 115, 0.15);
+    background: rgba(229, 23, 23, 0.15);
   }
 }
 
@@ -141,7 +141,7 @@
   display: block;
   padding: 8px 12px;
   font-size: var(--font-xs);
-  color: #7f786d;
+  color: #888888;
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.2s ease;
@@ -156,7 +156,7 @@
 
 @media (hover: hover) {
   .subNavItem:hover {
-    background: rgba(65, 152, 115, 0.08);
+    background: rgba(229, 23, 23, 0.08);
   }
 }
 
@@ -165,8 +165,8 @@
 }
 
 .subNavItemActive {
-  color: #1a3d2e;
-  background: rgba(65, 152, 115, 0.08);
+  color: #E51717;
+  background: rgba(229, 23, 23, 0.08);
   font-weight: 500;
 }
 
@@ -211,7 +211,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #419873 0%, #347a5c 100%);
+  background: linear-gradient(90deg, #E51717 0%, #c11414 100%);
   z-index: 9999;
   transform-origin: left;
 }
@@ -225,7 +225,7 @@
   height: 50%;
   background: radial-gradient(
     ellipse at center,
-    rgba(65, 152, 115, 0.08) 0%,
+    rgba(229, 23, 23, 0.05) 0%,
     transparent 70%
   );
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
@@ -241,7 +241,7 @@
   height: 40%;
   background: radial-gradient(
     ellipse at center,
-    rgba(201, 169, 98, 0.06) 0%,
+    rgba(254, 254, 45, 0.05) 0%,
     transparent 60%
   );
   border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;

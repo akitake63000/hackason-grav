@@ -1,15 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@100..900&family=Manrope:wght@200..800&display=swap");
 
 :root {
-  --bg: #f6f1e7;
-  --bg-alt: #efe5d3;
+  /* FLUX-inspired color palette */
+  --bg: #ffffff;
+  --bg-alt: #f5f5f5;
   --card: #ffffff;
-  --ink: #1d1b16;
-  --muted: #665b50;
-  --accent: #2f4a3a;
-  --accent-strong: #1f3528;
-  --accent-soft: #f2e7d4;
-  --border: #e1d4bf;
+  --ink: #313131;
+  --muted: #888888;
+  --accent: #E51717;
+  --accent-strong: #c11414;
+  --accent-soft: #ffe5e5;
+  --accent-secondary: #FEFE2D;
+  --border: #eee;
   --font-body: "Manrope", "Noto Sans JP", sans-serif;
   --font-display: "Fraunces", "Cormorant Garamond", serif;
 
