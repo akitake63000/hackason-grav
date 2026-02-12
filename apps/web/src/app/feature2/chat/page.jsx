@@ -607,11 +607,12 @@ function Chat() {
 
     const now = new Date()
     const time = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+    const userMessageText = inputValue
 
     const newUserMessage = {
       id: Date.now(),
       type: 'user',
-      text: inputValue,
+      text: userMessageText,
       time,
     }
 
@@ -671,7 +672,7 @@ function Chat() {
               },
               body: JSON.stringify({
                 threadId,
-                message: inputValue,
+                message: userMessageText,
                 mode: 'balanced',
                 style: chatStyle,
                 detail: chatDetail,
@@ -683,7 +684,7 @@ function Chat() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               threadId,
-              message: inputValue,
+              message: userMessageText,
               mode: 'balanced',
               style: chatStyle,
               detail: chatDetail,
@@ -772,6 +773,7 @@ function Chat() {
     // ユーザーが編集していないか、かつ処理中でない場合のみ自動送信
     if (
       shouldAutoSubmit &&
+      !loadingHistory &&
       inputValue.trim() &&
       inputValue === prefillQuestionRef.current && // ユーザーが編集していないことを確認
       !isLoading &&
@@ -785,7 +787,7 @@ function Chat() {
         handleSendRef.current()
       }
     }
-  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId])
+  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId, loadingHistory])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
