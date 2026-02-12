@@ -52,18 +52,25 @@ const features = [
 function Home() {
   const router = useRouter()
   const { user } = useAuth()
-  const [userName, setUserName] = useState('あなた')
-  const [streakDays, setStreakDays] = useState(0)
-  const [totalDays, setTotalDays] = useState(0)
-  const [missions, setMissions] = useState([])
-  const [missionsLoading, setMissionsLoading] = useState(true)
-  const [motivationMessage, setMotivationMessage] = useState('今日も髪と向き合う一日を始めましょう')
-  const [motivationLoading, setMotivationLoading] = useState(true)
-  const [quickAction, setQuickAction] = useState(null)
-  const [quickActionLoading, setQuickActionLoading] = useState(true)
+
+  // Profile state (user info)
+  const [profile, setProfile] = useState({
+    userName: 'あなた',
+    streakDays: 0,
+    totalDays: 0,
+  })
+
+  // Home data state (all dynamic content)
+  const [homeData, setHomeData] = useState({
+    missions: [],
+    motivationMessage: '今日も髪と向き合う一日を始めましょう',
+    quickAction: null,
+    quickQA: null,
+    isLoading: true,
+    isFirstLoad: true,  // For animation optimization
+  })
+
   const [showGuide, setShowGuide] = useState(false)
-  const [quickQA, setQuickQA] = useState(null)
-  const [quickQALoading, setQuickQALoading] = useState(true)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
@@ -72,13 +79,13 @@ function Home() {
     return 'こんばんは'
   }, [])
   const streakMessage = useMemo(() => {
-    if (streakDays <= 0) return '今日から一緒に始めましょう'
-    if (streakDays < 3) return 'いいスタートです。少しずつ続けましょう'
-    if (streakDays < 7) return 'いいペースです。無理なく続けましょう'
-    if (streakDays < 14) return '素晴らしい！継続は力なりです'
-    if (streakDays < 30) return '継続できています。あと少しで習慣化！'
+    if (profile.streakDays <= 0) return '今日から一緒に始めましょう'
+    if (profile.streakDays < 3) return 'いいスタートです。少しずつ続けましょう'
+    if (profile.streakDays < 7) return 'いいペースです。無理なく続けましょう'
+    if (profile.streakDays < 14) return '素晴らしい！継続は力なりです'
+    if (profile.streakDays < 30) return '継続できています。あと少しで習慣化！'
     return '習慣化達成！この調子で続けましょう'
-  }, [streakDays])
+  }, [profile.streakDays])
 
   // 訪問記録を保存する関数
   const recordHomeVisit = async (uid) => {
@@ -132,8 +139,11 @@ function Home() {
       if (lastVisitDate === todayDate) {
         // 同日の再訪問 → キャッシュをそのまま使用（クエリ不要）
         console.log('Same day visit, using cached values')
-        setStreakDays(cachedStreakDays)
-        setTotalDays(cachedTotalDays)
+        setProfile(prev => ({
+          ...prev,
+          streakDays: cachedStreakDays,
+          totalDays: cachedTotalDays
+        }))
         return
       }
 
@@ -178,8 +188,11 @@ function Home() {
       })
 
       // 状態を更新（即座にUIに反映）
-      setStreakDays(newStreakDays)
-      setTotalDays(newTotalDays)
+      setProfile(prev => ({
+        ...prev,
+        streakDays: newStreakDays,
+        totalDays: newTotalDays
+      }))
 
     } catch (error) {
       console.error('Failed to update visit stats:', error)
@@ -189,27 +202,24 @@ function Home() {
   useEffect(() => {
     if (!user) return
     const fallbackName = user.displayName ?? 'あなた'
-    setUserName(`${fallbackName}さん`)
+    setProfile(prev => ({ ...prev, userName: `${fallbackName}さん` }))
 
     // 訪問記録（非同期で実行）
     recordHomeVisit(user.uid)
 
     // UserProfileから統計を取得
     getUserProfile(user.uid)
-      .then((profile) => {
-        if (!profile) return
-        if (profile.displayName) {
-          setUserName(`${profile.displayName}さん`)
-        }
-        if (typeof profile.homeStreakDays === 'number') {
-          setStreakDays(profile.homeStreakDays)
-        }
-        if (typeof profile.homeTotalDays === 'number') {
-          setTotalDays(profile.homeTotalDays)
-        }
+      .then((profileData) => {
+        if (!profileData) return
+        setProfile(prev => ({
+          ...prev,
+          userName: profileData.displayName ? `${profileData.displayName}さん` : prev.userName,
+          streakDays: typeof profileData.homeStreakDays === 'number' ? profileData.homeStreakDays : prev.streakDays,
+          totalDays: typeof profileData.homeTotalDays === 'number' ? profileData.homeTotalDays : prev.totalDays
+        }))
       })
       .catch(() => {
-        setUserName(fallbackName)
+        setProfile(prev => ({ ...prev, userName: fallbackName }))
       })
   }, [user])
 
@@ -246,105 +256,50 @@ function Home() {
     ]
   }
 
+  // Consolidated data fetching - single useEffect for all home data
   useEffect(() => {
     if (!user) return
 
-    setMissionsLoading(true)
-    apiFetch('/api/v1/lifestyle/mission')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('failed to load missions')
-        return res.json()
-      })
-      .then((data) => {
-        if (data?.missions && data.missions.length > 0) {
-          setMissions(data.missions)
-        } else {
-          setMissions(getFallbackMissions())
-        }
-      })
-      .catch((error) => {
-        console.error('Mission fetch error:', error)
-        setMissions(getFallbackMissions())
-      })
-      .finally(() => {
-        setMissionsLoading(false)
-      })
-  }, [user])
+    const fetchAllData = async () => {
+      // Fetch all APIs in parallel
+      const [missionsResult, motivationResult, quickActionResult, quickQAResult] =
+        await Promise.allSettled([
+          apiFetch('/api/v1/lifestyle/mission').then(r => r.ok ? r.json() : null),
+          apiFetch('/api/v1/mental-shield/motivation').then(r => r.ok ? r.json() : null),
+          apiFetch('/api/v1/lifestyle/quick-action').then(r => r.ok ? r.json() : null),
+          apiFetch('/api/v1/lifestyle/quick-qa').then(r => r.ok ? r.json() : null),
+        ])
 
-  // モチベーションメッセージ取得
-  useEffect(() => {
-    if (!user) return
+      // Process results with fallbacks
+      const missions = missionsResult.status === 'fulfilled' && missionsResult.value?.missions?.length > 0
+        ? missionsResult.value.missions
+        : getFallbackMissions()
 
-    setMotivationLoading(true)
-    apiFetch('/api/v1/mental-shield/motivation')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch motivation')
-        return res.json()
+      const motivationMessage = motivationResult.status === 'fulfilled' && motivationResult.value?.message
+        ? motivationResult.value.message
+        : streakMessage
+
+      const quickAction = quickActionResult.status === 'fulfilled' && quickActionResult.value?.action
+        ? quickActionResult.value
+        : null
+
+      const quickQA = quickQAResult.status === 'fulfilled' && quickQAResult.value?.questions
+        ? quickQAResult.value
+        : null
+
+      // Single state update - triggers only ONE re-render
+      setHomeData({
+        missions,
+        motivationMessage,
+        quickAction,
+        quickQA,
+        isLoading: false,
+        isFirstLoad: false,
       })
-      .then((data) => {
-        if (data?.message) {
-          setMotivationMessage(data.message)
-        }
-      })
-      .catch((error) => {
-        console.error('Motivation fetch error:', error)
-        // フォールバック: 既存のstreakMessageロジックを使用
-        setMotivationMessage(streakMessage)
-      })
-      .finally(() => {
-        setMotivationLoading(false)
-      })
+    }
+
+    fetchAllData()
   }, [user, streakMessage])
-
-  // クイックアクション取得
-  useEffect(() => {
-    if (!user) return
-
-    setQuickActionLoading(true)
-    apiFetch('/api/v1/lifestyle/quick-action')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch quick action')
-        return res.json()
-      })
-      .then((data) => {
-        if (data?.action) {
-          setQuickAction(data)
-        }
-      })
-      .catch((error) => {
-        console.error('Quick action fetch error:', error)
-        // エラー時はセクション非表示
-        setQuickAction(null)
-      })
-      .finally(() => {
-        setQuickActionLoading(false)
-      })
-  }, [user])
-
-  // クイックQ&A取得
-  useEffect(() => {
-    if (!user) return
-
-    setQuickQALoading(true)
-    apiFetch('/api/v1/lifestyle/quick-qa')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch quick Q&A')
-        return res.json()
-      })
-      .then((data) => {
-        if (data?.questions) {
-          setQuickQA(data)
-        }
-      })
-      .catch((error) => {
-        console.error('Quick Q&A fetch error:', error)
-        // エラー時はセクション非表示
-        setQuickQA(null)
-      })
-      .finally(() => {
-        setQuickQALoading(false)
-      })
-  }, [user])
 
   // Quick Q&A質問クリック時のハンドラー
   const handleQuestionClick = (question) => {
@@ -370,7 +325,7 @@ function Home() {
             <h1 className={styles.greetingText}>
               {greeting}、
               <br />
-              <span className={styles.highlight}>{userName}</span>
+              <span className={styles.highlight}>{profile.userName}</span>
             </h1>
             <p className={styles.greetingSubtext}>
               今日も髪と向き合う一日を始めましょう
@@ -389,13 +344,13 @@ function Home() {
               <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
             </div>
             <p className={styles.statusSubtext}>
-              {motivationLoading ? '...' : motivationMessage}
+              {homeData.isLoading ? '...' : homeData.motivationMessage}
             </p>
             <div className={styles.statusContent}>
-              <span className={styles.statusValue}>{streakDays}</span>
+              <span className={styles.statusValue}>{profile.streakDays}</span>
               <span className={styles.statusUnit}>日連続</span>
               <span className={styles.statusSeparator}>・</span>
-              <span className={styles.statusTotal}>通算{totalDays}日利用</span>
+              <span className={styles.statusTotal}>通算{profile.totalDays}日利用</span>
             </div>
           </motion.div>
         </div>
@@ -409,11 +364,11 @@ function Home() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h4 className={styles.tipsTitle}>💪 今日のミッション</h4>
-            {missionsLoading && <Loader2 size={16} className="animate-spin" color="#419873" />}
+            {homeData.isLoading && <Loader2 size={16} className="animate-spin" color="#419873" />}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {missions.map((mission, index) => (
+            {homeData.missions.map((mission, index) => (
               <motion.div
                 key={mission.id}
                 className={styles.missionCard}
@@ -437,7 +392,7 @@ function Home() {
         </motion.div>
 
         {/* Quick Action Section */}
-        {!quickActionLoading && quickAction && (
+        {!homeData.isLoading && homeData.quickAction && (
           <motion.div
             className={styles.statusCard}
             initial={{ opacity: 0, y: 20 }}
@@ -447,15 +402,15 @@ function Home() {
             <div style={{ marginBottom: '12px' }}>
               <h4 className={styles.tipsTitle}>⚡ クイックアクション提案</h4>
               <p style={{ fontSize: 'var(--font-xs)', color: '#7f786d', marginTop: '4px' }}>
-                {quickAction.time_label}にオススメの5分アクション
+                {homeData.quickAction.time_label}にオススメの5分アクション
               </p>
             </div>
 
             <div className={styles.quickActionCard}>
               <div className={styles.quickActionIcon}>⚡</div>
               <div className={styles.quickActionContent}>
-                <div className={styles.quickActionTitle}>{quickAction.action}</div>
-                <div className={styles.quickActionDuration}>所要時間: {quickAction.duration_minutes}分</div>
+                <div className={styles.quickActionTitle}>{homeData.quickAction.action}</div>
+                <div className={styles.quickActionDuration}>所要時間: {homeData.quickAction.duration_minutes}分</div>
               </div>
               <button
                 className={styles.quickActionButton}
@@ -473,7 +428,7 @@ function Home() {
                 transition={{ duration: 0.3 }}
               >
                 <div style={{ whiteSpace: 'pre-line', fontSize: 'var(--font-sm)', color: '#1a3d2e', lineHeight: 1.6 }}>
-                  {quickAction.guide}
+                  {homeData.quickAction.guide}
                 </div>
               </motion.div>
             )}
@@ -481,7 +436,7 @@ function Home() {
         )}
 
         {/* Quick Q&A Section */}
-        {!quickQALoading && quickQA && (
+        {!homeData.isLoading && homeData.quickQA && (
           <motion.div
             className={styles.statusCard}
             initial={{ opacity: 0, y: 20 }}
@@ -496,7 +451,7 @@ function Home() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {quickQA.questions.map((question, idx) => (
+              {homeData.quickQA.questions.map((question, idx) => (
                 <motion.button
                   key={idx}
                   type="button"
