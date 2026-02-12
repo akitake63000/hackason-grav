@@ -22,10 +22,10 @@ const initialMessages = [
 ]
 
 const colors = {
-  deepForest: '#1a3d2e',
-  sage: '#7c9a7c',
+  deepForest: '#313131',
+  sage: '#60a5fa',
   cream: '#f8f6f2',
-  gold: '#c9a962',
+  gold: '#38bdf8',
 }
 
 // 3人格のエージェント設定
@@ -933,7 +933,7 @@ function Chat() {
                   {message.type === 'ai' && (
                     <div
                       className={styles.avatar}
-                      style={{ background: agent?.color || '#7c9a7c' }}
+                      style={{ background: agent?.color || '#60a5fa' }}
                     >
                       <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
@@ -971,7 +971,7 @@ function Chat() {
                   <div className={styles.messageRow}>
                     <div
                       className={styles.avatar}
-                      style={{ background: agent?.color || '#7c9a7c' }}
+                      style={{ background: agent?.color || '#60a5fa' }}
                     >
                       <span role="img" aria-label="AI">{agent?.emoji || '🌿'}</span>
                     </div>
@@ -1012,7 +1012,7 @@ function Chat() {
               >
                 <div
                   className={styles.avatar}
-                  style={{ background: agentConfig[revealingAgent]?.color || '#7c9a7c' }}
+                  style={{ background: agentConfig[revealingAgent]?.color || '#60a5fa' }}
                 >
                   <motion.span
                     animate={{ scale: [1, 1.2, 1] }}

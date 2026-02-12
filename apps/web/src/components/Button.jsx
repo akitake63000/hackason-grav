@@ -18,24 +18,24 @@ const baseStyles = {
 
 const variants = {
   primary: {
-    background: 'linear-gradient(135deg, #1a3d2e 0%, #275c45 100%)',
+    background: 'linear-gradient(135deg, #313131 0%, #275c45 100%)',
     color: '#ffffff',
-    boxShadow: '0 4px 14px rgba(26, 61, 46, 0.25), 0 2px 6px rgba(26, 61, 46, 0.15)',
+    boxShadow: '0 4px 14px rgba(6, 147, 227, 0.25), 0 2px 6px rgba(6, 147, 227, 0.15)',
   },
   secondary: {
     background: 'rgba(255, 255, 255, 0.9)',
-    color: '#1a3d2e',
-    border: '1.5px solid rgba(26, 61, 46, 0.15)',
-    boxShadow: '0 2px 8px rgba(26, 61, 46, 0.06)',
+    color: '#313131',
+    border: '1.5px solid rgba(6, 147, 227, 0.15)',
+    boxShadow: '0 2px 8px rgba(6, 147, 227, 0.06)',
   },
   ghost: {
     background: 'transparent',
-    color: '#1a3d2e',
+    color: '#313131',
   },
   accent: {
-    background: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
-    color: '#1a3d2e',
-    boxShadow: '0 4px 14px rgba(201, 169, 98, 0.3)',
+    background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)',
+    color: '#313131',
+    boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)',
   },
   danger: {
     background: 'linear-gradient(135deg, #b85450 0%, #d47370 100%)',

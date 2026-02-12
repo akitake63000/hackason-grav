@@ -137,7 +137,7 @@ function FoodRecommendContent() {
                     <div className={styles.loadingContainer}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🥗</div>
-                            <h2 style={{ color: '#1a3d2e', marginBottom: '8px', fontWeight: 600 }}>分析中...</h2>
+                            <h2 style={{ color: '#313131', marginBottom: '8px', fontWeight: 600 }}>分析中...</h2>
                             <p style={{ color: '#7f786d' }}>あなたのタイプに合わせた最適な食材を選定しています</p>
                         </div>
                     </div>
@@ -254,7 +254,7 @@ function FoodRecommendContent() {
                                                 <motion.button
                                                     className={styles.recipeBtn}
                                                     whileHover={{
-                                                        background: 'rgba(65, 152, 115, 0.08)',
+                                                        background: 'rgba(6, 147, 227, 0.08)',
                                                     }}
                                                     whileTap={{ scale: 0.97 }}
                                                     onClick={() => handleRecipeClick(food)}
@@ -309,7 +309,7 @@ function FoodRecommendContent() {
                                                 }}
                                                 style={{ display: 'inline-block' }}
                                             >
-                                                <Loader2 size={28} color="#1a3d2e" />
+                                                <Loader2 size={28} color="#313131" />
                                             </motion.div>
                                             <p
                                                 style={{

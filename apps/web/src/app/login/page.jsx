@@ -28,7 +28,7 @@ const styles = {
     right: '-20%',
     width: '70%',
     height: '45%',
-    background: 'radial-gradient(ellipse at center, rgba(65, 152, 115, 0.12) 0%, transparent 70%)',
+    background: 'radial-gradient(ellipse at center, rgba(6, 147, 227, 0.12) 0%, transparent 70%)',
     borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%',
     pointerEvents: 'none',
   },
@@ -38,7 +38,7 @@ const styles = {
     left: '-25%',
     width: '60%',
     height: '40%',
-    background: 'radial-gradient(ellipse at center, rgba(201, 169, 98, 0.1) 0%, transparent 60%)',
+    background: 'radial-gradient(ellipse at center, rgba(56, 189, 248, 0.1) 0%, transparent 60%)',
     borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%',
     pointerEvents: 'none',
   },
@@ -67,14 +67,14 @@ const styles = {
   logoWrapper: {
     width: '100px',
     height: '100px',
-    background: 'linear-gradient(135deg, #1a3d2e 0%, #347a5c 100%)',
+    background: 'linear-gradient(135deg, #313131 0%, #0570b8 100%)',
     borderRadius: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: `
-      0 20px 40px rgba(26, 61, 46, 0.2),
-      0 8px 16px rgba(26, 61, 46, 0.15),
+      0 20px 40px rgba(6, 147, 227, 0.2),
+      0 8px 16px rgba(6, 147, 227, 0.15),
       inset 0 1px 0 rgba(255, 255, 255, 0.1)
     `,
     position: 'relative',
@@ -93,7 +93,7 @@ const styles = {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontSize: '28px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     textAlign: 'center',
     marginBottom: '12px',
     letterSpacing: '-0.01em',
@@ -114,11 +114,11 @@ const styles = {
     gap: '12px',
     padding: '16px 24px',
     background: '#ffffff',
-    border: '1.5px solid rgba(26, 61, 46, 0.12)',
+    border: '1.5px solid rgba(6, 147, 227, 0.12)',
     borderRadius: '16px',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    boxShadow: '0 4px 12px rgba(26, 61, 46, 0.06)',
+    boxShadow: '0 4px 12px rgba(6, 147, 227, 0.06)',
   },
   googleButtonDisabled: {
     cursor: 'not-allowed',
@@ -132,7 +132,7 @@ const styles = {
     fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
     fontSize: '15px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
   },
   errorText: {
     marginTop: '12px',
@@ -149,7 +149,7 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: '1px',
-    background: 'linear-gradient(90deg, transparent 0%, rgba(26, 61, 46, 0.1) 50%, transparent 100%)',
+    background: 'linear-gradient(90deg, transparent 0%, rgba(6, 147, 227, 0.1) 50%, transparent 100%)',
   },
   dividerText: {
     fontSize: '12px',
@@ -167,7 +167,7 @@ const styles = {
     lineHeight: 1.6,
   },
   footerLink: {
-    color: '#419873',
+    color: '#0693e3',
     textDecoration: 'none',
   },
   features: {
@@ -360,7 +360,7 @@ function Login() {
           transition={{ delay: 0.4, duration: 0.5 }}
           whileHover={{
             y: -2,
-            boxShadow: '0 8px 24px rgba(26, 61, 46, 0.12)',
+            boxShadow: '0 8px 24px rgba(6, 147, 227, 0.12)',
           }}
           whileTap={{ scale: 0.98 }}
         >
@@ -387,7 +387,7 @@ function Login() {
             <motion.div
               style={{
                 ...styles.featureIcon,
-                background: 'rgba(65, 152, 115, 0.1)',
+                background: 'rgba(6, 147, 227, 0.1)',
               }}
               whileHover={{ scale: 1.1 }}
             >
@@ -399,7 +399,7 @@ function Login() {
             <motion.div
               style={{
                 ...styles.featureIcon,
-                background: 'rgba(201, 169, 98, 0.1)',
+                background: 'rgba(56, 189, 248, 0.1)',
               }}
               whileHover={{ scale: 1.1 }}
             >

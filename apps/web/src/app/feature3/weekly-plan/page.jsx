@@ -343,7 +343,7 @@ export default function WeeklyPlan() {
         return (
             <Layout>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-                    <Loader2 className="animate-spin" size={40} color="#419873" />
+                    <Loader2 className="animate-spin" size={40} color="#0693e3" />
                 </div>
             </Layout>
         )
@@ -358,7 +358,7 @@ export default function WeeklyPlan() {
                         <Card className={styles.warningCard}>
                             <div style={{ textAlign: 'center', padding: '24px' }}>
                                 <AlertCircle size={48} color="#f59e0b" style={{ marginBottom: '16px' }} />
-                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                                     お久しぶりです！
                                 </h2>
                                 <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
@@ -400,7 +400,7 @@ export default function WeeklyPlan() {
                         <div className={styles.content}>
                             <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
                                 <AlertCircle size={48} color="#f59e0b" style={{ marginBottom: '16px' }} />
-                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                                     診断データがありません
                                 </h2>
                                 <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
@@ -422,8 +422,8 @@ export default function WeeklyPlan() {
                 <div className={styles.container}>
                     <div className={styles.content}>
                         <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
-                            <Sparkles size={48} color="#419873" style={{ marginBottom: '16px' }} />
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                            <Sparkles size={48} color="#0693e3" style={{ marginBottom: '16px' }} />
+                            <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                                 あなただけのAI週間プラン
                             </h2>
                             <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
@@ -450,7 +450,7 @@ export default function WeeklyPlan() {
 
                         <Card className={styles.weekEndCard}>
                             <Trophy size={64} color="#f59e0b" style={{ marginBottom: '16px' }} />
-                            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                                 お疲れさまでした！
                             </h2>
                             <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
@@ -491,10 +491,10 @@ export default function WeeklyPlan() {
                         style={{ marginBottom: '24px' }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'flex-end' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1a3d2e' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#313131' }}>
                                 週間スコア
                             </span>
-                            <span style={{ fontSize: '24px', fontWeight: '800', color: '#419873' }}>
+                            <span style={{ fontSize: '24px', fontWeight: '800', color: '#0693e3' }}>
                                 {plan.weeklyProgress || 0}<span style={{ fontSize: '14px', fontWeight: 'normal' }}>/105pts</span>
                             </span>
                         </div>
@@ -503,7 +503,7 @@ export default function WeeklyPlan() {
                                 initial={{ width: 0 }}
                                 animate={{ width: `${((plan.weeklyProgress || 0) / 105) * 100}%` }}
                                 transition={{ duration: 1.0, ease: "easeOut" }}
-                                style={{ height: '100%', background: 'linear-gradient(90deg, #419873 0%, #34d399 100%)', borderRadius: '6px' }}
+                                style={{ height: '100%', background: 'linear-gradient(90deg, #0693e3 0%, #34d399 100%)', borderRadius: '6px' }}
                             />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
@@ -579,14 +579,14 @@ export default function WeeklyPlan() {
                         <div className={styles.createButtonContainer}>
                             {generating ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                                    <Loader2 className="animate-spin" size={32} color="#419873" />
-                                    <p style={{ color: '#419873', fontWeight: '600' }}>AIが今日のミッションを生成中...</p>
+                                    <Loader2 className="animate-spin" size={32} color="#0693e3" />
+                                    <p style={{ color: '#0693e3', fontWeight: '600' }}>AIが今日のミッションを生成中...</p>
                                     <p style={{ fontSize: '12px', color: '#7f786d' }}>あなたの体調に合わせて最適化しています</p>
                                 </div>
                             ) : (
                                 <>
-                                    <Sparkles size={48} color="#419873" style={{ marginBottom: '16px' }} />
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                                    <Sparkles size={48} color="#0693e3" style={{ marginBottom: '16px' }} />
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                                         今日のミッションを作成
                                     </h3>
                                     <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
@@ -604,12 +604,12 @@ export default function WeeklyPlan() {
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    style={{ textAlign: 'center', padding: '32px 20px', background: 'rgba(65, 152, 115, 0.05)', borderRadius: '24px', border: '1px solid rgba(65, 152, 115, 0.2)' }}
+                                    style={{ textAlign: 'center', padding: '32px 20px', background: 'rgba(6, 147, 227, 0.05)', borderRadius: '24px', border: '1px solid rgba(6, 147, 227, 0.2)' }}
                                 >
-                                    <div style={{ background: '#419873', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                    <div style={{ background: '#0693e3', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                                         <CheckCircle size={32} color="#fff" />
                                     </div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>本日のミッション完了！</h3>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>本日のミッション完了！</h3>
                                     <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '20px' }}>
                                         お疲れさまでした。スコアが反映されました。<br />
                                         明日もこの調子で頑張りましょう！
@@ -669,7 +669,7 @@ export default function WeeklyPlan() {
                                                                         {action.description}
 
                                                                         {!completed && action.targetAxis && (
-                                                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', fontSize: '12px', color: '#419873', fontWeight: '600' }}>
+                                                                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', fontSize: '12px', color: '#0693e3', fontWeight: '600' }}>
                                                                                 <TrendingUp size={14} style={{ marginRight: '4px' }} />
                                                                                 達成で{action.targetAxis === 'hormone' ? 'ホルモン' :
                                                                                     action.targetAxis === 'circadian' ? '体内時計' :

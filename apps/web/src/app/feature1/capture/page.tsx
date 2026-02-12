@@ -158,7 +158,7 @@ function CaptureContent() {
                             transition={{ duration: 0.3 }}
                             style={{ position: 'absolute', top: 20, left: 0, right: 0, margin: 'auto', zIndex: 50, maxWidth: '90%' }}
                         >
-                            <Info size={18} color="#419873" />
+                            <Info size={18} color="#0693e3" />
                             <span>{infoMessage}</span>
                         </motion.div>
                     )}

@@ -30,7 +30,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   text-align: center;
 }
 
@@ -59,7 +59,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-lg);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-md);
 }
 
@@ -72,7 +72,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-md);
 }
 
@@ -88,8 +88,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm);
-  background: rgba(201, 169, 98, 0.08);
-  border: 1px solid rgba(201, 169, 98, 0.2);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 12px;
   padding: var(--spacing-md);
 }
@@ -155,7 +155,7 @@
 .errorTitle {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -180,7 +180,7 @@
   width: clamp(64px, 18vw, 80px);
   height: clamp(64px, 18vw, 80px);
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.1) 0%, rgba(6, 147, 227, 0.05) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,7 +190,7 @@
 .emptyStateTitle {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
 }
 
@@ -225,7 +225,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(65, 152, 115, 0.1);
+  border: 1px solid rgba(6, 147, 227, 0.1);
 }
 
 @media (max-width: 767px) {
@@ -244,7 +244,7 @@
 .gridValue {
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   text-align: center;
 }
 
@@ -281,8 +281,8 @@
 
 /* Delta Badge Variants */
 .deltaBadgePositive {
-  background: rgba(65, 152, 115, 0.1);
-  color: #419873;
+  background: rgba(6, 147, 227, 0.1);
+  color: #0693e3;
 }
 
 .deltaBadgeNegative {

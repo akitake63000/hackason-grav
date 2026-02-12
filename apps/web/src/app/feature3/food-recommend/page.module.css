@@ -23,7 +23,7 @@
     font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
     font-size: clamp(24px, 4vw, 32px);
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     text-align: center;
     margin-bottom: 8px;
 }
@@ -40,7 +40,7 @@
     font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
     font-size: 18px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -50,7 +50,7 @@
 /* Pattern Card */
 .patternCard {
     background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(26, 61, 46, 0.1);
+    border: 1px solid rgba(6, 147, 227, 0.1);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
@@ -59,7 +59,7 @@
 .patternLabel {
     font-size: 18px;
     font-weight: 700;
-    color: #1a3d2e;
+    color: #313131;
     margin-bottom: 8px;
     display: block;
 }
@@ -85,7 +85,7 @@
     background: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
     padding: 12px;
-    border: 1px solid rgba(65, 152, 115, 0.1);
+    border: 1px solid rgba(6, 147, 227, 0.1);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -94,14 +94,14 @@
 .infoLabel {
     font-size: 12px;
     font-weight: 600;
-    color: #c9a962;
+    color: #38bdf8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .infoText {
     font-size: 14px;
-    color: #1a3d2e;
+    color: #313131;
     line-height: 1.6;
 }
 
@@ -122,7 +122,7 @@
 .nutrientName {
     font-size: 18px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     display: block;
 }
 
@@ -145,13 +145,13 @@
     padding: 14px;
     background: rgba(248, 246, 242, 0.95);
     border-radius: 12px;
-    border: 1px solid rgba(65, 152, 115, 0.1);
+    border: 1px solid rgba(6, 147, 227, 0.1);
     transition: all 0.2s ease;
 }
 
 .foodItem:hover {
     background: #ffffff;
-    border-color: rgba(65, 152, 115, 0.2);
+    border-color: rgba(6, 147, 227, 0.2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -175,7 +175,7 @@
 .foodName {
     font-size: 16px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     display: block;
 }
 
@@ -198,10 +198,10 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    background: rgba(65, 152, 115, 0.05);
-    border: 1px solid rgba(65, 152, 115, 0.2);
+    background: rgba(6, 147, 227, 0.05);
+    border: 1px solid rgba(6, 147, 227, 0.2);
     border-radius: 8px;
-    color: #419873;
+    color: #0693e3;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -250,7 +250,7 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #1a3d2e;
+    color: #313131;
 }
 
 .modalClose:hover {
@@ -261,7 +261,7 @@
 .modalTitle {
     font-size: 20px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     margin-bottom: 20px;
     padding-right: 32px;
 }
@@ -272,7 +272,7 @@
     border-radius: 16px;
     padding: 18px;
     margin-bottom: 16px;
-    border: 1px solid rgba(65, 152, 115, 0.15);
+    border: 1px solid rgba(6, 147, 227, 0.15);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -283,7 +283,7 @@
 .recipeName {
     font-size: 17px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     margin-bottom: 8px;
 }
 
@@ -304,22 +304,22 @@
 .ingredientTag {
     display: inline-block;
     padding: 4px 10px;
-    background: rgba(65, 152, 115, 0.1);
-    border: 1px solid rgba(65, 152, 115, 0.2);
+    background: rgba(6, 147, 227, 0.1);
+    border: 1px solid rgba(6, 147, 227, 0.2);
     border-radius: 12px;
     font-size: 12px;
-    color: #419873;
+    color: #0693e3;
     font-weight: 500;
 }
 
 .recipeBenefit {
     font-size: 13px;
     line-height: 1.5;
-    color: #7c9a7c;
+    color: #60a5fa;
     padding: 10px 12px;
     background: rgba(124, 154, 124, 0.08);
     border-radius: 10px;
-    border-left: 3px solid #7c9a7c;
+    border-left: 3px solid #60a5fa;
     margin: 0;
 }
 
@@ -330,9 +330,9 @@
     gap: 6px;
     padding: 8px 16px;
     background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(26, 61, 46, 0.15);
+    border: 1px solid rgba(6, 147, 227, 0.15);
     border-radius: 20px;
-    color: #1a3d2e;
+    color: #313131;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -342,7 +342,7 @@
 
 .backButton:hover {
     background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(26, 61, 46, 0.3);
+    border-color: rgba(6, 147, 227, 0.3);
     transform: translateX(-2px);
 }
 
@@ -384,7 +384,7 @@
     font-size: 12px;
     /* Matched to infoLabel */
     font-weight: 600;
-    color: #c9a962;
+    color: #38bdf8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 8px;
@@ -395,21 +395,21 @@
     font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
     font-size: 22px;
     font-weight: 600;
-    color: #1a3d2e;
+    color: #313131;
     margin-bottom: 8px;
 }
 
 .columnText {
     font-size: 14px;
     /* Matched to infoText */
-    color: #1a3d2e;
+    color: #313131;
     line-height: 1.6;
     white-space: pre-wrap;
 }
 
 .divider {
     height: 1px;
-    background: rgba(26, 61, 46, 0.1);
+    background: rgba(6, 147, 227, 0.1);
     /* Matched to border colors */
     margin: 16px 0;
 }

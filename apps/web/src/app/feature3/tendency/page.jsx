@@ -152,7 +152,7 @@ function Tendency() {
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
           >
-            <Loader2 size={48} color="#419873" />
+            <Loader2 size={48} color="#0693e3" />
           </motion.div>
           <h2 className={styles.introTitle} style={{ marginTop: '24px' }}>AIによるマトリクス分析中...</h2>
           <p className={styles.introText}>あなたの生活習慣を4つの育毛メカニズム軸で解析しています</p>
@@ -188,13 +188,13 @@ function Tendency() {
                   padding: '16px',
                   background: 'rgba(255, 255, 255, 0.6)',
                   borderRadius: '12px',
-                  border: '1px solid rgba(65, 152, 115, 0.1)',
+                  border: '1px solid rgba(6, 147, 227, 0.1)',
                   display: 'flex',
                   gap: '12px',
                   alignItems: 'flex-start'
                 }}>
                   <Sparkles size={20} color="#f59e0b" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <p style={{ fontSize: '14px', color: '#1a3d2e', lineHeight: 1.6, margin: 0, fontWeight: '500' }}>
+                  <p style={{ fontSize: '14px', color: '#313131', lineHeight: 1.6, margin: 0, fontWeight: '500' }}>
                     {resultData.summary}
                   </p>
                 </div>
@@ -324,7 +324,7 @@ function Tendency() {
                 <div
                   key={i}
                   className={`${styles.stepDot} ${i === currentStep ? styles.stepDotActive : ''}`}
-                  style={i < currentStep ? { background: '#419873', opacity: 0.5 } : undefined}
+                  style={i < currentStep ? { background: '#0693e3', opacity: 0.5 } : undefined}
                 />
               ))}
             </div>
@@ -348,7 +348,7 @@ function Tendency() {
                       >
                         {opt.label}
                         {answers[question.id] === opt.value ? (
-                          <CheckCircle2 size={18} color="#419873" />
+                          <CheckCircle2 size={18} color="#0693e3" />
                         ) : (
                           <ChevronRight size={18} color="#e0dcd0" />
                         )}

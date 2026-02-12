@@ -141,7 +141,7 @@ function LifestyleRecommendContent() {
     return (
       <Layout>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-          <Loader2 className="animate-spin" size={40} color="#419873" />
+          <Loader2 className="animate-spin" size={40} color="#0693e3" />
           <p style={{ marginTop: '16px', color: '#7f786d' }}>あなただけの生活改善案を抽出中...</p>
         </div>
       </Layout>
@@ -204,7 +204,7 @@ function LifestyleRecommendContent() {
                     <Sparkles size={20} color="#f59e0b" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1a3d2e', marginBottom: '4px' }}>AI分析サマリー</h3>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#313131', marginBottom: '4px' }}>AI分析サマリー</h3>
                     <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6, margin: 0 }}>
                       {summary}
                     </p>
@@ -235,8 +235,8 @@ function LifestyleRecommendContent() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Brain size={20} color="#419873" />
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#1a3d2e' }}>4軸のメカニズム解説</span>
+                  <Brain size={20} color="#0693e3" />
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#313131' }}>4軸のメカニズム解説</span>
                 </div>
                 {showMechanism ? <ChevronUp size={20} color="#9ca3af" /> : <ChevronDown size={20} color="#9ca3af" />}
               </div>
@@ -273,7 +273,7 @@ function LifestyleRecommendContent() {
                                 alignItems: 'center',
                                 gap: '10px',
                                 padding: '12px 16px',
-                                background: isExpanded ? 'rgba(65, 152, 115, 0.05)' : '#f9fafb',
+                                background: isExpanded ? 'rgba(6, 147, 227, 0.05)' : '#f9fafb',
                                 borderRadius: '12px',
                                 border: '1px solid #e5e7eb',
                                 cursor: 'pointer',
@@ -283,7 +283,7 @@ function LifestyleRecommendContent() {
                               <div style={{ background: config.bg, padding: '6px', borderRadius: '50%' }}>
                                 <Icon size={18} color={config.color} />
                               </div>
-                              <span style={{ fontWeight: '700', fontSize: '15px', color: '#1a3d2e' }}>{config.name}</span>
+                              <span style={{ fontWeight: '700', fontSize: '15px', color: '#313131' }}>{config.name}</span>
                               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '14px', color: config.color, fontWeight: '600' }}>{axisScore}点</span>
                                 {isExpanded ? <ChevronUp size={16} color="#9ca3af" /> : <ChevronDown size={16} color="#9ca3af" />}
@@ -321,7 +321,7 @@ function LifestyleRecommendContent() {
                                         >
                                           <span style={{ fontSize: '20px' }}>{action.emoji}</span>
                                           <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a3d2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#313131', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                               {action.name}
                                             </div>
                                           </div>
@@ -362,7 +362,7 @@ function LifestyleRecommendContent() {
             transition={{ delay: 0.5 }}
           >
             <Sparkles size={40} color="#f59e0b" style={{ marginBottom: '16px' }} />
-            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
               AI週間プランを作成する
             </h2>
             <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px', lineHeight: 1.6 }}>
@@ -406,17 +406,17 @@ function LifestyleRecommendContent() {
 
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>{selectedAction.emoji}</div>
-              <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                 {selectedAction.name}
               </h3>
-              <p style={{ fontSize: '14px', color: '#419873', fontWeight: '600' }}>
+              <p style={{ fontSize: '14px', color: '#0693e3', fontWeight: '600' }}>
                 {selectedAction.reason}
               </p>
             </div>
 
             {(selectedAction.explanation || selectedAction.why) && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                   なぜ効果的？
                 </h4>
                 <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6 }}>
@@ -427,7 +427,7 @@ function LifestyleRecommendContent() {
 
             {selectedAction.how && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#1a3d2e', marginBottom: '8px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
                   実践方法
                 </h4>
                 <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6 }}>
@@ -437,8 +437,8 @@ function LifestyleRecommendContent() {
             )}
 
             {selectedAction.tips && (
-              <div style={{ background: 'rgba(65, 152, 115, 0.05)', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#419873', marginBottom: '8px' }}>
+              <div style={{ background: 'rgba(6, 147, 227, 0.05)', padding: '16px', borderRadius: '12px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#0693e3', marginBottom: '8px' }}>
                   💡 ワンポイント
                 </h4>
                 <p style={{ fontSize: '14px', color: '#4a4a4a', lineHeight: 1.6 }}>
@@ -458,7 +458,7 @@ function LifestyleRecommendFallback() {
   return (
     <Layout>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-        <Loader2 className="animate-spin" size={40} color="#419873" />
+        <Loader2 className="animate-spin" size={40} color="#0693e3" />
       </div>
     </Layout>
   )

@@ -32,7 +32,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-2xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -50,7 +50,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-md);
   display: flex;
   align-items: center;
@@ -75,7 +75,7 @@
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
   padding: var(--spacing-md);
-  border: 1px solid rgba(65, 152, 115, 0.1);
+  border: 1px solid rgba(6, 147, 227, 0.1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -89,7 +89,7 @@
 .recommendationTitle {
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -137,7 +137,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -151,14 +151,14 @@
 
 /* Report Header */
 .reportHeader {
-  background: linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.08) 0%, rgba(6, 147, 227, 0.02) 100%);
   border-radius: 16px;
   padding: var(--spacing-lg);
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
-  border: 1px solid rgba(65, 152, 115, 0.15);
+  border: 1px solid rgba(6, 147, 227, 0.15);
 }
 
 .aiIcon {
@@ -166,7 +166,7 @@
   height: 56px;
   min-width: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  background: linear-gradient(135deg, #0693e3 0%, #0570b8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,7 +180,7 @@
 .reportTitle {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: 4px;
 }
 
@@ -215,7 +215,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(65, 152, 115, 0.1);
+  background: rgba(6, 147, 227, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -243,10 +243,10 @@
 
 /* Tip Card */
 .tipCard {
-  background: linear-gradient(135deg, rgba(201, 169, 98, 0.08) 0%, rgba(201, 169, 98, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.02) 100%);
   border-radius: 16px;
   padding: var(--spacing-lg);
-  border: 1px solid rgba(201, 169, 98, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   display: flex;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
@@ -263,7 +263,7 @@
 .tipTitle {
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 

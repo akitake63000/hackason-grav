@@ -12,10 +12,10 @@ import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import styles from './page.module.css'
 
 const colors = {
-  deepForest: '#1a3d2e',
-  sage: '#7c9a7c',
+  deepForest: '#313131',
+  sage: '#60a5fa',
   cream: '#f8f6f2',
-  gold: '#c9a962',
+  gold: '#38bdf8',
 }
 
 const styleOptions = [
