@@ -165,7 +165,6 @@ function Chat() {
   const [chatStyle, setChatStyle] = useState('balanced')
   const [chatDetail, setChatDetail] = useState('flash')
   const [pendingTaskId, setPendingTaskId] = useState(null)
-  const [showDebugPanel, setShowDebugPanel] = useState(false)
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
   const hasSetQuestionRef = useRef(false) // フラグ: 質問を設定済みか
@@ -603,11 +602,11 @@ function Chat() {
       const data = await response.json()
       const taskId = data.taskId
 
-      // タスクIDを保存（LocalStorage + state）
+      // タスクIDを保存（SessionStorage + state）
       setPendingTaskId(taskId)
-      localStorage.setItem('pending_chat_task', taskId)
-      localStorage.setItem('pending_chat_thread', threadId)
-      localStorage.setItem('pending_chat_task_created_at', new Date().toISOString())
+      sessionStorage.setItem('pending_chat_task', taskId)
+      sessionStorage.setItem('pending_chat_thread', threadId)
+      sessionStorage.setItem('pending_chat_task_created_at', new Date().toISOString())
 
       // Firestoreリスナー開始（Phase 2: リアルタイム更新）
       startListening(taskId, threadId)
@@ -1111,7 +1110,5 @@ function Chat() {
     </Layout>
   )
 }
-
-console.log('[Quick Q&A Debug] About to export Chat component')
 
 export default Chat
