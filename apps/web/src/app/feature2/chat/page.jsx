@@ -170,6 +170,7 @@ function Chat() {
   const hasSetQuestionRef = useRef(false) // フラグ: 質問を設定済みか
   const pollingIntervalIdRef = useRef(null) // ポーリングInterval ID（メモリリーク防止のためuseRefで管理）
   const prefillQuestionRef = useRef(null) // プレフィル質問（auto-submit用）
+  const handleSendRef = useRef(null) // handleSend の最新参照（auto-submit用）
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false) // Auto-submit flag for Quick Q&A
 
   useEffect(() => {
@@ -345,9 +346,12 @@ function Chat() {
     ) {
       setShouldAutoSubmit(false) // Reset flag to prevent re-triggering
       prefillQuestionRef.current = null // Reset after use
-      handleSend()
+      // handleSendRef経由で最新のhandleSendを呼び出し
+      if (handleSendRef.current) {
+        handleSendRef.current()
+      }
     }
-  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId, handleSend])
+  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId])
 
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
@@ -776,6 +780,11 @@ function Chat() {
       setDiscussionMessages([])
     }
   }, [inputValue, isLoading, isRevealing, pendingTaskId, user, threadId, chatStyle, chatDetail])
+
+  // handleSendの最新参照をrefに保存（auto-submit用）
+  useEffect(() => {
+    handleSendRef.current = handleSend
+  }, [handleSend])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
