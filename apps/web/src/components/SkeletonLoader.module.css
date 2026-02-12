@@ -1,0 +1,85 @@
+/* Base skeleton with shimmer animation */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(65, 152, 115, 0.08),
+    rgba(65, 152, 115, 0.12),
+    rgba(65, 152, 115, 0.08)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Greeting skeleton */
+.greetingSkeleton {
+  padding: 20px 0;
+}
+
+/* Status card skeleton */
+.statusCardSkeleton {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(65, 152, 115, 0.12);
+  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+}
+
+/* Missions skeleton */
+.missionsSkeleton {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(65, 152, 115, 0.12);
+  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+}
+
+.missionCardSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(65, 152, 115, 0.08);
+  margin-bottom: 8px;
+}
+
+.missionCardSkeleton:last-child {
+  margin-bottom: 0;
+}
+
+/* Section placeholder */
+.sectionPlaceholder {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(65, 152, 115, 0.12);
+  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+}
+
+/* Mobile responsive */
+@media (max-width: 767px) {
+  .greetingSkeleton {
+    padding: 16px 0;
+  }
+
+  .statusCardSkeleton,
+  .missionsSkeleton,
+  .sectionPlaceholder {
+    padding: 16px;
+  }
+
+  .missionCardSkeleton {
+    padding: 10px;
+  }
+}
