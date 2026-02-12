@@ -333,26 +333,6 @@ function Chat() {
     }
   }, [user]) // user が利用可能になったら実行（inputValueは除外して無限ループを防ぐ）
 
-  // Auto-submit when inputValue is set and shouldAutoSubmit flag is true
-  useEffect(() => {
-    // ユーザーが編集していないか、かつ処理中でない場合のみ自動送信
-    if (
-      shouldAutoSubmit &&
-      inputValue.trim() &&
-      inputValue === prefillQuestionRef.current && // ユーザーが編集していないことを確認
-      !isLoading &&
-      !isRevealing &&
-      !pendingTaskId // pendingTaskIdがないことを確認（重複送信防止）
-    ) {
-      setShouldAutoSubmit(false) // Reset flag to prevent re-triggering
-      prefillQuestionRef.current = null // Reset after use
-      // handleSendRef経由で最新のhandleSendを呼び出し
-      if (handleSendRef.current) {
-        handleSendRef.current()
-      }
-    }
-  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId])
-
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
     const loadSettings = async () => {
@@ -785,6 +765,27 @@ function Chat() {
   useEffect(() => {
     handleSendRef.current = handleSend
   }, [handleSend])
+
+  // Auto-submit when inputValue is set and shouldAutoSubmit flag is true
+  // handleSendRef を最新化した後に実行（古い inputValue 参照を回避）
+  useEffect(() => {
+    // ユーザーが編集していないか、かつ処理中でない場合のみ自動送信
+    if (
+      shouldAutoSubmit &&
+      inputValue.trim() &&
+      inputValue === prefillQuestionRef.current && // ユーザーが編集していないことを確認
+      !isLoading &&
+      !isRevealing &&
+      !pendingTaskId // pendingTaskIdがないことを確認（重複送信防止）
+    ) {
+      setShouldAutoSubmit(false) // Reset flag to prevent re-triggering
+      prefillQuestionRef.current = null // Reset after use
+      // handleSendRef経由で最新のhandleSendを呼び出し
+      if (handleSendRef.current) {
+        handleSendRef.current()
+      }
+    }
+  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
