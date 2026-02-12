@@ -60,7 +60,9 @@ const SidebarContent = memo(({ pathname, expandedNav, onNavClick, onSubNavClick 
   return (
     <>
       <div className={styles.logo}>
-        <div className={styles.logoIcon}>🌿</div>
+        <div className={styles.logoIcon}>
+          <Leaf size={20} color="#ffffff" strokeWidth={1.5} />
+        </div>
         <span className={styles.logoText}>薄毛対策AIエージェント</span>
       </div>
       <nav className={styles.navList}>
