@@ -3,12 +3,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, AlertCircle, Info, ChevronRight } from 'lucide-react';
+import { Info, AlertCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
-import CameraCapture from '@/components/feature1/CameraCapture';
-import Button from '@/components/Button';
+import VideoScanCapture, { DeviceType } from '@/components/feature1/VideoScanCapture';
+import ScanExtractionAnimation from '@/components/feature1/ScanExtractionAnimation';
 import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { apiFetch } from '@/lib/api';
 import styles from './page.module.css';
@@ -16,232 +16,174 @@ import styles from './page.module.css';
 function CaptureContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [file, setFile] = useState<File | null>(null);
-    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+    // State
+    const [capturedImages, setCapturedImages] = useState<{ side: string; front: string; top: string; deviceType: DeviceType } | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-    // Initialize state from sessionStorage
     useEffect(() => {
-        const savedImage = sessionStorage.getItem('capturedImage');
-        if (savedImage) {
-            setCapturedImage(savedImage);
-            // Reconstruct File object from base64
-            fetch(savedImage)
-                .then(res => res.blob())
-                .then(blob => {
-                    const reconstructedFile = new File([blob], "capture.jpg", { type: "image/jpeg" });
-                    setFile(reconstructedFile);
-                })
-                .catch(err => console.error("Failed to restore file from storage", err));
-        }
-
         const message = searchParams.get('message');
         if (message) {
             setInfoMessage(decodeURIComponent(message));
         }
     }, [searchParams]);
 
-    const handleCapture = (capturedFile: File, imageSrc: string) => {
-        setFile(capturedFile);
-        setCapturedImage(imageSrc);
-        sessionStorage.setItem('capturedImage', imageSrc);
-        setError(null);
+    // Step 1: Capture Complete
+    const handleCaptureComplete = (data: { side: string; front: string; top: string; deviceType: DeviceType }) => {
+        setCapturedImages(data);
+        setIsProcessing(true);
     };
 
-    const handleClear = () => {
-        setFile(null);
-        setCapturedImage(null);
-        sessionStorage.removeItem('capturedImage');
-        setError(null);
-    };
-
-    const handleUpload = async () => {
-        if (!file) return;
-
+    // Step 2: Extraction Animation Complete -> Start Upload
+    const handleExtractionComplete = async (processedImages: { side: string; front: string; top: string }) => {
+        setIsProcessing(false);
         setUploading(true);
-        setError(null);
+        await handleUpload(processedImages, capturedImages?.deviceType || 'pc');
+    };
 
+    const handleUpload = async (images: { side: string; front: string; top: string }, deviceType: DeviceType) => {
         try {
             const auth = getFirebaseAuth();
             const user = auth.currentUser;
 
             if (!user) {
+                // Save to local storage and redirect to login if needed? 
+                // For now throw error as per original logic
                 throw new Error("ログインしてください");
             }
 
             const storage = getFirebaseStorage();
             const db = getFirestoreDb();
 
-            // Generate photoId (UUIDv4) client-side
-            const photoId = crypto.randomUUID();
+            // UUIDs for 3 photos
+            const sideId = crypto.randomUUID();
+            const frontId = crypto.randomUUID();
+            const topId = crypto.randomUUID();
 
-            const storagePath = `users/${user.uid}/photos/${photoId}.jpg`;
-            const storageRef = ref(storage, storagePath);
+            const uploadParams = [
+                { id: sideId, type: 'side', dataUrl: images.side },
+                { id: frontId, type: 'front', dataUrl: images.front },
+                { id: topId, type: 'top', dataUrl: images.top },
+            ];
 
-            // Upload to Storage
-            await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(storageRef);
+            // Upload 3 images in parallel
+            await Promise.all(uploadParams.map(async (item) => {
+                const storagePath = `users/${user.uid}/photos/${item.id}.jpg`;
+                const storageRef = ref(storage, storagePath);
 
-            // Save metadata to Firestore
-            await setDoc(doc(db, `users/${user.uid}/photos`, photoId), {
-                photoId,
-                storagePath,
-                downloadUrl,
-                capturedAt: serverTimestamp(),
-                status: 'uploaded'
-            });
+                // Upload Data URL
+                await uploadString(storageRef, item.dataUrl, 'data_url');
+                const downloadUrl = await getDownloadURL(storageRef);
 
-            // Call analysis API
-            const analysisRes = await apiFetch('/api/v1/photos/analyze', {
+                // Save Metadata
+                await setDoc(doc(db, `users/${user.uid}/photos`, item.id), {
+                    photoId: item.id,
+                    storagePath,
+                    downloadUrl,
+                    deviceType,
+                    angle: item.type,
+                    capturedAt: serverTimestamp(),
+                    status: 'uploaded'
+                });
+            }));
+
+            // Call Analysis API (New Endpoint)
+            const analysisRes = await apiFetch('/api/v1/photos/analyze-scan', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ photoId }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sidePhotoId: sideId,
+                    frontPhotoId: frontId,
+                    topPhotoId: topId,
+                    deviceType
+                }),
             });
 
             if (!analysisRes.ok) {
                 throw new Error('解析に失敗しました');
             }
 
-            // Clear session storage on success
-            sessionStorage.removeItem('capturedImage');
+            const data = await analysisRes.json();
+            // Redirect to result with the MAIN photo ID (usually Top or newly created AnalysisID)
+            // The API should return an analysisId or use one of the photoIds. 
+            // Let's assume it uses topPhotoId or returns a specific ID.
+            // Based on plan, we might group them. Let's send topPhotoId for now as the 'main' one
+            // or if the API returns a consolidated analysis ID.
 
-            // Redirect to Result page
-            router.push(`/feature1/result?photoId=${photoId}`);
+            // Assuming API returns { analysisId: string, ... }
+            router.push(`/feature1/result?photoId=${data.analysisId || topId}`);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || "アップロードに失敗しました");
-        } finally {
+            const errorMessage = err instanceof Error ? err.message : "アップロードに失敗しました";
+            setError(errorMessage);
             setUploading(false);
+            setCapturedImages(null); // Reset to allow retake
         }
     };
 
     return (
         <Layout>
             <div className={styles.container}>
-                <div className={styles.scrollArea}>
-                    {/* Info Message */}
-                    <AnimatePresence>
-                        {infoMessage && (
-                            <motion.div
-                                className={styles.infoMessage}
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <Info size={18} color="#419873" />
-                                <span>{infoMessage}</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                {/* Info Message */}
+                <AnimatePresence>
+                    {infoMessage && (
+                        <motion.div
+                            className={styles.infoMessage}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            style={{ position: 'absolute', top: 20, left: 0, right: 0, margin: 'auto', zIndex: 50, maxWidth: '90%' }}
+                        >
+                            <Info size={18} color="#419873" />
+                            <span>{infoMessage}</span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                    {/* Tips Card */}
-                    <motion.div
-                        className={styles.tipsCard}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                    >
-                        <div className={styles.tipsHeader}>
-                            <Camera size={18} color="#419873" />
-                            <h3 className={styles.tipsTitle}>
-                                撮影のポイント
-                            </h3>
-                        </div>
+                {/* Error Message */}
+                <AnimatePresence>
+                    {error && (
+                        <motion.div
+                            className={styles.errorMessage}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ position: 'absolute', top: 80, left: 0, right: 0, margin: 'auto', zIndex: 50, maxWidth: '90%' }}
+                        >
+                            <AlertCircle size={16} />
+                            {error}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                        <ul className={styles.tipsList}>
-                            <li>☀️ 明るい場所で撮影（自然光推奨）</li>
-                            <li>🔍 生え際・頭頂部を大きく写す</li>
-                            <li>✨ おでこを出して髪を上げる</li>
-                        </ul>
-                    </motion.div>
+                {/* Main Capture Component */}
+                {!isProcessing && !uploading && (
+                    <VideoScanCapture
+                        onComplete={handleCaptureComplete}
+                        onError={(err) => setError(err)}
+                    />
+                )}
 
-                    {/* Camera Component */}
-                    <motion.div
-                        className={styles.cameraContainer}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                    >
-                        <CameraCapture
-                            onCapture={handleCapture}
-                            onClear={handleClear}
-                            initialImage={capturedImage}
-                        />
-                    </motion.div>
+                {/* Extraction Animation */}
+                {isProcessing && capturedImages && (
+                    <ScanExtractionAnimation
+                        images={capturedImages}
+                        onProcessingComplete={handleExtractionComplete}
+                    />
+                )}
 
-                    {/* Analyze Button */}
-                    <AnimatePresence>
-                        {file && (
-                            <motion.div
-                                className={styles.buttonWrapper}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 20 }}
-                                transition={{ delay: 0.1 }}
-                            >
-                                <Button
-                                    variant="primary"
-                                    size="full"
-                                    icon={<div style={{ position: 'relative', zIndex: 10 }}><ChevronRight size={18} /></div>}
-                                    iconPosition="right"
-                                    disabled={uploading}
-                                    onClick={handleUpload}
-                                    style={{
-                                        background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)',
-                                        boxShadow: '0 4px 20px rgba(201, 169, 98, 0.4)',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                    }}
-                                >
-                                    <span style={{ position: 'relative', zIndex: 10 }}>
-                                        {uploading ? '解析中...' : 'この写真で解析する'}
-                                    </span>
-                                    {!uploading && (
-                                        <motion.div
-                                            style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: '-100%',
-                                                width: '100%',
-                                                height: '100%',
-                                                background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 20%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)',
-                                                transform: 'skewX(-25deg)',
-                                                zIndex: 1,
-                                            }}
-                                            animate={{
-                                                left: ['-100%', '200%'],
-                                                opacity: [0, 1, 1, 0]
-                                            }}
-                                            transition={{
-                                                repeat: Infinity,
-                                                duration: 2.0,
-                                                ease: "easeInOut",
-                                                repeatDelay: 0.3
-                                            }}
-                                        />
-                                    )}
-                                </Button>
-
-                                {error && (
-                                    <motion.div
-                                        className={styles.errorMessage}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                    >
-                                        <AlertCircle size={16} />
-                                        {error}
-                                    </motion.div>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                {/* Uploading State */}
+                {uploading && (
+                    <div className="flex flex-col items-center justify-center h-full bg-white">
+                        <div className={styles.loadingSpinner}>⏳</div>
+                        <h2 className="text-xl font-bold mt-4 text-gray-800">診断中...</h2>
+                        <p className="text-gray-500 mt-2">AIがあなたの頭皮・髪の状態を分析しています</p>
+                    </div>
+                )}
             </div>
         </Layout>
     );
@@ -249,13 +191,7 @@ function CaptureContent() {
 
 export default function CapturePage() {
     return (
-        <Suspense fallback={
-            <Layout>
-                <div style={{ padding: '24px', textAlign: 'center' }}>
-                    <p>Loading...</p>
-                </div>
-            </Layout>
-        }>
+        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
             <CaptureContent />
         </Suspense>
     );

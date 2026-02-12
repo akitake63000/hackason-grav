@@ -193,7 +193,7 @@ function ResultContent() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        <span className={styles.scoreTitle}>髪密度スコア</span>
+                        <span className={styles.scoreTitle}>総合健康スコア</span>
                         <ScoreCircle
                             score={result?.score || 0}
                             label={result?.score && result.score >= 70 ? "良好" : result?.score && result.score >= 50 ? "普通" : "要注意"}

@@ -275,3 +275,95 @@ def get_analysis_history(
         items=items,
         total=len(items)
     )
+
+class AnalyzeScanRequest(BaseModel):
+    frontPhotoId: str
+    topPhotoId: str
+    sidePhotoId: str
+    deviceType: str = "pc"
+
+
+@router.post("/analyze-scan", response_model=AnalyzePhotoResponse)
+@limiter.limit("5/minute")
+def analyze_scan_photos(
+    request: Request,
+    payload: AnalyzeScanRequest,
+    uid: str = Depends(get_current_uid)
+) -> AnalyzePhotoResponse:
+    """
+    Analyzes 3 images (Front, Top, Side) for integrated diagnosis.
+    """
+    db = get_firestore_client()
+    
+    # helper to fetch and download
+    def get_image_data(photo_id: str):
+        ref = db.collection("users").document(uid).collection("photos").document(photo_id)
+        snap = ref.get()
+        if not snap.exists:
+            raise HTTPException(status_code=404, detail=f"Photo {photo_id} not found")
+        data = snap.to_dict()
+        path = data.get("storagePath")
+        if not path:
+            raise HTTPException(status_code=400, detail=f"Photo {photo_id} missing storagePath")
+        return download_image_bytes(path)
+
+    try:
+        # Download all 3 in parallel (or sequential is fine for now to keep simple)
+        front_bytes = get_image_data(payload.frontPhotoId)
+        top_bytes = get_image_data(payload.topPhotoId)
+        side_bytes = get_image_data(payload.sidePhotoId)
+    except Exception as e:
+        logging.error(f"Failed to download scan images: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve images")
+
+    # Fetch Gender
+    profile_ref = db.collection("users").document(uid).collection("profile").document("default")
+    profile_snap = profile_ref.get()
+    gender = "prefer-not-to-say"
+    if profile_snap.exists:
+        gender = profile_snap.to_dict().get("gender", gender)
+
+    # Analyze
+    from ..services.gemini_vision import analyze_scan_images
+    result = analyze_scan_images(
+        front_bytes=front_bytes,
+        top_bytes=top_bytes,
+        side_bytes=side_bytes,
+        gender=gender,
+        device_type=payload.deviceType
+    )
+
+    # Save Result (Use Top Photo ID as the main key for now)
+    analysis_ref = db.collection("users").document(uid).collection("analysisResults").document(payload.topPhotoId)
+    
+    analysis_data = {
+        "photoId": payload.topPhotoId,
+        "analyzedAt": admin_firestore.SERVER_TIMESTAMP,
+        "score": result.score,
+        "notes": result.notes,
+        "hairType": result.hairType,
+        "pattern": result.pattern,
+        "quality": result.quality,
+        "scalpCondition": result.scalpCondition,
+        "delta": 0.0, # TODO: Calculate delta if needed
+        "version": "v1-scan-integrated",
+        "scanData": {
+            "front": payload.frontPhotoId,
+            "side": payload.sidePhotoId
+        }
+    }
+    analysis_ref.set(analysis_data)
+    
+    return AnalyzePhotoResponse(
+        analysisId=payload.topPhotoId,
+        photoId=payload.topPhotoId,
+        result={
+            "score": result.score,
+            "notes": result.notes,
+            "hairType": result.hairType,
+            "pattern": result.pattern,
+            "quality": result.quality,
+            "scalpCondition": result.scalpCondition,
+            "delta": 0.0
+        }
+    )
