@@ -1,1 +1,0 @@
-spawn ssh-add /home/ukihiroishimura/.ssh/id_ed25519; expect "Enter passphrase"; send "Passward@1123\r"; interact
