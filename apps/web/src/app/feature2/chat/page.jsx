@@ -1,5 +1,7 @@
 'use client'
 
+console.log('[Quick Q&A Debug] page.jsx loaded - TOP LEVEL')
+
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
@@ -9,6 +11,8 @@ import { useAuth, getIdToken } from '@/lib/auth'
 import { getFirestoreDb, isFirebaseConfigured } from '@/lib/firebase'
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, orderBy, query, serverTimestamp, onSnapshot } from 'firebase/firestore'
 import styles from './page.module.css'
+
+console.log('[Quick Q&A Debug] All imports completed')
 
 // 初期メッセージ
 const initialMessages = [
@@ -126,7 +130,31 @@ function validateDirectApiUrl(urlString) {
   }
 }
 
+// Persistent debug logging helper
+function debugLog(message, data = null) {
+  const timestamp = new Date().toISOString()
+  const logEntry = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data) : ''}`
+
+  // Log to console
+  console.log(logEntry)
+
+  // Log to localStorage (persist through page transitions) - client-side only
+  if (typeof window !== 'undefined') {
+    try {
+      const logs = JSON.parse(localStorage.getItem('chat_debug_logs') || '[]')
+      logs.push({ timestamp, message, data })
+      // Keep only last 50 logs
+      if (logs.length > 50) logs.shift()
+      localStorage.setItem('chat_debug_logs', JSON.stringify(logs))
+    } catch (e) {
+      console.error('Failed to write debug log to localStorage:', e)
+    }
+  }
+}
+
 function Chat() {
+  debugLog('[Quick Q&A Debug] Chat function called - ENTRY POINT')
+
   const { user, loading: authLoading } = useAuth()
   const [messages, setMessages] = useState(initialMessages)
   const [inputValue, setInputValue] = useState('')
@@ -142,11 +170,22 @@ function Chat() {
   const [chatDetail, setChatDetail] = useState('flash')
   const [pendingTaskId, setPendingTaskId] = useState(null)
   const [pollingIntervalId, setPollingIntervalId] = useState(null)
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
   const chatAreaRef = useRef(null)
   const isUnmountedRef = useRef(false)
+  const hasSetQuestionRef = useRef(false) // フラグ: 質問を設定済みか
+
+  debugLog('[Quick Q&A Debug] All hooks completed', { userExists: !!user, inputValue })
+
+  // デバッグ: コンポーネントマウント時のログ
+  debugLog('[Quick Q&A Debug] Chat component rendering', { inputValue, user: !!user, hasSetQuestion: hasSetQuestionRef.current })
 
   useEffect(() => {
-    return () => { isUnmountedRef.current = true }
+    debugLog('[Quick Q&A Debug] Component mounted')
+    return () => {
+      debugLog('[Quick Q&A Debug] Component unmounting')
+      isUnmountedRef.current = true
+    }
   }, [])
 
   // Firestoreからメッセージを読み込むヘルパー関数
@@ -278,6 +317,45 @@ function Chat() {
       }
     }
   }, []) // 空の依存配列で初回のみ実行
+
+  // Quick Q&Aからの質問をプリフィル（localStorage方式 - user利用可能時に1回だけ実行）
+  useEffect(() => {
+    // 既に質問を設定済み、またはユーザーが未ログインの場合はスキップ
+    if (hasSetQuestionRef.current || !user) {
+      debugLog('[Quick Q&A] Skipping localStorage check', {
+        hasSetQuestion: hasSetQuestionRef.current,
+        userExists: !!user
+      })
+      return
+    }
+
+    debugLog('[Quick Q&A] useEffect triggered!', { userExists: !!user })
+
+    // クライアントサイドでのみ実行
+    if (typeof window === 'undefined') {
+      debugLog('[Quick Q&A] Server-side rendering, skipping')
+      return
+    }
+
+    const prefillQuestion = localStorage.getItem('chat_prefill_question')
+    debugLog('[Quick Q&A] localStorage check', { prefillQuestion })
+
+    if (prefillQuestion) {
+      debugLog('[Quick Q&A] Setting prefilled question from localStorage', { prefillQuestion })
+      setInputValue(prefillQuestion)
+      localStorage.removeItem('chat_prefill_question') // 使用後は削除
+      hasSetQuestionRef.current = true // フラグを立てて2回目の実行を防ぐ
+      debugLog('[Quick Q&A] Input value set successfully', { newInputValue: prefillQuestion })
+
+      // 自動送信: ホーム画面からの遷移時のみ
+      setTimeout(() => {
+        handleSend()
+        debugLog('[Quick Q&A] Auto-submitted question')
+      }, 100) // Small delay to ensure state is updated
+    } else {
+      debugLog('[Quick Q&A] No question found in localStorage')
+    }
+  }, [user]) // user が利用可能になったら実行（inputValueは除外して無限ループを防ぐ）
 
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
@@ -795,6 +873,13 @@ function Chat() {
 
   const isBusy = isLoading || isRevealing || pendingTaskId !== null
 
+  debugLog('[Quick Q&A Debug] About to render JSX', {
+    inputValue,
+    userExists: !!user,
+    hasSetQuestion: hasSetQuestionRef.current,
+    isBusy
+  })
+
   return (
     <Layout>
       <style>{`
@@ -1000,6 +1085,66 @@ function Chat() {
       </div>
 
       <div className={styles.inputArea}>
+        {/* Debug Log Toggle - Inline Button */}
+        <div style={{ padding: '8px 12px', background: 'rgba(65, 152, 115, 0.05)', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: '#7f786d' }}>🐛 デバッグログ</span>
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            style={{
+              background: showDebugPanel ? '#419873' : '#e5e7eb',
+              color: showDebugPanel ? 'white' : '#1a3d2e',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '4px 12px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              fontWeight: '600',
+            }}
+          >
+            {showDebugPanel ? '非表示' : '表示'}
+          </button>
+        </div>
+
+        {/* Debug Panel - Inline Display */}
+        {showDebugPanel && (
+          <div style={{
+            maxHeight: '200px',
+            overflow: 'auto',
+            background: '#f9fafb',
+            padding: '12px',
+            fontSize: '11px',
+            fontFamily: 'monospace',
+            lineHeight: '1.6',
+            borderBottom: '1px solid #e5e7eb',
+          }}>
+            {(() => {
+              try {
+                const logs = JSON.parse(localStorage.getItem('chat_debug_logs') || '[]')
+                if (logs.length === 0) {
+                  return <div style={{ color: '#7f786d', textAlign: 'center' }}>ログがありません</div>
+                }
+                return logs.map((log, idx) => (
+                  <div key={idx} style={{ marginBottom: '8px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' }}>
+                    <div style={{ color: '#6b7280', fontSize: '10px' }}>
+                      {new Date(log.timestamp).toLocaleTimeString('ja-JP')}
+                    </div>
+                    <div style={{ color: '#1a3d2e', wordBreak: 'break-all' }}>
+                      {log.message}
+                    </div>
+                    {log.data && (
+                      <div style={{ color: '#419873', fontSize: '10px', marginTop: '4px' }}>
+                        {JSON.stringify(log.data)}
+                      </div>
+                    )}
+                  </div>
+                ))
+              } catch (e) {
+                return <div style={{ color: '#dc2626' }}>ログの読み込みエラー: {e.message}</div>
+              }
+            })()}
+          </div>
+        )}
+
         {pendingTaskId && (
           <div className={styles.processingIndicator}>
             <span className={styles.spinner}>⏳</span>
@@ -1007,6 +1152,10 @@ function Chat() {
           </div>
         )}
         <div className={styles.inputContainer}>
+          {(() => {
+            debugLog('[Quick Q&A] Rendering input field', { inputValue, hasSetQuestion: hasSetQuestionRef.current })
+            return null
+          })()}
           <input
             type="text"
             className={styles.textInput}
@@ -1036,8 +1185,11 @@ function Chat() {
         </div>
         </div>
       </div>
+
     </Layout>
   )
 }
+
+console.log('[Quick Q&A Debug] About to export Chat component')
 
 export default Chat

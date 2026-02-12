@@ -62,6 +62,8 @@ function Home() {
   const [quickAction, setQuickAction] = useState(null)
   const [quickActionLoading, setQuickActionLoading] = useState(true)
   const [showGuide, setShowGuide] = useState(false)
+  const [quickQA, setQuickQA] = useState(null)
+  const [quickQALoading, setQuickQALoading] = useState(true)
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
     if (hour < 5) return 'こんばんは'
@@ -319,6 +321,39 @@ function Home() {
       })
   }, [user])
 
+  // クイックQ&A取得
+  useEffect(() => {
+    if (!user) return
+
+    setQuickQALoading(true)
+    apiFetch('/api/v1/lifestyle/quick-qa')
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch quick Q&A')
+        return res.json()
+      })
+      .then((data) => {
+        if (data?.questions) {
+          setQuickQA(data)
+        }
+      })
+      .catch((error) => {
+        console.error('Quick Q&A fetch error:', error)
+        // エラー時はセクション非表示
+        setQuickQA(null)
+      })
+      .finally(() => {
+        setQuickQALoading(false)
+      })
+  }, [user])
+
+  // Quick Q&A質問クリック時のハンドラー
+  const handleQuestionClick = (question) => {
+    // LocalStorageに質問を保存
+    localStorage.setItem('chat_prefill_question', question)
+    // Chat画面に遷移
+    router.push('/feature2/chat')
+  }
+
   return (
     <Layout>
       <div className={styles.container}>
@@ -442,6 +477,40 @@ function Home() {
                 </div>
               </motion.div>
             )}
+          </motion.div>
+        )}
+
+        {/* Quick Q&A Section */}
+        {!quickQALoading && quickQA && (
+          <motion.div
+            className={styles.statusCard}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <div style={{ marginBottom: '12px' }}>
+              <h4 className={styles.tipsTitle}>💬 気になることを聞いてみよう</h4>
+              <p style={{ fontSize: 'var(--font-xs)', color: '#7f786d', marginTop: '4px' }}>
+                お悩みに合わせた質問をタップしてAIに相談
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {quickQA.questions.map((question, idx) => (
+                <motion.button
+                  key={idx}
+                  type="button"
+                  className={styles.qaButton}
+                  onClick={() => handleQuestionClick(question)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className={styles.qaIcon}>💬</span>
+                  <span className={styles.qaText}>{question}</span>
+                  <ChevronRight size={16} className={styles.qaArrow} />
+                </motion.button>
+              ))}
+            </div>
           </motion.div>
         )}
 
