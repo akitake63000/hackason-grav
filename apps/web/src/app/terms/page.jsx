@@ -97,19 +97,28 @@ function Terms() {
             <p style={styles.subtitle}>最終更新日: 2026-02-03</p>
           </motion.div>
 
-          {sections.map((section, index) => (
-            <Card key={section.title} padding="lg" delay={0.1 + index * 0.05}>
-              <div style={styles.sectionTitle}>{section.title}</div>
-              <p style={styles.text}>{section.body}</p>
-              {section.items && (
-                <ul style={styles.list}>
-                  {section.items.map((item) => (
-                    <li key={item} style={styles.listItem}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          ))}
+          <Card padding="lg" delay={0.1}>
+            {sections.map((section, index) => (
+              <div
+                key={section.title}
+                style={{
+                  borderBottom: index < sections.length - 1 ? '1px solid rgba(156, 149, 138, 0.15)' : 'none',
+                  paddingBottom: index < sections.length - 1 ? '24px' : '0',
+                  marginBottom: index < sections.length - 1 ? '24px' : '0'
+                }}
+              >
+                <div style={styles.sectionTitle}>{section.title}</div>
+                <p style={styles.text}>{section.body}</p>
+                {section.items && (
+                  <ul style={styles.list}>
+                    {section.items.map((item) => (
+                      <li key={item} style={styles.listItem}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </Card>
         </div>
       </div>
     </Layout>

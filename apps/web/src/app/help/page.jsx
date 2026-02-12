@@ -82,12 +82,21 @@ function Help() {
             <p style={styles.subtitle}>よくある質問</p>
           </motion.div>
 
-          {faqs.map((item, index) => (
-            <Card key={item.q} padding="lg" delay={0.1 + index * 0.05}>
-              <div style={styles.question}>{item.q}</div>
-              <p style={styles.answer}>{item.a}</p>
-            </Card>
-          ))}
+          <Card padding="lg" delay={0.1}>
+            {faqs.map((item, index) => (
+              <div
+                key={item.q}
+                style={{
+                  borderBottom: index < faqs.length - 1 ? '1px solid rgba(156, 149, 138, 0.15)' : 'none',
+                  paddingBottom: index < faqs.length - 1 ? '24px' : '0',
+                  marginBottom: index < faqs.length - 1 ? '24px' : '0'
+                }}
+              >
+                <div style={styles.question}>{item.q}</div>
+                <p style={styles.answer}>{item.a}</p>
+              </div>
+            ))}
+          </Card>
         </div>
       </div>
     </Layout>
