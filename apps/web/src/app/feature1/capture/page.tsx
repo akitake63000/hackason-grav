@@ -7,6 +7,7 @@ import { Info, AlertCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
 import VideoScanCapture, { DeviceType } from '@/components/feature1/VideoScanCapture';
 import ScanExtractionAnimation from '@/components/feature1/ScanExtractionAnimation';
+import OrganicHourglass from '@/components/feature1/OrganicHourglass';
 import { getFirebaseStorage, getFirestoreDb, getFirebaseAuth } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -23,6 +24,24 @@ function CaptureContent() {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
+
+    // Simulated Progress Effect
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (uploading) {
+            setProgress(0);
+            interval = setInterval(() => {
+                setProgress((prev) => {
+                    // Fast start, slow end. Cap at 90% until complete (redirect)
+                    if (prev >= 90) return 90;
+                    const increment = Math.max(1, (90 - prev) / 10);
+                    return prev + increment;
+                });
+            }, 500);
+        }
+        return () => clearInterval(interval);
+    }, [uploading]);
 
     useEffect(() => {
         const message = searchParams.get('message');
@@ -176,18 +195,15 @@ function CaptureContent() {
                     />
                 )}
 
-                {/* Uploading State */}
+                {/* Uploading State -> New Organic Hourglass */}
                 {uploading && (
-                    <div className="flex flex-col items-center justify-center h-full bg-white">
-                        <div className={styles.loadingSpinner}>⏳</div>
-                        <h2 className="text-xl font-bold mt-4 text-gray-800">診断中...</h2>
-                        <p className="text-gray-500 mt-2">AIがあなたの頭皮・髪の状態を分析しています</p>
-                    </div>
+                    <OrganicHourglass progress={progress} />
                 )}
             </div>
         </Layout>
     );
 }
+// ...
 
 export default function CapturePage() {
     return (
