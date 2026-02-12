@@ -350,8 +350,8 @@ function Home() {
   const handleQuestionClick = (question) => {
     // SessionStorageに質問を保存（セッション終了時に自動削除）
     sessionStorage.setItem('chat_prefill_question', question)
-    // Chat画面に遷移
-    router.push('/feature2/chat')
+    // Chat画面に遷移（static export with trailingSlashに対応）
+    router.push('/feature2/chat/')
   }
 
   return (

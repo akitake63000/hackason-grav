@@ -347,7 +347,7 @@ function Chat() {
       prefillQuestionRef.current = null // Reset after use
       handleSend()
     }
-  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing])
+  }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId, handleSend])
 
   // 設定を読み込む（Firestore → localStorage フォールバック）
   useEffect(() => {
