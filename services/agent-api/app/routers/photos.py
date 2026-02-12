@@ -106,8 +106,18 @@ def analyze_photo(
             detail="Failed to retrieve image from storage"
         ) from exc
 
+    # Fetch User Profile for Gender
+    profile_ref = db.collection("users").document(uid).collection("profile").document("default")
+    profile_snap = profile_ref.get()
+    gender = "prefer-not-to-say"
+    if profile_snap.exists:
+        profile_data = profile_snap.to_dict()
+        raw_gender = profile_data.get("gender")
+        if raw_gender in ["male", "female", "prefer-not-to-say"]:
+            gender = raw_gender
+
     # 3. Analyze Image
-    result = analyze_image_bytes(image_bytes)
+    result = analyze_image_bytes(image_bytes, gender=gender)
     
     # 4. Save Result
     analysis_ref = db.collection("users").document(uid).collection("analysisResults").document(payload.photoId)

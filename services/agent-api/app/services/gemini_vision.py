@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Literal
 
 from google import genai
 from google.genai import types
@@ -18,12 +18,14 @@ from ..config import (
 # Configure Logger
 logger = logging.getLogger(__name__)
 
+PatternType = Literal['M字', 'O字', 'U字', 'びまん性', 'オルセン型', 'ハミルトン型', 'None']
+
 @dataclass
 class VisionResult:
     score: float
     notes: Optional[str] = None
     hairType: Optional[str] = None
-    pattern: Optional[str] = None
+    pattern: Optional[PatternType] = None
     scalpCondition: Optional[str] = None
     quality: Optional[str] = None
 
@@ -33,7 +35,7 @@ def vision_enabled() -> bool:
     else:
         return bool(os.environ.get("GOOGLE_API_KEY"))
 
-def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
+def analyze_image_bytes(image_bytes: bytes, gender: Optional[str] = "prefer-not-to-say") -> VisionResult:
     """
     Analyzes the image bytes using Gemini Vision via Vertex AI.
     Returns a score (0-100) and notes, plus detailed analysis fields (hair type, pattern, scalp condition, quality).
@@ -58,27 +60,56 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             # Use Google AI Studio API (requires GOOGLE_API_KEY env var)
             client = genai.Client(http_options=HttpOptions(api_version="v1"))
 
-        prompt = """
+        prompt_base = """
         You are an expert trichologist (hair and scalp specialist).
         Analyze this image of a scalp/hair.
 
         Provide the following in JSON format:
         - "score": A float between 0.0 and 100.0 representing hair density and health (100 is best).
-        - "hairType": Norwood-Hamilton scale classification (e.g., "Type II", "Type III-Vertex") or "Normal".
+        """
+
+        prompt_gender_specific = ""
+        if gender == "male":
+            prompt_gender_specific = """
+        - "hairType": Classify using Hamilton-Norwood scale (e.g., "Hamilton-Norwood III-Vertex").
         - "pattern": Hair loss pattern. MUST be one of the following exact Japanese strings:
+            - "M字": Receding hairline at the temples (M-shaped).
+            - "O字": Thinning at the vertex/crown (O-shaped).
+            - "U字": Receding hairline and vertex thinning merging (U-shaped).
+            - "None": If no significant hair loss is observed.
+            """
+        elif gender == "female":
+            prompt_gender_specific = """
+        - "hairType": Classify using Ludwig scale (e.g., "Ludwig II").
+        - "pattern": Hair loss pattern. MUST be one of the following exact Japanese strings:
+            - "びまん性": Diffuse thinning over the entire scalp.
+            - "オルセン型": christmas tree pattern, widening of the part line.
+            - "ハミルトン型": Male-pattern thinning but occurring in females.
+            - "None": If no significant hair loss is observed.
+            """
+        else:  # prefer-not-to-say or unknown
+            prompt_gender_specific = """
+        - "hairType": Analyze the visual features and classify using the most medically appropriate scale (Hamilton-Norwood or Ludwig) based on the observed pattern.
+          Examples: "Hamilton-Norwood II", "Ludwig I-2".
+        - "pattern": Hair loss pattern. MUST be one of the following exact Japanese strings based on the identified visual pattern:
             - "M字": Receding hairline at the temples (M-shaped).
             - "O字": Thinning at the vertex/crown (O-shaped).
             - "U字": Receding hairline and vertex thinning merging (U-shaped).
             - "びまん性": Diffuse thinning over the entire scalp (common in females).
             - "オルセン型": christmas tree pattern, widening of the part line (common in females).
-            - "ハミルトン型": Male-pattern thinning but occurring in females (due to hormonal issues).
+            - "ハミルトン型": Male-pattern thinning but occurring in females.
             - "None": If no significant hair loss is observed.
+            """
+
+        prompt_common = """
         - "quality": Image quality for analysis ("good", "fair", "poor").
         - "scalpCondition": 文字列。以下のいずれかを選択してください: "良好", "乾燥", "脂性", "炎症", "フケが多い"。
         - "notes": A brief, professional summary of the condition in Japanese (approx 50 chars).
 
         Ensure the output is raw JSON without markdown formatting.
         """
+
+        prompt = prompt_base + prompt_gender_specific + prompt_common
 
         response = client.models.generate_content(
             model=GEMINI_MODEL_VISION,
@@ -117,6 +148,13 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
             notes = data.get("notes", "")
             hair_type = data.get("hairType")
             pattern = data.get("pattern")
+            
+            # Pattern validation (runtime check)
+            valid_patterns = ['M字', 'O字', 'U字', 'びまん性', 'オルセン型', 'ハミルトン型', 'None']
+            if pattern and pattern not in valid_patterns:
+                logger.warning(f"Invalid pattern received from Gemini: {pattern}. Normalizing to None.")
+                pattern = None # Or handle as None
+            
             quality = data.get("quality")
             scalp_condition = data.get("scalpCondition")
 
@@ -126,7 +164,7 @@ def analyze_image_bytes(image_bytes: bytes) -> VisionResult:
                 score=score,
                 notes=notes,
                 hairType=hair_type,
-                pattern=pattern,
+                pattern=pattern, # type: ignore
                 scalpCondition=scalp_condition,
                 quality=quality
             )
