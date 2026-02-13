@@ -544,14 +544,16 @@ def get_recommended_actions(
     scores: dict[str, int],
     answers: dict[str, str] = None,
     max_actions_per_axis: int = 3,
+    ignore_scores: bool = False,
 ) -> dict[str, list[RecommendedAction]]:
     """
-    低スコアの軸に基づいて、推奨アクションを軸ごとにグルーピングして返す。
+    推奨アクションを軸ごとにグルーピングして返す。
 
     Args:
         scores: 4軸スコア { "hormone": 45, "circadian": 60, ... }
         answers: 問診回答 { "substances": "none", ... }
         max_actions_per_axis: 各軸で返すアクション数の上限
+        ignore_scores: Trueの場合、スコアに関係なく「最も効果が高い（重みが大きい）軸」に分類する（カタログ表示用）
 
     Returns:
         { "hormone": [Action1, ...], "circadian": [...], ... }
@@ -579,39 +581,52 @@ def get_recommended_actions(
         if not should_recommend(action["id"], answers):
             continue
             
-        # Determine which axis this action should belong to
-        # Candidates: axes in action["targets"]
         targets = action["targets"]
         if not targets:
             continue
             
-        # Find axis with lowest score among targets
         best_axis = None
-        min_score = 999 
         
-        # We also need to handle the case where scores are equal.
-        # We can iterate through the fixed priority list to resolve ties implicitly 
-        # (or find all min axes and pick top priority).
-        
-        # Let's find all axes with the minimum score
-        candidate_axes = []
-        for axis in targets.keys():
-            s = scores.get(axis, 50)
-            if s < min_score:
-                min_score = s
-                candidate_axes = [axis]
-            elif s == min_score:
-                candidate_axes.append(axis)
-        
-        # Resolve tie using tie_break_priority
-        if len(candidate_axes) == 1:
-            best_axis = candidate_axes[0]
+        if ignore_scores:
+            # Catalog Mode: Assign to the axis with the HIGHEST weight (Primary Target)
+            # e.g. {"hormone": 0.9, "blood_flow": 0.3} -> hormone
+            max_weight = -1.0
+            candidate_axes = []
+            
+            for axis, weight in targets.items():
+                if weight > max_weight:
+                    max_weight = weight
+                    candidate_axes = [axis]
+                elif weight == max_weight:
+                    candidate_axes.append(axis)
+            
+            # Resolve tie using tie_break_priority
+            if len(candidate_axes) == 1:
+                best_axis = candidate_axes[0]
+            else:
+                for p_axis in tie_break_priority:
+                    if p_axis in candidate_axes:
+                        best_axis = p_axis
+                        break
         else:
-            # Pick the first one that appears in tie_break_priority
-            for p_axis in tie_break_priority:
-                if p_axis in candidate_axes:
-                    best_axis = p_axis
-                    break
+            # Recommendation Mode: Find axis with lowest user score (Highest Need)
+            min_score = 999 
+            candidate_axes = []
+            for axis in targets.keys():
+                s = scores.get(axis, 50)
+                if s < min_score:
+                    min_score = s
+                    candidate_axes = [axis]
+                elif s == min_score:
+                    candidate_axes.append(axis)
+            
+            if len(candidate_axes) == 1:
+                best_axis = candidate_axes[0]
+            else:
+                for p_axis in tie_break_priority:
+                    if p_axis in candidate_axes:
+                        best_axis = p_axis
+                        break
         
         if best_axis:
             # Calculate priority/weight for sorting within this axis
@@ -648,8 +663,8 @@ def get_recommended_actions(
 
 # Axis labels for frontend display
 AXIS_LABELS = {
-    "hormone": {"name": "ホルモン", "emoji": "⚖️", "color": "#ec4899"},
-    "circadian": {"name": "体内時計", "emoji": "⏰", "color": "#8b5cf6"},
-    "blood_flow": {"name": "血流", "emoji": "🩸", "color": "#3b82f6"},
-    "stress": {"name": "ストレス", "emoji": "😰", "color": "#f59e0b"},
+    "hormone": {"name": "ホルモンバランス", "emoji": "⚖️", "color": "#ec4899"},
+    "circadian": {"name": "体内時計・リズム", "emoji": "⏰", "color": "#8b5cf6"},
+    "blood_flow": {"name": "血流・巡り", "emoji": "🩸", "color": "#3b82f6"},
+    "stress": {"name": "ストレスケア", "emoji": "😰", "color": "#f59e0b"},
 }

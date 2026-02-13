@@ -760,10 +760,9 @@ def tendency(
                 else None,
             }
         )
-    except (FirebaseError, GoogleCloudError) as e:
-        logging.error(f"Firestore error saving scores: {e}")
     except Exception as e:
-        logging.error(f"Unexpected error saving scores to Firestore: {e}", exc_info=True)
+        logging.error(f"Error saving tendency scores to Firestore: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to save analysis results")
 
     return TendencyResponse(
         scores=scores,
@@ -861,7 +860,12 @@ def recommendation(
     except Exception as e:
         logging.error(f"Error fetching answers for recommendation: {e}", exc_info=True)
 
-    grouped_actions = get_recommended_actions(scores, answers=answers, max_actions_per_axis=100)
+    grouped_actions = get_recommended_actions(
+        scores, 
+        answers=answers, 
+        max_actions_per_axis=8, 
+        ignore_scores=True
+    )
     
     return RecommendationResponse(
         grouped_actions=grouped_actions,
