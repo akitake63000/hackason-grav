@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Check, Trash2, UserX } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Check, Trash2, UserX, AlertTriangle, X } from 'lucide-react'
 import Layout from '@/components/Layout'
 import Card from '@/components/Card'
 import Button from '@/components/Button'
@@ -87,6 +87,48 @@ const styles = {
     display: 'grid',
     gap: '12px',
   },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: '20px',
+  },
+  modalContent: {
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '32px 24px',
+    maxWidth: '400px',
+    width: '100%',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+  },
+  modalHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#313131',
+  },
+  modalMessage: {
+    fontSize: '14px',
+    color: '#7f786d',
+    lineHeight: 1.6,
+    marginBottom: '24px',
+  },
+  modalButtons: {
+    display: 'flex',
+    gap: '12px',
+  },
 }
 
 const deleteItems = [
@@ -137,6 +179,7 @@ function DeleteSettingsPage() {
   const { user } = useAuth()
   const [selected, setSelected] = useState([])
   const [isWorking, setIsWorking] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState({ show: false, type: null, message: '' })
 
   const hasSelection = selected.length > 0
   const selectedLabels = useMemo(
@@ -148,10 +191,22 @@ function DeleteSettingsPage() {
     setSelected((prev) => (prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]))
   }
 
-  const handleDeleteSelected = async () => {
+  const showConfirmDialog = (type, message) => {
+    setConfirmDialog({ show: true, type, message })
+  }
+
+  const hideConfirmDialog = () => {
+    setConfirmDialog({ show: false, type: null, message: '' })
+  }
+
+  const handleDeleteSelected = () => {
     if (!user?.uid || !hasSelection || isWorking) return
-    const message = `選択したデータを削除しますか？\n\n${selectedLabels.join(' / ')}`
-    if (!window.confirm(message)) return
+    const message = `以下のデータを削除します。この操作は取り消せません。\n\n${selectedLabels.join(' / ')}`
+    showConfirmDialog('delete', message)
+  }
+
+  const executeDeleteSelected = async () => {
+    hideConfirmDialog()
     setIsWorking(true)
     try {
       // Delete selected client-side collections
@@ -178,11 +233,14 @@ function DeleteSettingsPage() {
     }
   }
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     if (!user?.uid || isWorking) return
-    if (!window.confirm('退会するとアカウントとすべてのデータが削除されます。よろしいですか？')) {
-      return
-    }
+    const message = '退会するとアカウントとすべてのデータが完全に削除されます。この操作は取り消せません。'
+    showConfirmDialog('withdraw', message)
+  }
+
+  const executeWithdraw = async () => {
+    hideConfirmDialog()
     setIsWorking(true)
     let dataDeleted = false
     let backendCleanupCompleted = false
@@ -264,6 +322,14 @@ function DeleteSettingsPage() {
     }
   }
 
+  const handleConfirm = () => {
+    if (confirmDialog.type === 'delete') {
+      executeDeleteSelected()
+    } else if (confirmDialog.type === 'withdraw') {
+      executeWithdraw()
+    }
+  }
+
   return (
     <Layout>
       <div style={styles.container}>
@@ -336,6 +402,51 @@ function DeleteSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog */}
+      <AnimatePresence>
+        {confirmDialog.show && (
+          <motion.div
+            style={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={hideConfirmDialog}
+          >
+            <motion.div
+              style={styles.modalContent}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={styles.modalHeader}>
+                <AlertTriangle size={24} color="#f59e0b" />
+                <h3 style={styles.modalTitle}>確認</h3>
+              </div>
+              <p style={styles.modalMessage}>{confirmDialog.message}</p>
+              <div style={styles.modalButtons}>
+                <Button
+                  variant="outline"
+                  size="full"
+                  onClick={hideConfirmDialog}
+                  disabled={isWorking}
+                >
+                  いいえ
+                </Button>
+                <Button
+                  variant={confirmDialog.type === 'withdraw' ? 'danger' : 'primary'}
+                  size="full"
+                  onClick={handleConfirm}
+                  disabled={isWorking}
+                >
+                  はい
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   )
 }
