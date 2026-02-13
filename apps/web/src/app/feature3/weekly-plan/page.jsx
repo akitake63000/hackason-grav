@@ -336,6 +336,9 @@ export default function WeeklyPlan() {
 
     const isPlanExpired = () => {
         if (!plan || !plan.endDate) return false
+        // Check status first - if completed or expired, treat as expired
+        if (plan.status === 'completed' || plan.status === 'expired') return true
+        // Then check endDate
         return new Date() > new Date(plan.endDate)
     }
 
