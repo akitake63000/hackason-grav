@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Send, Loader2, Trash2, ChevronDown, ChevronRight, X } from 'lucide-react'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import { useAuth, getIdToken } from '@/lib/auth'
@@ -790,7 +790,8 @@ function Chat() {
   }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId, loadingHistory])
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // IME変換中（日本語入力中）はEnterで送信しない
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       handleSend()
     }
@@ -1096,7 +1097,18 @@ function Chat() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
+            autoComplete="off"
           />
+          {inputValue && (
+            <button
+              className={styles.clearButton}
+              onClick={() => setInputValue('')}
+              type="button"
+              aria-label="入力をクリア"
+            >
+              <X size={16} />
+            </button>
+          )}
           <motion.button
             className={styles.sendButton}
             style={{

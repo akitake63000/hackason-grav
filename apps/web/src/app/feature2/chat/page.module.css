@@ -150,6 +150,7 @@
   align-items: center;
   max-width: 800px;
   margin: 0 auto;
+  position: relative;
 }
 
 .inputWrapper {
@@ -160,7 +161,7 @@
 .textInput {
   width: 100%;
   min-height: 44px;
-  padding: 10px 16px;
+  padding: 10px 40px 10px 16px;
   border-radius: 22px;
   border: 1.5px solid rgba(6, 147, 227, 0.12);
   background: rgba(255, 255, 255, 1);
@@ -195,6 +196,30 @@
 .textarea:focus {
   border-color: #0693e3;
   box-shadow: 0 0 0 4px rgba(6, 147, 227, 0.1);
+}
+
+.clearButton {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.clearButton:hover {
+  background: rgba(0, 0, 0, 0.15);
+  color: #555;
 }
 
 .sendButton {
