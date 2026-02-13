@@ -586,6 +586,19 @@ export default function WeeklyPlan() {
                                     <p style={{ color: '#0693e3', fontWeight: '600' }}>AIが今日のミッションを生成中...</p>
                                     <p style={{ fontSize: '12px', color: '#7f786d' }}>あなたの体調に合わせて最適化しています</p>
                                 </div>
+                            ) : isPlanExpired() ? (
+                                <>
+                                    <AlertCircle size={48} color="#f59e0b" style={{ marginBottom: '16px' }} />
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
+                                        プラン期限切れ
+                                    </h3>
+                                    <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
+                                        このプランは終了しました。<br />新しいプランを作成してください。
+                                    </p>
+                                    <Button onClick={handleCreateNewPlan}>
+                                        次週のプランを作成
+                                    </Button>
+                                </>
                             ) : (
                                 <>
                                     <Sparkles size={48} color="#0693e3" style={{ marginBottom: '16px' }} />
