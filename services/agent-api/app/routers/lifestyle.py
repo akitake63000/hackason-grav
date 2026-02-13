@@ -2181,15 +2181,30 @@ def get_current_plan(
     """現在進行中のプランと本日のログを取得"""
     db = get_firestore_client()
     
-    # 1. Find latest plan (active or completed)
+    # 1. Find latest plan (prioritize active, then completed)
     plans_ref = db.collection("users").document(uid).collection("plans")
-    # Get the most recent plan regardless of status
-    query = plans_ref.order_by("createdAt", direction="DESCENDING").limit(1)
-    docs = query.get()
 
-    if not docs:
+    # Try to get all plans and sort in Python (more reliable than Firestore ordering)
+    all_docs = list(plans_ref.stream())
+
+    if not all_docs:
         logging.info(f"No plan found for user {uid}")
         return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
+
+    # Sort by status priority (active first) and then by creation time
+    def get_plan_priority(doc):
+        data = doc.to_dict()
+        status = data.get("status", "")
+        created_at = data.get("createdAt", "")
+        # Active plans get priority 0, completed/expired get priority 1
+        status_priority = 0 if status == "active" else 1
+        return (status_priority, created_at)
+
+    # Sort and get the first one
+    sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=True)
+    plan_doc = sorted_docs[0]
+
+    logging.info(f"Found plan {plan_doc.id} with status {plan_doc.to_dict().get('status')}")
     
     plan_doc = docs[0]
     plan_data = plan_doc.to_dict()
