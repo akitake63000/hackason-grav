@@ -11,7 +11,8 @@ export type DeletableDataKey =
   | "reports"
   | "conversations"
   | "tendencyScores"
-  | "foodRequests";
+  | "foodRequests"
+  | "plans";
 
 const SIMPLE_COLLECTIONS: DeletableDataKey[] = [
   "profile",
@@ -62,6 +63,22 @@ const deleteConversations = async (uid: string) => {
   }
 };
 
+const deletePlanSubcollections = async (uid: string, planId: string) => {
+  // Delete dailyActions subcollection
+  await deleteCollection(["users", uid, "plans", planId, "dailyActions"]);
+  // Delete logs subcollection
+  await deleteCollection(["users", uid, "plans", planId, "logs"]);
+};
+
+const deletePlans = async (uid: string) => {
+  const db = getFirestoreDb();
+  const plansSnapshot = await getDocs(collection(db, "users", uid, "plans"));
+  for (const plan of plansSnapshot.docs) {
+    await deletePlanSubcollections(uid, plan.id);
+    await deleteDoc(plan.ref);
+  }
+};
+
 const deleteStoragePrefix = async (path: string) => {
   const storage = getFirebaseStorage();
   const rootRef = storageRef(storage, path);
@@ -95,6 +112,16 @@ export const deleteUserDataByKeys = async (
       await deleteConversations(uid);
     } catch (error) {
       console.error("Failed to delete conversations:", error);
+      errors.push(error as Error);
+    }
+  }
+
+  // Delete plans (including dailyActions and logs subcollections)
+  if (keys.includes("plans")) {
+    try {
+      await deletePlans(uid);
+    } catch (error) {
+      console.error("Failed to delete plans:", error);
       errors.push(error as Error);
     }
   }
@@ -135,6 +162,7 @@ export const deleteUserData = async (uid: string): Promise<void> => {
     "conversations",
     "tendencyScores",
     "foodRequests",
+    "plans",
   ]);
 
   const db = getFirestoreDb();
