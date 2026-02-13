@@ -2203,11 +2203,9 @@ def get_current_plan(
     # Sort and get the first one
     sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=True)
     plan_doc = sorted_docs[0]
-
-    logging.info(f"Found plan {plan_doc.id} with status {plan_doc.to_dict().get('status')}")
-    
-    plan_doc = docs[0]
     plan_data = plan_doc.to_dict()
+
+    logging.info(f"Found plan {plan_doc.id} with status {plan_data.get('status')}, total plans: {len(all_docs)}")
     
     # 2. Check and handle expiration
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
