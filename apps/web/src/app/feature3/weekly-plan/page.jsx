@@ -408,7 +408,7 @@ export default function WeeklyPlan() {
     }
 
     // No plan yet
-    if (!plan) {
+    if (!plan || !plan.planId) {
         // If tendency data is missing, prioritize asking for survey
         if (tendencyData === null) {
             return (
@@ -613,7 +613,7 @@ export default function WeeklyPlan() {
                                         次週のプランを作成
                                     </Button>
                                 </>
-                            ) : (
+                            ) : plan && plan.planId ? (
                                 <>
                                     <Sparkles size={48} color="#0693e3" style={{ marginBottom: '16px' }} />
                                     <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
@@ -626,7 +626,7 @@ export default function WeeklyPlan() {
                                         ミッションを生成する
                                     </Button>
                                 </>
-                            )}
+                            ) : null}
                         </div>
                     ) : (
                         <>
