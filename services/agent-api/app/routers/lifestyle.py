@@ -2181,12 +2181,14 @@ def get_current_plan(
     """現在進行中のプランと本日のログを取得"""
     db = get_firestore_client()
     
-    # 1. Find active plan
+    # 1. Find latest plan (active or completed)
     plans_ref = db.collection("users").document(uid).collection("plans")
-    query = plans_ref.where("status", "==", "active").limit(1)
+    # Get the most recent plan regardless of status
+    query = plans_ref.order_by("createdAt", direction="DESCENDING").limit(1)
     docs = query.get()
-    
+
     if not docs:
+        logging.info(f"No plan found for user {uid}")
         return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
     
     plan_doc = docs[0]
