@@ -39,7 +39,7 @@ const styles = {
   title: {
     fontSize: '28px',
     fontWeight: '700',
-    color: '#1a3d2e',
+    color: '#313131',
     marginBottom: '8px',
   },
   subtitle: {
@@ -52,15 +52,15 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '16px',
-    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%)',
+    background: 'linear-gradient(135deg, rgba(6, 147, 227, 0.08) 0%, rgba(6, 147, 227, 0.02) 100%)',
     borderRadius: '16px',
-    border: '1px solid rgba(65, 152, 115, 0.2)',
+    border: '1px solid rgba(6, 147, 227, 0.2)',
   },
   aiIcon: {
     width: '40px',
     height: '40px',
     borderRadius: '12px',
-    background: 'linear-gradient(135deg, #c9a962 0%, #a88c4a 100%)',
+    background: 'linear-gradient(135deg, #38bdf8 0%, #a88c4a 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -71,7 +71,7 @@ const styles = {
   reportTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     marginBottom: '4px',
   },
   reportDate: {
@@ -96,7 +96,7 @@ const styles = {
     width: '32px',
     height: '32px',
     borderRadius: '10px',
-    background: 'rgba(65, 152, 115, 0.1)',
+    background: 'rgba(6, 147, 227, 0.1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -104,7 +104,7 @@ const styles = {
   sectionTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
   },
   bulletList: {
     listStyle: 'none',
@@ -130,15 +130,15 @@ const styles = {
     display: 'flex',
     gap: '12px',
     padding: '16px',
-    background: 'rgba(201, 169, 98, 0.08)',
+    background: 'rgba(56, 189, 248, 0.08)',
     borderRadius: '16px',
-    border: '1px solid rgba(201, 169, 98, 0.2)',
+    border: '1px solid rgba(56, 189, 248, 0.2)',
   },
   tipIcon: {
     width: '40px',
     height: '40px',
     borderRadius: '12px',
-    background: 'linear-gradient(135deg, #c9a962 0%, #a88c4a 100%)',
+    background: 'linear-gradient(135deg, #38bdf8 0%, #a88c4a 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -150,7 +150,7 @@ const styles = {
   tipTitle: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     marginBottom: '8px',
   },
   tipText: {
@@ -225,7 +225,7 @@ function Report() {
         <div style={styles.container}>
           <div style={styles.loadingContainer}>
             <div className="animate-pulse">
-              <Sparkles size={48} color="#c9a962" />
+              <Sparkles size={48} color="#38bdf8" />
             </div>
             <div style={{ color: '#7f786d', fontSize: '14px', marginTop: '16px' }}>
               AIがあなたのデータを分析中...
@@ -281,7 +281,7 @@ function Report() {
             transition={{ duration: 0.4, delay: 0.1 }}
           >
             <div style={styles.aiIcon}>
-              <Sparkles size={24} color="#1a3d2e" />
+              <Sparkles size={24} color="#313131" />
             </div>
             <div style={styles.reportHeaderText}>
               <div style={styles.reportTitle}>月間分析レポート</div>
@@ -298,7 +298,7 @@ function Report() {
             <Card variant="default" padding="lg" delay={0.2} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
-                  <TrendingUp size={16} color="#419873" />
+                  <TrendingUp size={16} color="#0693e3" />
                 </div>
                 <span style={styles.sectionTitle}>ハイライト</span>
               </div>
@@ -322,7 +322,7 @@ function Report() {
             <Card variant="default" padding="lg" delay={0.3} onClick={undefined} style={{}}>
               <div style={styles.sectionHeader}>
                 <div style={styles.sectionIconWrapper}>
-                  <Lightbulb size={16} color="#419873" />
+                  <Lightbulb size={16} color="#0693e3" />
                 </div>
                 <span style={styles.sectionTitle}>次のアクション</span>
               </div>
@@ -352,7 +352,7 @@ function Report() {
               transition={{ duration: 0.4, delay: 0.5 }}
             >
               <div style={styles.tipIcon}>
-                <FileText size={20} color="#1a3d2e" />
+                <FileText size={20} color="#313131" />
               </div>
               <div style={styles.tipContent}>
                 <div style={styles.tipTitle}>AIアドバイス</div>

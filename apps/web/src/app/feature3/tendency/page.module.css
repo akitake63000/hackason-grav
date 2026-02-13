@@ -18,7 +18,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: clamp(24px, 4vw, 30px);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   text-align: center;
   margin-bottom: 20px;
 }
@@ -42,7 +42,7 @@
 .stepDotActive {
   width: 24px;
   border-radius: 4px;
-  background: #419873;
+  background: #0693e3;
 }
 
 /* Question Card */
@@ -55,7 +55,7 @@
 .questionText {
   font-size: 18px;
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: 24px;
   line-height: 1.4;
 }
@@ -84,9 +84,9 @@
 }
 
 .optionButtonSelected {
-  border-color: #419873;
-  background: rgba(65, 152, 115, 0.05);
-  color: #1a3d2e;
+  border-color: #0693e3;
+  background: rgba(6, 147, 227, 0.05);
+  color: #313131;
   font-weight: 600;
 }
 
@@ -121,7 +121,7 @@
 .matrixLabel {
   font-size: 14px;
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
 }
 
 .matrixScore {
@@ -145,7 +145,7 @@
 .summaryTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: 8px;
 }
 
@@ -171,7 +171,7 @@
 .introTitle {
   font-size: 22px;
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: 12px;
 }
 

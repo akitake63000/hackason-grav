@@ -2,9 +2,9 @@
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(65, 152, 115, 0.08),
-    rgba(65, 152, 115, 0.12),
-    rgba(65, 152, 115, 0.08)
+    rgba(6, 147, 227, 0.08),
+    rgba(6, 147, 227, 0.12),
+    rgba(6, 147, 227, 0.08)
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
@@ -30,8 +30,8 @@
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(65, 152, 115, 0.12);
-  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+  border: 1px solid rgba(6, 147, 227, 0.12);
+  box-shadow: 0 2px 8px rgba(6, 147, 227, 0.05);
 }
 
 /* Missions skeleton */
@@ -39,8 +39,8 @@
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(65, 152, 115, 0.12);
-  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+  border: 1px solid rgba(6, 147, 227, 0.12);
+  box-shadow: 0 2px 8px rgba(6, 147, 227, 0.05);
 }
 
 .missionCardSkeleton {
@@ -50,7 +50,7 @@
   padding: 12px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
-  border: 1px solid rgba(65, 152, 115, 0.08);
+  border: 1px solid rgba(6, 147, 227, 0.08);
   margin-bottom: 8px;
 }
 
@@ -63,8 +63,8 @@
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(65, 152, 115, 0.12);
-  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.05);
+  border: 1px solid rgba(6, 147, 227, 0.12);
+  box-shadow: 0 2px 8px rgba(6, 147, 227, 0.05);
 }
 
 /* Mobile responsive */

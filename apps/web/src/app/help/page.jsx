@@ -24,7 +24,7 @@ const styles = {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontSize: '24px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
   },
   subtitle: {
     fontSize: '12px',
@@ -34,7 +34,7 @@ const styles = {
   question: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     marginBottom: '6px',
   },
   answer: {

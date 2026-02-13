@@ -144,7 +144,7 @@ function ResultContent() {
                             transition={{ duration: 0.4 }}
                         >
                             <div className={styles.emptyStateIcon}>
-                                <Camera size={40} color="#419873" />
+                                <Camera size={40} color="#0693e3" />
                             </div>
                             <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
                             <p className={styles.emptyStateDescription}>
@@ -275,7 +275,7 @@ function ResultContent() {
                             size="full"
                             icon={<ChevronRight size={18} />}
                             iconPosition="right"
-                            style={{ background: 'linear-gradient(135deg, #c9a962 0%, #b08d55 100%)' }}
+                            style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #b08d55 100%)' }}
                             onClick={handleNavigateToFoodRecommend}
                         >
                             食事での改善プランを見る
@@ -289,7 +289,7 @@ function ResultContent() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
                     >
-                        <AlertCircle size={16} color="#c9a962" className={styles.disclaimerIcon} />
+                        <AlertCircle size={16} color="#38bdf8" className={styles.disclaimerIcon} />
                         <span className={styles.disclaimerText}>
                             この判定はAIによる参考情報です。正確な診断については医療機関にご相談ください。
                         </span>

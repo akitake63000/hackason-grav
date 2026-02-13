@@ -24,7 +24,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-2xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-xs);
   text-align: center;
 }
@@ -46,7 +46,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-md);
   display: block;
   text-align: center;
@@ -80,7 +80,7 @@
   border-radius: 16px;
   padding: var(--spacing-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(65, 152, 115, 0.1);
+  border: 1px solid rgba(6, 147, 227, 0.1);
 }
 
 @media (max-width: 767px) {
@@ -99,7 +99,7 @@
 .statValue {
   font-size: var(--font-xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
 }
 
 .statUnit {
@@ -125,7 +125,7 @@
 .filterButton {
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: 12px;
-  border: 1.5px solid rgba(26, 61, 46, 0.15);
+  border: 1.5px solid rgba(6, 147, 227, 0.15);
   background: rgba(255, 255, 255, 0.95);
   color: #635d54;
   font-size: var(--font-sm);
@@ -140,7 +140,7 @@
 
 @media (hover: hover) {
   .filterButton:hover {
-    background: rgba(65, 152, 115, 0.08);
+    background: rgba(6, 147, 227, 0.08);
   }
 }
 
@@ -149,9 +149,9 @@
 }
 
 .filterButtonActive {
-  border-color: #419873;
-  background: linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.08) 100%);
-  color: #1a3d2e;
+  border-color: #0693e3;
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.15) 0%, rgba(6, 147, 227, 0.08) 100%);
+  color: #313131;
   font-weight: 600;
 }
 
@@ -181,12 +181,12 @@
 }
 
 .thumbnailGrid::-webkit-scrollbar-thumb {
-  background: rgba(65, 152, 115, 0.3);
+  background: rgba(6, 147, 227, 0.3);
   border-radius: 4px;
 }
 
 .thumbnailGrid::-webkit-scrollbar-thumb:hover {
-  background: rgba(65, 152, 115, 0.5);
+  background: rgba(6, 147, 227, 0.5);
 }
 
 .thumbnail {
@@ -203,7 +203,7 @@
 
 @media (hover: hover) {
   .thumbnail:hover {
-    border-color: #419873;
+    border-color: #0693e3;
     transform: scale(1.05);
   }
 }
@@ -221,7 +221,7 @@
 .silhouetteCircle {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(65, 152, 115, 0.1) 0%, rgba(65, 152, 115, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.1) 0%, rgba(6, 147, 227, 0.05) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,7 +270,7 @@
   font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
   font-size: var(--font-xl);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: var(--spacing-sm);
 }
 

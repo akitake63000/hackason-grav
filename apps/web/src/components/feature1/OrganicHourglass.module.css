@@ -24,14 +24,14 @@
 .svg {
     width: 100%;
     height: 100%;
-    color: #419873;
+    color: #0693e3;
     /* Primary Green */
 }
 
 .progressContainer {
     width: 200px;
     height: 4px;
-    background: rgba(26, 61, 46, 0.1);
+    background: rgba(6, 147, 227, 0.1);
     /* Dark Green low opacity */
     border-radius: 2px;
     overflow: hidden;
@@ -41,7 +41,7 @@
 
 .progressBar {
     height: 100%;
-    background: linear-gradient(90deg, #419873 0%, #347a5c 100%);
+    background: linear-gradient(90deg, #0693e3 0%, #0570b8 100%);
     border-radius: 2px;
     transition: width 0.3s ease-out;
 }
@@ -54,7 +54,7 @@
     font-family: "Noto Sans JP", sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1a3d2e;
+    color: #313131;
     /* Dark Green */
     margin-bottom: 8px;
     letter-spacing: 0.05em;

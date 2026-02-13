@@ -315,7 +315,7 @@ function Dashboard() {
               transition={{ duration: 0.4 }}
             >
               <div className={styles.emptyStateIcon}>
-                <Camera size={40} color="#419873" />
+                <Camera size={40} color="#0693e3" />
               </div>
               <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
               <p className={styles.emptyStateDescription}>
@@ -383,12 +383,12 @@ function Dashboard() {
             <svg className={styles.chartSvg} viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="xMidYMid meet" overflow="hidden">
               <defs>
                 <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#419873" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#419873" stopOpacity="0.05" />
+                  <stop offset="0%" stopColor="#0693e3" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#0693e3" stopOpacity="0.05" />
                 </linearGradient>
                 <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#1a3d2e" />
-                  <stop offset="100%" stopColor="#419873" />
+                  <stop offset="0%" stopColor="#313131" />
+                  <stop offset="100%" stopColor="#0693e3" />
                 </linearGradient>
               </defs>
 
@@ -460,7 +460,7 @@ function Dashboard() {
                     cy={point.y}
                     r={hoveredPoint === i ? 6 : 5}
                     fill="#ffffff"
-                    stroke="#419873"
+                    stroke="#0693e3"
                     strokeWidth="2"
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -476,7 +476,7 @@ function Dashboard() {
                         width="60"
                         height="28"
                         rx="6"
-                        fill="rgba(26, 61, 46, 0.95)"
+                        fill="rgba(6, 147, 227, 0.95)"
                         style={{ pointerEvents: 'none' }}
                       />
                       <text
@@ -493,7 +493,7 @@ function Dashboard() {
                         x={point.x}
                         y={point.y - 16}
                         fontSize="11"
-                        fill="#c9a962"
+                        fill="#38bdf8"
                         fontWeight="600"
                         textAnchor="middle"
                         style={{ pointerEvents: 'none' }}

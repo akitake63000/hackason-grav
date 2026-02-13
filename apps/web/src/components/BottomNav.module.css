@@ -6,7 +6,7 @@
   right: 0;
   height: 70px;
   background: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid rgba(26, 61, 46, 0.08);
+  border-top: 1px solid #eee;
   z-index: 90;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -48,24 +48,24 @@
 
 @media (hover: hover) {
   .bottomNavItem:hover {
-    background: rgba(26, 61, 46, 0.05);
+    background: rgba(6, 147, 227, 0.05);
   }
 }
 
 .bottomNavItem:active {
-  background: rgba(26, 61, 46, 0.08);
+  background: rgba(6, 147, 227, 0.08);
 }
 
 /* Bottom Nav Label */
 .bottomNavLabel {
   font-size: 10px;
-  color: #9c958a;
+  color: #888888;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .bottomNavLabelActive {
-  color: #1a3d2e;
+  color: #0693e3;
 }
 
 /* Responsive adjustments for smaller screens */

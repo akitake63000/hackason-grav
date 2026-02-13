@@ -21,7 +21,7 @@ const settingsSections = [
         icon: User,
         title: 'プロフィール編集',
         description: '性別・年齢・お悩みの変更',
-        iconBg: 'linear-gradient(135deg, #1a3d2e 0%, #347a5c 100%)',
+        iconBg: 'linear-gradient(135deg, #313131 0%, #0570b8 100%)',
         type: 'link',
         path: '/profile',
       },
@@ -35,7 +35,7 @@ const settingsSections = [
         icon: Shield,
         title: 'プライバシー設定',
         description: 'データの取り扱い',
-        iconBg: 'linear-gradient(135deg, #7c9a7c 0%, #a8dcc5 100%)',
+        iconBg: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
         type: 'link',
         path: '/privacy',
       },
@@ -138,7 +138,7 @@ function Settings() {
                     className={`${styles.item} ${isLast ? styles.itemLast : ''}`}
                     onClick={() => item.type !== 'toggle' && handleItemClick(item)}
                     whileHover={{
-                      background: 'rgba(65, 152, 115, 0.04)',
+                      background: 'rgba(6, 147, 227, 0.04)',
                     }}
                     whileTap={item.type !== 'toggle' ? { scale: 0.98 } : {}}
                   >

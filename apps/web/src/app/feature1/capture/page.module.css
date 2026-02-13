@@ -21,12 +21,12 @@
 
 /* Tips Card */
 .tipsCard {
-  background: linear-gradient(135deg, rgba(65, 152, 115, 0.08) 0%, rgba(65, 152, 115, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.08) 0%, rgba(6, 147, 227, 0.02) 100%);
   border-radius: 20px;
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
-  border: 1px solid rgba(65, 152, 115, 0.2);
-  box-shadow: 0 4px 20px rgba(26, 61, 46, 0.06);
+  border: 1px solid rgba(6, 147, 227, 0.2);
+  box-shadow: 0 4px 20px rgba(6, 147, 227, 0.06);
 }
 
 /* Progressive enhancement: backdrop-filter */
@@ -54,7 +54,7 @@
 .tipsTitle {
   font-size: var(--font-base);
   font-weight: 600;
-  color: #1a3d2e;
+  color: #313131;
 }
 
 .tipsList {
@@ -80,7 +80,7 @@
   padding: var(--spacing-md);
   border-radius: 16px;
   border: none;
-  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  background: linear-gradient(135deg, #0693e3 0%, #0570b8 100%);
   color: #ffffff;
   font-size: var(--font-base);
   font-weight: 600;
@@ -90,7 +90,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  box-shadow: 0 4px 16px rgba(65, 152, 115, 0.3);
+  box-shadow: 0 4px 16px rgba(6, 147, 227, 0.3);
   /* Touch target size */
   min-height: var(--touch-target-min);
 }
@@ -138,13 +138,13 @@
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
-  background: rgba(65, 152, 115, 0.08);
+  background: rgba(6, 147, 227, 0.08);
   border-radius: 16px;
-  color: #1a3d2e;
+  color: #313131;
   font-size: var(--font-sm);
-  border: 1px solid rgba(65, 152, 115, 0.2);
+  border: 1px solid rgba(6, 147, 227, 0.2);
   margin-bottom: var(--spacing-lg);
-  box-shadow: 0 2px 8px rgba(65, 152, 115, 0.1);
+  box-shadow: 0 2px 8px rgba(6, 147, 227, 0.1);
 }
 
 @media (max-width: 767px) {

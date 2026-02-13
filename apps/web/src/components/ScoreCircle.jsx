@@ -25,7 +25,7 @@ const styles = {
   value: {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     lineHeight: 1,
   },
   unit: {
@@ -44,13 +44,13 @@ const styles = {
 
 const getColor = (score, type = 'default') => {
   if (type === 'gradient') {
-    if (score >= 70) return ['#419873', '#7cc4a5']
-    if (score >= 40) return ['#c9a962', '#e8d9a8']
+    if (score >= 70) return ['#0693e3', '#7cc4a5']
+    if (score >= 40) return ['#38bdf8', '#0ea5e9']
     return ['#b85450', '#d47370']
   }
 
-  if (score >= 70) return '#419873'
-  if (score >= 40) return '#c9a962'
+  if (score >= 70) return '#0693e3'
+  if (score >= 40) return '#38bdf8'
   return '#b85450'
 }
 

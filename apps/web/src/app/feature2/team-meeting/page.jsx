@@ -11,10 +11,10 @@ import { apiFetch } from '@/lib/api'
 import styles from './page.module.css'
 
 const colors = {
-  deepForest: '#1a3d2e',
-  sage: '#7c9a7c',
+  deepForest: '#313131',
+  sage: '#60a5fa',
   cream: '#f8f6f2',
-  gold: '#c9a962',
+  gold: '#38bdf8',
 }
 
 // キャラクター定義
@@ -258,7 +258,7 @@ function TeamMeetingContent() {
                       ...(activeCharacter === char.id ? styles.characterCardActive : {}),
                     }}
                     onClick={() => setActiveCharacter(char.id === activeCharacter ? null : char.id)}
-                    whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(26, 61, 46, 0.1)' }}
+                    whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(6, 147, 227, 0.1)' }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <motion.div

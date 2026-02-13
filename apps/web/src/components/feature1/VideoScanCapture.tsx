@@ -529,7 +529,7 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         return (
             <div className={styles.guideContainer}>
                 <div className={styles.iconWrapper}>
-                    <Camera size={48} color="#419873" />
+                    <Camera size={48} color="#0693e3" />
                 </div>
                 <h2 className={styles.title}>動画で頭皮スキャン</h2>
                 <p className={styles.description}>

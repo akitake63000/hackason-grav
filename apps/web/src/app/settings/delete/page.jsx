@@ -33,7 +33,7 @@ const styles = {
     fontFamily: "'Cormorant Garamond', 'Noto Serif JP', serif",
     fontSize: '24px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
   },
   subtitle: {
     fontSize: '12px',
@@ -51,7 +51,7 @@ const styles = {
   itemTitle: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#1a3d2e',
+    color: '#313131',
     marginBottom: '4px',
   },
   itemDescription: {
@@ -65,7 +65,7 @@ const styles = {
     borderRadius: '6px',
     borderWidth: '1.5px',
     borderStyle: 'solid',
-    borderColor: 'rgba(26, 61, 46, 0.2)',
+    borderColor: 'rgba(6, 147, 227, 0.2)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,8 +73,8 @@ const styles = {
     background: '#fff',
   },
   checkboxActive: {
-    borderColor: '#419873',
-    background: 'linear-gradient(135deg, rgba(65, 152, 115, 0.15) 0%, rgba(65, 152, 115, 0.05) 100%)',
+    borderColor: '#0693e3',
+    background: 'linear-gradient(135deg, rgba(6, 147, 227, 0.15) 0%, rgba(6, 147, 227, 0.05) 100%)',
   },
   hint: {
     fontSize: '12px',
@@ -292,7 +292,7 @@ function DeleteSettingsPage() {
                         ...(isActive ? styles.checkboxActive : {}),
                       }}
                     >
-                      {isActive && <Check size={14} color="#419873" strokeWidth={3} />}
+                      {isActive && <Check size={14} color="#0693e3" strokeWidth={3} />}
                     </div>
                     <div style={styles.itemContent}>
                       <div style={styles.itemTitle}>{item.title}</div>

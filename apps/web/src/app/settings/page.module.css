@@ -40,7 +40,7 @@
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 20px rgba(26, 61, 46, 0.06);
+  box-shadow: 0 4px 20px rgba(6, 147, 227, 0.06);
 }
 
 /* Progressive enhancement: backdrop-filter */
@@ -65,14 +65,14 @@
   padding: var(--spacing-md) var(--spacing-lg);
   cursor: pointer;
   transition: background 0.2s ease;
-  border-bottom: 1px solid rgba(26, 61, 46, 0.05);
+  border-bottom: 1px solid rgba(6, 147, 227, 0.05);
   /* Touch target size */
   min-height: var(--touch-target-min);
 }
 
 @media (hover: hover) {
   .item:hover {
-    background: rgba(65, 152, 115, 0.04);
+    background: rgba(6, 147, 227, 0.04);
   }
 }
 
@@ -114,7 +114,7 @@
 .itemTitle {
   font-size: var(--font-base);
   font-weight: 500;
-  color: #1a3d2e;
+  color: #313131;
   margin-bottom: 2px;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .toggleOn {
-  background: linear-gradient(135deg, #419873 0%, #347a5c 100%);
+  background: linear-gradient(135deg, #0693e3 0%, #0570b8 100%);
   justify-content: flex-end;
 }
 
@@ -226,13 +226,13 @@
 
 /* Focus visible for interactive elements */
 .item:focus-visible {
-  outline: 2px solid #419873;
+  outline: 2px solid #0693e3;
   outline-offset: -2px;
-  background: rgba(65, 152, 115, 0.08);
+  background: rgba(6, 147, 227, 0.08);
 }
 
 .toggle:focus-visible {
-  outline: 2px solid #419873;
+  outline: 2px solid #0693e3;
   outline-offset: 2px;
 }
 

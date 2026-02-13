@@ -20,9 +20,9 @@ import styles from './page.module.css'
 
 // Inline styles for dynamic gradient values
 const gradientStyles = {
-  green: 'linear-gradient(135deg, #1a3d2e 0%, #347a5c 100%)',
-  gold: 'linear-gradient(135deg, #c9a962 0%, #e8d9a8 100%)',
-  leaf: 'linear-gradient(135deg, #7c9a7c 0%, #a8dcc5 100%)',
+  green: 'linear-gradient(135deg, #0693e3 0%, #0570b8 100%)',
+  gold: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)',
+  leaf: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
 }
 
 const features = [
@@ -353,7 +353,7 @@ function Home() {
               transition={{ delay: 0.2 }}
             >
               <div className={styles.statusHeader}>
-                <Sparkles size={16} color="#c9a962" />
+                <Sparkles size={16} color="#38bdf8" />
                 <span className={styles.statusTitle}>継続記録(ログイン日数)</span>
               </div>
               <p className={styles.statusSubtext}>
@@ -446,7 +446,7 @@ function Home() {
                 animate={{ opacity: 1, height: 'auto' }}
                 transition={{ duration: 0.3 }}
               >
-                <div style={{ whiteSpace: 'pre-line', fontSize: 'var(--font-sm)', color: '#1a3d2e', lineHeight: 1.6 }}>
+                <div style={{ whiteSpace: 'pre-line', fontSize: 'var(--font-sm)', color: '#313131', lineHeight: 1.6 }}>
                   {homeData.quickAction.guide}
                 </div>
               </motion.div>
@@ -516,8 +516,8 @@ function Home() {
                   transition={{ delay: 0.45 + index * 0.1 }}
                   whileHover={{
                     y: -4,
-                    borderColor: '#419873',
-                    boxShadow: '0 12px 32px rgba(26, 61, 46, 0.12)',
+                    borderColor: '#0693e3',
+                    boxShadow: '0 12px 32px rgba(6, 147, 227, 0.12)',
                   }}
                   whileTap={{ scale: 0.98 }}
                 >
