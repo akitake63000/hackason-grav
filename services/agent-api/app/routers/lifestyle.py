@@ -2179,23 +2179,28 @@ def get_current_plan(
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """現在進行中のプランと本日のログを取得"""
-    logging.info(f"[/plan/current] Starting for user {uid}")
+    print(f"[/plan/current] Starting for user {uid}")  # Use print for debugging
+    logging.warning(f"[/plan/current] Starting for user {uid}")
     db = get_firestore_client()
 
     # 1. Find latest plan (prioritize active, then completed)
     plans_ref = db.collection("users").document(uid).collection("plans")
-    logging.info(f"[/plan/current] Fetching plans for user {uid}")
+    print(f"[/plan/current] Fetching plans for user {uid}")
+    logging.warning(f"[/plan/current] Fetching plans for user {uid}")
 
     # Try to get all plans and sort in Python (more reliable than Firestore ordering)
     try:
         all_docs = list(plans_ref.stream())
-        logging.info(f"[/plan/current] Retrieved {len(all_docs) if all_docs else 0} plans")
+        print(f"[/plan/current] Retrieved {len(all_docs) if all_docs else 0} plans")
+        logging.warning(f"[/plan/current] Retrieved {len(all_docs) if all_docs else 0} plans")
     except Exception as e:
+        print(f"[/plan/current] Error fetching plans: {e}")
         logging.error(f"[/plan/current] Error fetching plans: {e}", exc_info=True)
         return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
 
     if not all_docs:
-        logging.info(f"[/plan/current] No plan found for user {uid}")
+        print(f"[/plan/current] No plan found for user {uid}")
+        logging.warning(f"[/plan/current] No plan found for user {uid}")
         return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
 
     # Sort by status priority (active first) and then by creation time
