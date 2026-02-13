@@ -2179,33 +2179,47 @@ def get_current_plan(
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """現在進行中のプランと本日のログを取得"""
+    logging.info(f"[/plan/current] Starting for user {uid}")
     db = get_firestore_client()
-    
+
     # 1. Find latest plan (prioritize active, then completed)
     plans_ref = db.collection("users").document(uid).collection("plans")
+    logging.info(f"[/plan/current] Fetching plans for user {uid}")
 
     # Try to get all plans and sort in Python (more reliable than Firestore ordering)
-    all_docs = list(plans_ref.stream())
+    try:
+        all_docs = list(plans_ref.stream())
+        logging.info(f"[/plan/current] Retrieved {len(all_docs) if all_docs else 0} plans")
+    except Exception as e:
+        logging.error(f"[/plan/current] Error fetching plans: {e}", exc_info=True)
+        return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
 
     if not all_docs:
-        logging.info(f"No plan found for user {uid}")
+        logging.info(f"[/plan/current] No plan found for user {uid}")
         return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
 
     # Sort by status priority (active first) and then by creation time
     def get_plan_priority(doc):
-        data = doc.to_dict()
-        status = data.get("status", "")
-        created_at = data.get("createdAt", "")
-        # Active plans get priority 0, completed/expired get priority 1
-        status_priority = 0 if status == "active" else 1
-        return (status_priority, created_at)
+        try:
+            data = doc.to_dict()
+            status = data.get("status", "")
+            created_at = data.get("createdAt", "")
+            # Active plans get priority 0, completed/expired get priority 1
+            status_priority = 0 if status == "active" else 1
+            return (status_priority, created_at)
+        except Exception as e:
+            logging.error(f"[/plan/current] Error in get_plan_priority: {e}")
+            return (1, "")  # Default priority
 
     # Sort and get the first one
-    sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=True)
-    plan_doc = sorted_docs[0]
-    plan_data = plan_doc.to_dict()
-
-    logging.info(f"Found plan {plan_doc.id} with status {plan_data.get('status')}, total plans: {len(all_docs)}")
+    try:
+        sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=True)
+        plan_doc = sorted_docs[0]
+        plan_data = plan_doc.to_dict()
+        logging.info(f"[/plan/current] Found plan {plan_doc.id} with status {plan_data.get('status')}, total plans: {len(all_docs)}")
+    except Exception as e:
+        logging.error(f"[/plan/current] Error sorting/accessing plans: {e}", exc_info=True)
+        return PlanResponse(planId=None, theme=None, startDate=None, endDate=None)
     
     # 2. Check and handle expiration
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
