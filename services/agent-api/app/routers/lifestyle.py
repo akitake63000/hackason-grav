@@ -1920,6 +1920,9 @@ class ActionCheckRequest(BaseModel):
     date: str  # YYYY-MM-DD
     completed: bool
 
+class GenerateDailyRequest(BaseModel):
+    planId: str
+
 class PlanResponse(BaseModel):
     # Plan info
     planId: str | None
@@ -2306,10 +2309,6 @@ def check_action(
         log_ref.set({"completedActions": firestore.ArrayRemove([req.actionId])}, merge=True)
         
     return {"status": "updated"}
-
-
-class GenerateDailyRequest(BaseModel):
-    planId: str
 
 
 class PlanConfirmRequest(BaseModel):
