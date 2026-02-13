@@ -305,16 +305,30 @@ export default function WeeklyPlan() {
     }
 
     const handleGenerateDaily = async () => {
-        if (!plan) return
+        if (!plan) {
+            console.error("Plan is not loaded")
+            return
+        }
+        if (!plan.planId) {
+            console.error("Plan ID is missing:", plan)
+            return
+        }
+        console.log("Generating daily actions with planId:", plan.planId)
         setGenerating(true)
         try {
+            const requestBody = { planId: plan.planId }
+            console.log("Request body:", requestBody)
             const res = await apiFetch('/api/v1/lifestyle/plan/daily/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ planId: plan.planId })
+                body: JSON.stringify(requestBody)
             })
+            console.log("Response status:", res.status)
             if (res.ok) {
                 await fetchData()
+            } else {
+                const errorData = await res.json().catch(() => null)
+                console.error("API error response:", errorData)
             }
         } catch (e) {
             console.error("Failed to generate daily actions", e)
