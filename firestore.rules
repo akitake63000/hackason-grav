@@ -44,6 +44,18 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      match /plans/{planId} {
+        allow read, write: if isOwner(uid);
+
+        match /dailyActions/{dateKey} {
+          allow read, write: if isOwner(uid);
+        }
+
+        match /logs/{dateKey} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+
       match /chatTasks/{taskId} {
         // ユーザーは自分のタスクのみ読み取り可能、書き込みはバックエンドのみ
         allow read: if isOwner(uid);
