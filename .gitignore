@@ -37,3 +37,7 @@ docs/home-ai-ideas.md
 
 backup/*work/
 work/
+
+# Security
+add_key.exp
+.git_askpass
