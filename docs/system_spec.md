@@ -1,6 +1,6 @@
 # HairGuard Agent システム仕様書
 
-最終更新: 2026-02-12
+最終更新: 2026-02-13
 
 ## 1. 概要
 薄毛対策の継続を支えるMVP。
@@ -90,6 +90,13 @@ sequenceDiagram
 - Static Export (`output: "export"`)
 - Framer Motion（アニメーション）
 - Firebase v12.8
+- lucide-react（アイコン）
+- **デザインシステム**: FLUX-inspired blue theme
+  - Primary Accent: `#0693e3` (cyan blue)
+  - Accent Strong: `#0570b8` (darker blue)
+  - Accent Soft: `#e0f2fe` (light blue)
+  - Accent Secondary: `#FEFE2D` (yellow)
+  - 40+ファイルで統一された色パレット
 
 ### 3.2 画面一覧
 | 画面 | パス | 概要 |
@@ -754,6 +761,20 @@ hackason-grab/
 ---
 
 ## 9. 主要な変更履歴
+
+### 2026-02-13
+- **デザインリフレッシュ（FLUX-inspired blue theme）** (branch: `feature/design-refresh`)
+  - サイト全体の色パレット変更: green botanical theme → FLUX-inspired blue theme
+  - Primary Accent: `#0693e3` (cyan blue)
+  - 40+ファイルの色コード一括変更 (commits: `693b36c`, `1aeaaf7`, `93ec7d4`, `db13cb8`)
+    - `#419873` → `#0693e3` (green accent → blue)
+    - `#347a5c` → `#0570b8` (green → darker blue)
+    - `#c9a962` → `#38bdf8` (gold → light blue)
+    - `#e8d9a8` → `#0ea5e9` (light gold → sky blue)
+  - 対象ファイル: globals.css, Card.jsx, Layout components, Header, BottomNav, 各ページコンポーネント
+- **サイドバーアイコン変更** (commit: `4e993e0`)
+  - ロゴアイコンを🌿絵文字から lucide-react `Leaf` アイコンに変更
+  - login画面との統一感向上
 
 ### 2026-02-12
 - **ホーム画面UX最適化** (commit: `dcf6e87`, PR#16)
