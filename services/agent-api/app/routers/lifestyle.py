@@ -2012,21 +2012,31 @@ def generate_plan(
 @limiter.limit("10/minute")
 def generate_daily(
     request: Request,
+    req: GenerateDailyRequest,
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
     """今日のアクションを手動で生成する"""
     db = get_firestore_client()
-    
-    # 1. Get active plan
-    plans_ref = db.collection("users").document(uid).collection("plans")
-    query = plans_ref.where("status", "==", "active").limit(1)
-    docs = query.get()
-    
-    if not docs:
-         raise HTTPException(status_code=404, detail="No active plan found")
-         
-    plan_doc = docs[0]
+
+    # 1. Get plan by ID (skip status check to support expired plans)
+    plan_ref = db.collection("users").document(uid).collection("plans").document(req.planId)
+    plan_doc = plan_ref.get()
+
+    if not plan_doc.exists:
+         raise HTTPException(status_code=404, detail="Plan not found")
+
     plan_data = plan_doc.to_dict()
+
+    # Log warning if plan is expired
+    now = datetime.now(ZoneInfo("Asia/Tokyo"))
+    end_date_str = plan_data.get("endDate")
+    if end_date_str:
+        try:
+            end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00'))
+            if now > end_date:
+                logging.warning(f"Generating actions for expired plan {req.planId}")
+        except Exception:
+            pass  # Ignore invalid date format
     
     # 2. Fetch tendency for context
     doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
@@ -2054,7 +2064,7 @@ def generate_daily(
          today_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
     # Check if today is already confirmed
-    log_doc = plan_doc.reference.collection("logs").document(today_str).get()
+    log_doc = plan_ref.collection("logs").document(today_str).get()
     is_today_confirmed = False
     if log_doc.exists:
         data = log_doc.to_dict()
@@ -2068,14 +2078,14 @@ def generate_daily(
         target_date_str = target_date_obj.strftime("%Y-%m-%d")
 
     # 5. Save Actions
-    plan_doc.reference.collection("dailyActions").document(target_date_str).set({
+    plan_ref.collection("dailyActions").document(target_date_str).set({
         "actions": actions,
         "createdAt": now.isoformat()
     })
-    
+
     # 6. Return Response
     # Fetch log for the target view date
-    view_log_doc = plan_doc.reference.collection("logs").document(target_date_str).get()
+    view_log_doc = plan_ref.collection("logs").document(target_date_str).get()
     view_log = {"completedActions": []}
     if view_log_doc.exists:
         view_log = view_log_doc.to_dict()
@@ -2296,6 +2306,10 @@ def check_action(
         log_ref.set({"completedActions": firestore.ArrayRemove([req.actionId])}, merge=True)
         
     return {"status": "updated"}
+
+
+class GenerateDailyRequest(BaseModel):
+    planId: str
 
 
 class PlanConfirmRequest(BaseModel):
