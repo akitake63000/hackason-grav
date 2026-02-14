@@ -163,14 +163,14 @@ const deleteItems = [
     description: '生活習慣の傾向スコア',
   },
   {
-    id: 'foodRequests',
-    title: '食材リクエスト',
-    description: '食事・食材の記録',
-  },
-  {
     id: 'plans',
     title: '週間プラン',
     description: 'AI週間プランとミッション履歴',
+  },
+  {
+    id: 'foodRequests',
+    title: '食材リクエスト',
+    description: '食事・食材の記録',
   },
 ]
 

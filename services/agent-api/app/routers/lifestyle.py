@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, time
 from zoneinfo import ZoneInfo
+from typing import Optional
 import logging
 import random
 import re
@@ -1925,7 +1926,7 @@ class ActionCheckRequest(BaseModel):
     completed: bool
 
 class GenerateDailyRequest(BaseModel):
-    planId: str
+    planId: Optional[str] = None
 
 class PlanResponse(BaseModel):
     # Plan info
@@ -2022,10 +2023,76 @@ def generate_daily(
     req: GenerateDailyRequest,
     uid: str = Depends(get_current_uid),
 ) -> PlanResponse:
-    """今日のアクションを手動で生成する"""
+    """今日のアクションを手動で生成する（週次プラン未作成時は自動作成）"""
     db = get_firestore_client()
 
-    # 1. Get plan by ID (skip status check to support expired plans)
+    # 1. planId が指定されていない場合、アクティブな週次プランを検索または作成
+    if not req.planId:
+        plans_ref = db.collection("users").document(uid).collection("plans")
+        active_plans = plans_ref.where("status", "==", "active").stream()
+
+        active_plan_doc = None
+        now = datetime.now(ZoneInfo("Asia/Tokyo"))
+
+        for plan_doc in active_plans:
+            plan_data = plan_doc.to_dict()
+            # 期限内チェック
+            end_date = plan_data.get("endDate")
+            if end_date:
+                if isinstance(end_date, str):
+                    try:
+                        end_date = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
+                    except Exception:
+                        continue
+                if now <= end_date:
+                    active_plan_doc = plan_doc
+                    break
+
+        # 2. アクティブなプランがなければ、新規作成
+        if not active_plan_doc:
+            # 傾向スコアを取得
+            doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
+            doc = doc_ref.get()
+
+            if not doc.exists:
+                raise HTTPException(status_code=404, detail="No tendency data found")
+
+            data = doc.to_dict()
+            scores = {
+                "hormone": data.get("hormonal", 0),
+                "blood_flow": data.get("bloodCirculation", 0),
+                "circadian": data.get("circadian", 0),
+                "stress": data.get("stress", 0),
+            }
+            answers = data.get("answers", {})
+
+            # 古いアクティブプランを completed に変更
+            old_active_plans = plans_ref.where("status", "==", "active").stream()
+            for old_plan in old_active_plans:
+                plans_ref.document(old_plan.id).update({"status": "completed"})
+
+            # 新規プラン作成
+            plan = generate_weekly_plan(scores, answers)
+            plan_id = plan["planId"]
+
+            # Firestoreに保存
+            plan_ref = plans_ref.document(plan_id)
+            plan_ref.set({
+                "planId": plan_id,
+                "startDate": plan["startDate"],
+                "endDate": plan["endDate"],
+                "theme": plan["theme"],
+                "status": "active",
+                "createdAt": now.isoformat(),
+                "createdScores": plan["createdScores"]
+            })
+
+            req.planId = plan_id
+            logging.info(f"Auto-created weekly plan {plan_id} for user {uid}")
+        else:
+            req.planId = active_plan_doc.id
+
+    # 3. Get plan by ID (skip status check to support expired plans)
     plan_ref = db.collection("users").document(uid).collection("plans").document(req.planId)
     plan_doc = plan_ref.get()
 
@@ -2044,8 +2111,8 @@ def generate_daily(
                 logging.warning(f"Generating actions for expired plan {req.planId}")
         except Exception:
             pass  # Ignore invalid date format
-    
-    # 2. Fetch tendency for context
+
+    # 4. Fetch tendency for context
     doc_ref = db.collection("users").document(uid).collection("tendencyScores").document("latest")
     doc = doc_ref.get()
     scores = {}
@@ -2060,11 +2127,11 @@ def generate_daily(
         }
         answers = data.get("answers", {})
 
-    # 3. Generate Actions
+    # 5. Generate Actions
     # Use history to avoid duplicates? (Feature for later)
     actions = generate_daily_actions(scores, answers)
-    
-    # 4. Determine Target Date (Today vs Tomorrow)
+
+    # 6. Determine Target Date (Today vs Tomorrow)
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
     today_str = now.strftime("%Y-%m-%d")
     if now.hour < 4:
@@ -2084,13 +2151,13 @@ def generate_daily(
         target_date_obj = datetime.strptime(today_str, "%Y-%m-%d") + timedelta(days=1)
         target_date_str = target_date_obj.strftime("%Y-%m-%d")
 
-    # 5. Save Actions
+    # 7. Save Actions
     plan_ref.collection("dailyActions").document(target_date_str).set({
         "actions": actions,
         "createdAt": now.isoformat()
     })
 
-    # 6. Return Response
+    # 8. Return Response
     # Fetch log for the target view date
     view_log_doc = plan_ref.collection("logs").document(target_date_str).get()
     view_log = {"completedActions": []}
@@ -2220,9 +2287,9 @@ def get_current_plan(
             logging.error(f"[/plan/current] Error in get_plan_priority: {e}")
             return (1, "")  # Default priority
 
-    # Sort and get the first one
+    # Sort and get the first one (active plans first with reverse=False)
     try:
-        sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=True)
+        sorted_docs = sorted(all_docs, key=get_plan_priority, reverse=False)
         plan_doc = sorted_docs[0]
         plan_data = plan_doc.to_dict()
         logging.info(f"[/plan/current] Found plan {plan_doc.id} with status {plan_data.get('status')}, total plans: {len(all_docs)}")
@@ -2267,31 +2334,63 @@ def get_current_plan(
         logging.error(f"Error handling plan expiration: {e}", exc_info=True)
         weekly_stats = None
 
-    # 3. Determine view date (Auto-advance if today is confirmed)
+    # 3. Determine view date (Always show today's missions, even if confirmed)
     current_date_obj = now
     if now.hour < 4:
         current_date_obj = now - timedelta(days=1)
-        
+
     today_str = current_date_obj.strftime("%Y-%m-%d")
-    
+
     # Check today's confirmation
     today_log_doc = plan_doc.reference.collection("logs").document(today_str).get()
     is_today_confirmed = False
     if today_log_doc.exists:
         is_today_confirmed = today_log_doc.to_dict().get("isConfirmed", False)
 
+    # Always use today's date for view_date (don't advance to tomorrow)
     view_date_obj = current_date_obj
-    if is_today_confirmed:
-        # Advance to tomorrow if today is already done
-        view_date_obj = current_date_obj + timedelta(days=1)
-    
     view_date_str = view_date_obj.strftime("%Y-%m-%d")
 
-    # 4. Fetch Actions for view date
+    logging.info(f"[/plan/current] view_date={view_date_str}, is_today_confirmed={is_today_confirmed}")
+
+    # 4. Fetch Actions for view date (auto-generate if missing)
     daily_actions_doc = plan_doc.reference.collection("dailyActions").document(view_date_str).get()
     view_actions = []
     if daily_actions_doc.exists:
         view_actions = daily_actions_doc.to_dict().get("actions", [])
+        logging.info(f"[/plan/current] Found existing daily actions for {view_date_str}, count: {len(view_actions)}")
+    else:
+        # Auto-generate daily actions ONLY if missing for this date
+        logging.warning(f"[/plan/current] Daily actions missing for {view_date_str}, will auto-generate")
+        try:
+            # Get scores from plan
+            scores = plan_data.get("createdScores", {
+                "hormone": 50,
+                "blood_flow": 50,
+                "circadian": 50,
+                "stress": 50
+            })
+
+            # Get answers from latest tendency
+            tendency_doc = db.collection("users").document(uid).collection("tendencyScores").document("latest").get()
+            answers = {}
+            if tendency_doc.exists:
+                answers = tendency_doc.to_dict().get("answers", {})
+
+            # Generate actions
+            actions = generate_daily_actions(scores, answers)
+
+            # Save to Firestore (only if still doesn't exist - prevent race condition)
+            plan_doc.reference.collection("dailyActions").document(view_date_str).set({
+                "actions": actions,
+                "createdAt": now.isoformat()
+            })
+
+            view_actions = actions
+            logging.warning(f"[/plan/current] Auto-generated {len(actions)} daily actions for {view_date_str}")
+        except Exception as e:
+            logging.error(f"[/plan/current] Failed to auto-generate daily actions: {e}", exc_info=True)
+            view_actions = []
     
     # 5. Get logs for view date
     view_log_doc = plan_doc.reference.collection("logs").document(view_date_str).get()

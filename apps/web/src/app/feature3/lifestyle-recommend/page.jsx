@@ -124,6 +124,43 @@ function LifestyleRecommendContent() {
     }
   }
 
+  const handleCreateAndNavigate = async () => {
+    setGeneratingPlan(true)
+    try {
+      // 1. 週間プラン作成
+      const planRes = await apiFetch('/api/v1/lifestyle/plan/generate', {
+        method: 'POST',
+      })
+
+      if (!planRes.ok) {
+        throw new Error('週間プラン作成に失敗しました')
+      }
+
+      const planData = await planRes.json()
+
+      // 2. 今日のミッション作成
+      try {
+        const dailyRes = await apiFetch('/api/v1/lifestyle/plan/daily/generate', {
+          method: 'POST',
+        })
+
+        if (!dailyRes.ok) {
+          console.warn('ミッション生成に失敗しましたが、プランは作成されました')
+        }
+      } catch (dailyError) {
+        console.warn('ミッション生成エラー:', dailyError)
+        // ミッション生成失敗しても画面遷移は続行
+      }
+
+      // 3. 画面遷移
+      router.push('/feature3/weekly-plan')
+    } catch (error) {
+      console.error('プラン作成エラー:', error)
+      window.alert('プラン作成に失敗しました。再度お試しください。')
+      setGeneratingPlan(false)
+    }
+  }
+
 
 
   const getPriorityInfo = (priority) => {
@@ -380,11 +417,12 @@ function LifestyleRecommendContent() {
               </Button>
             ) : (
               <Button
-                onClick={() => router.push('/feature3/weekly-plan')}
-                icon={<ArrowRight size={18} />}
+                onClick={handleCreateAndNavigate}
+                icon={generatingPlan ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}
                 iconPosition="right"
+                disabled={generatingPlan}
               >
-                プラン作成へ進む
+                {generatingPlan ? 'プラン作成中...' : 'プラン作成へ進む'}
               </Button>
             )}
           </motion.div>

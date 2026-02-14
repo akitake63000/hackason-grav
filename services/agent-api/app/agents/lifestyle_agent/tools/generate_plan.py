@@ -46,17 +46,29 @@ def generate_weekly_plan(scores: dict[str, int], answers: dict[str, str]) -> Wee
 
     # 2. Build Plan Object (Empty actions for now, user will generate daily)
     now = datetime.now(ZoneInfo("Asia/Tokyo"))
-    end = now + timedelta(days=6)
-    
+
+    # 4am boundary: 午前4時前は前日扱い
+    if now.hour < 4:
+        now = now - timedelta(days=1)
+
+    # 今週の月曜日を計算（0=月曜, 6=日曜）
+    weekday = now.weekday()
+    start_of_week = now - timedelta(days=weekday)
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # 今週の日曜日を計算
+    end = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
     plan: WeeklyPlan = {
-        "planId": f"plan_{int(now.timestamp())}",
-        "startDate": now.isoformat(),
+        "planId": f"plan_{int(datetime.now(ZoneInfo('Asia/Tokyo')).timestamp())}",
+        "startDate": start_of_week.isoformat(),
         "endDate": end.isoformat(),
         "theme": theme,
         "targetActions": [], # Empty initially
-        "createdScores": scores
+        "createdScores": scores,
+        "createdAt": datetime.now(ZoneInfo('Asia/Tokyo')).isoformat()
     }
-    
+
     return plan
 
 def generate_daily_actions(scores: dict[str, int], answers: dict[str, str], history: List[str] = None) -> List[RecommendedAction]:

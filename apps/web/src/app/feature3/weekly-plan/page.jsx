@@ -29,6 +29,7 @@ export default function WeeklyPlan() {
     const [loading, setLoading] = useState(true)
     const [plan, setPlan] = useState(null)
     const [todayLog, setTodayLog] = useState([])
+    const [initialTodayLog, setInitialTodayLog] = useState([]) // Track initial state
     const [confirmingAction, setConfirmingAction] = useState(null)
     const [showInactivityWarning, setShowInactivityWarning] = useState(false)
     const [tendencyData, setTendencyData] = useState(null)
@@ -84,6 +85,7 @@ export default function WeeklyPlan() {
                 ).filter(id => id !== '')
 
                 setTodayLog(completedIds)
+                setInitialTodayLog(completedIds) // Save initial state
                 setStreak(planData.streak || 0)
 
                 // Calculate bonus scores from completed actions
@@ -195,6 +197,12 @@ export default function WeeklyPlan() {
             if (!res.ok) {
                 // Revert on error
                 await fetchData() // Simpler than complex revert logic
+            } else {
+                // Update weekly progress immediately (+5 points per mission)
+                setPlan(prev => ({
+                    ...prev,
+                    weeklyProgress: (prev.weeklyProgress || 0) + 5
+                }))
             }
         } catch (error) {
             console.error('Check failed:', error)
@@ -236,6 +244,12 @@ export default function WeeklyPlan() {
 
             if (!res.ok) {
                 await fetchData() // Revert
+            } else {
+                // Update weekly progress immediately (-5 points per mission)
+                setPlan(prev => ({
+                    ...prev,
+                    weeklyProgress: Math.max(0, (prev.weeklyProgress || 0) - 5)
+                }))
             }
         } catch (error) {
             console.error('Uncheck failed:', error)
@@ -272,8 +286,18 @@ export default function WeeklyPlan() {
             })
 
             if (res.ok) {
-                // Refresh to show updated score and confirmed state
-                await fetchData()
+                // Update confirmed state without refreshing entire data
+                setPlan(prev => ({
+                    ...prev,
+                    isTodayConfirmed: true,
+                    weeklyProgress: prev.weeklyProgress || 0 // Keep score as is, backend will update
+                }))
+
+                // Update initial state to current state (reset change detection)
+                setInitialTodayLog([...todayLog])
+
+                // Show success message
+                window.alert('正常に登録されました。')
             }
         } catch (error) {
             console.error('Confirmation failed:', error)
@@ -305,33 +329,32 @@ export default function WeeklyPlan() {
     }
 
     const handleGenerateDaily = async () => {
-        if (!plan) {
-            console.error("Plan is not loaded")
-            return
-        }
-        if (!plan.planId) {
-            console.error("Plan ID is missing:", plan)
-            return
-        }
-        console.log("Generating daily actions with planId:", plan.planId)
         setGenerating(true)
         try {
-            const requestBody = { planId: plan.planId }
-            console.log("Request body:", requestBody)
+            // planId をオプショナルに（未作成時は送信しない）
+            const requestBody = plan?.planId ? { planId: plan.planId } : {}
+
             const res = await apiFetch('/api/v1/lifestyle/plan/daily/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             })
-            console.log("Response status:", res.status)
-            if (res.ok) {
-                await fetchData()
-            } else {
-                const errorData = await res.json().catch(() => null)
-                console.error("API error response:", errorData)
+
+            if (!res.ok) {
+                const errorText = await res.text()
+                throw new Error(`ミッション生成に失敗しました: ${errorText}`)
             }
-        } catch (e) {
-            console.error("Failed to generate daily actions", e)
+
+            const data = await res.json()
+
+            // レスポンスを活用して状態を直接更新
+            setPlan(data)
+            setActiveDate(data.currentViewDate || new Date().toISOString().split('T')[0])
+
+            window.alert('ミッションを生成しました！')
+        } catch (error) {
+            console.error('ミッション生成エラー:', error)
+            window.alert('ミッション生成に失敗しました。再度お試しください。')
         } finally {
             setGenerating(false)
         }
@@ -509,7 +532,11 @@ export default function WeeklyPlan() {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'flex-end' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#313131' }}>
-                                週間スコア
+                                {plan.startDate && plan.endDate ? (
+                                    <>週間スコア ({new Date(plan.startDate).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })} - {new Date(plan.endDate).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })})</>
+                                ) : (
+                                    <>週間スコア</>
+                                )}
                             </span>
                             <span style={{ fontSize: '24px', fontWeight: '800', color: '#0693e3' }}>
                                 {plan.weeklyProgress || 0}<span style={{ fontSize: '14px', fontWeight: 'normal' }}>/105pts</span>
@@ -617,39 +644,31 @@ export default function WeeklyPlan() {
                                 <>
                                     <Sparkles size={48} color="#0693e3" style={{ marginBottom: '16px' }} />
                                     <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>
-                                        今日のミッションを作成
+                                        今日のミッション準備中
                                     </h3>
-                                    <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '24px' }}>
-                                        今のあなたに最適な3つのアクションを<br />AIが提案します。
+                                    <p style={{ fontSize: '14px', color: '#7f786d' }}>
+                                        ミッションは自動的に生成されます。<br />午前4時以降にご確認ください。
                                     </p>
-                                    <Button onClick={handleGenerateDaily}>
-                                        ミッションを生成する
-                                    </Button>
                                 </>
                             ) : null}
                         </div>
                     ) : (
                         <>
-                            {plan.isTodayConfirmed ? (
+                            {plan.isTodayConfirmed && (
                                 <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    style={{ textAlign: 'center', padding: '32px 20px', background: 'rgba(6, 147, 227, 0.05)', borderRadius: '24px', border: '1px solid rgba(6, 147, 227, 0.2)' }}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{ textAlign: 'center', padding: '16px 20px', background: 'rgba(6, 147, 227, 0.05)', borderRadius: '16px', border: '1px solid rgba(6, 147, 227, 0.2)', marginBottom: '16px' }}
                                 >
-                                    <div style={{ background: '#0693e3', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                        <CheckCircle size={32} color="#fff" />
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                        <CheckCircle size={20} color="#0693e3" />
+                                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#0693e3' }}>本日のミッション確定済み</span>
                                     </div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#313131', marginBottom: '8px' }}>本日のミッション完了！</h3>
-                                    <p style={{ fontSize: '14px', color: '#7f786d', marginBottom: '20px' }}>
-                                        お疲れさまでした。スコアが反映されました。<br />
-                                        明日もこの調子で頑張りましょう！
-                                    </p>
-                                    <p style={{ fontSize: '12px', color: '#9c958a' }}>
-                                        ※明日のミッションは午前4時以降に表示されます。
+                                    <p style={{ fontSize: '12px', color: '#7f786d', marginTop: '4px' }}>
+                                        スコアが反映されました。チェックは引き続き変更できます。
                                     </p>
                                 </motion.div>
-                            ) : (
-                                <>
+                            )}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         {plan.targetActions.map((action, index) => {
                                             const completed = isActionCompleted(action.id)
@@ -721,13 +740,12 @@ export default function WeeklyPlan() {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: 0.5 }}
-                                        style={{ marginTop: '32px' }}
+                                        style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                                     >
                                         <Button
-                                            fullWidth
                                             size="lg"
                                             onClick={handleConfirmDay}
-                                            disabled={todayLog.length === 0}
+                                            disabled={todayLog.length === 0 || JSON.stringify([...todayLog].sort()) === JSON.stringify([...initialTodayLog].sort())}
                                             variant={completionRate === 100 ? "primary" : "outline"}
                                         >
                                             {todayLog.length === 0 ? "アクションをチェックしてください" : "本日の達成内容を確定する"}
@@ -735,16 +753,11 @@ export default function WeeklyPlan() {
                                         <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '12px' }}>
                                             確定すると週間スコアに加算されます
                                         </p>
+                                        <p style={{ textAlign: 'center', fontSize: '11px', color: '#9c958a', marginTop: '4px' }}>
+                                            月曜 04:00に週間スコアはリセットされます
+                                        </p>
                                     </motion.div>
-                                </>
-                            )}
                         </>
-                    )}
-                    {plan.endDate && (
-                        <p style={{ textAlign: 'center', fontSize: '12px', color: '#9c958a', marginTop: '32px' }}>
-                            <Calendar size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-                            プラン終了日: {new Date(plan.endDate).toLocaleDateString('ja-JP')}
-                        </p>
                     )}
                 </div>
             </div>
