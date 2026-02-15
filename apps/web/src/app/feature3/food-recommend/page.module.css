@@ -413,3 +413,54 @@
     /* Matched to border colors */
     margin: 16px 0;
 }
+
+/* Progress Bar (loading) */
+.progressContainer {
+    width: 200px;
+    height: 4px;
+    background: rgba(6, 147, 227, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin: 16px auto;
+}
+
+.progressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #0693e3 0%, #0570b8 100%);
+    border-radius: 2px;
+}
+
+.loadingStepText {
+    font-size: 13px;
+    color: #7f786d;
+    margin-top: 8px;
+}
+
+/* Recipe Regenerate Button */
+.regenerateSection {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.regenerateBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: rgba(6, 147, 227, 0.05);
+    border: 1px solid rgba(6, 147, 227, 0.25);
+    border-radius: 12px;
+    color: #0693e3;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.regenerateBtn:hover {
+    background: rgba(6, 147, 227, 0.12);
+    border-color: rgba(6, 147, 227, 0.4);
+}

@@ -25,6 +25,7 @@ router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 class FoodSniperRequest(BaseModel):
     message: Optional[str] = Field(None, max_length=1000, description="User message for food recommendation")
     hairPattern: Optional[str] = Field(None, description="Hair loss pattern (valid: M字, O字, U字, びまん性, オルセン型, ハミルトン型). Invalid values trigger generic fallback.")
+    useCache: bool = Field(True, description="If True, return cached recommendation if available")
 
     @validator('message')
     def validate_message(cls, v):
@@ -68,6 +69,7 @@ class FoodSniperResponse(BaseModel):
 class RecipeRequest(BaseModel):
     foodName: str = Field(..., min_length=1, max_length=100, description="Food name for recipe generation")
     hairPattern: Optional[str] = Field(None, description="Hair loss pattern. Invalid values are ignored.")
+    useCache: bool = Field(True, description="If True, return cached recipe if available")
 
     @validator('foodName')
     def validate_food_name(cls, v):
@@ -827,6 +829,51 @@ def _build_nutrients_response(
     return result
 
 
+def _get_cached_recommendation(uid: str, pattern: Optional[str]) -> Optional[dict]:
+    """Firestore から最新のキャッシュ済みおすすめを取得する（同一パターンのみ）。"""
+    try:
+        db = get_firestore_client()
+        results = (
+            db.collection("foodRequests")
+            .document(uid)
+            .collection("items")
+            .where("hairPattern", "==", pattern)
+            .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
+            .limit(1)
+            .get()
+        )
+        for doc in results:
+            return doc.to_dict()
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.warning(f"Recommendation cache lookup failed: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error in recommendation cache lookup: {e}", exc_info=True)
+    return None
+
+
+def _get_cached_recipe(uid: str, food_name: str, pattern: Optional[str]) -> Optional[dict]:
+    """Firestore からキャッシュ済みレシピを取得する。"""
+    try:
+        db = get_firestore_client()
+        results = (
+            db.collection("foodRequests")
+            .document(uid)
+            .collection("recipes")
+            .where("foodName", "==", food_name)
+            .where("hairPattern", "==", pattern)
+            .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
+            .limit(1)
+            .get()
+        )
+        for doc in results:
+            return doc.to_dict()
+    except (FirebaseError, GoogleCloudError) as e:
+        logging.warning(f"Recipe cache lookup failed: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error in recipe cache lookup: {e}", exc_info=True)
+    return None
+
+
 def _extract_food_recommendations(
     message: str, pattern: Optional[str] = None
 ) -> tuple[List[NutrientInfo], list[str]]:
@@ -885,7 +932,6 @@ def recommend_food_sniper(
     payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
 ) -> FoodSniperResponse:
     # パターン取得: リクエスト > Firestore の順で探す
-    # パターン取得: リクエスト > Firestore の順で探す
     pattern = payload.hairPattern
     
     # リクエストされたパターンが有効な定義済みパターンかチェック
@@ -896,6 +942,34 @@ def recommend_food_sniper(
     if not pattern:
         pattern = _get_user_hair_pattern(uid)
 
+    # --- キャッシュチェック ---
+    if payload.useCache:
+        cached = _get_cached_recommendation(uid, pattern)
+        if cached:
+            cached_nutrients = [
+                NutrientInfo(**n) for n in cached.get("nutrients", [])
+            ]
+            # patternInfo の復元（キャッシュにない場合は静的データでフォールバック）
+            cached_pattern_info = None
+            if cached.get("patternInfo"):
+                cached_pattern_info = PatternInfo(**cached["patternInfo"])
+            elif pattern and pattern in PATTERN_FOOD_MAP:
+                info = PATTERN_FOOD_MAP[pattern]
+                cached_pattern_info = PatternInfo(
+                    label=info["label"],
+                    description=info["description"],
+                    cause=info["cause"],
+                    strategy=info["strategy"],
+                )
+
+            return FoodSniperResponse(
+                patternInfo=cached_pattern_info,
+                nutrients=cached_nutrients,
+                shoppingList=cached.get("shoppingList", []),
+                hairPattern=cached.get("hairPattern"),
+            )
+
+    # --- フレッシュ生成 ---
     nutrients, shopping_list = _extract_food_recommendations(
         payload.message, pattern
     )
@@ -909,7 +983,7 @@ def recommend_food_sniper(
         cause_text = info["cause"]
         strategy_text = info["strategy"]
 
-                # Gemini動的生成（コラム風解説）
+        # Gemini動的生成（コラム風解説）
         if gemini_enabled():
             try:
                 # 食材リストのテキスト生成（プロンプト内で参照するため）
@@ -929,7 +1003,7 @@ def recommend_food_sniper(
                     cause_text = data_p["cause"]
                     strategy_text = data_p["strategy"]
             except Exception as e:
-                 logging.warning(f"Gemini pattern explanation failed: {e}")
+                logging.warning(f"Gemini pattern explanation failed: {e}")
 
         pattern_info = PatternInfo(
             label=info["label"],
@@ -938,20 +1012,25 @@ def recommend_food_sniper(
             strategy=strategy_text,
         )
 
-    # Firestore に記録
-    db = get_firestore_client()
-    request_id = f"food_{uuid.uuid4().hex}"
-    db.collection("foodRequests").document(uid).collection("items").document(
-        request_id
-    ).set(
-        {
+    # Firestore に記録（patternInfo も保存）
+    try:
+        db = get_firestore_client()
+        request_id = f"food_{uuid.uuid4().hex}"
+        save_data = {
             "createdAt": admin_firestore.SERVER_TIMESTAMP,
             "query": payload.message,
             "hairPattern": pattern,
             "nutrients": [n.model_dump() for n in nutrients],
             "shoppingList": shopping_list,
         }
-    )
+        if pattern_info:
+            save_data["patternInfo"] = pattern_info.model_dump()
+
+        db.collection("foodRequests").document(uid).collection("items").document(
+            request_id
+        ).set(save_data)
+    except Exception as e:
+        logging.warning(f"Failed to save recommendation to Firestore: {e}")
 
     return FoodSniperResponse(
         patternInfo=pattern_info,
@@ -965,16 +1044,28 @@ def recommend_food_sniper(
 def generate_recipe(
     payload: RecipeRequest, uid: str = Depends(get_current_uid)
 ) -> RecipeResponse:
-    """食材名からGeminiでレシピを生成。失敗時はフォールバック。"""
+    """食材名からレシピを生成。キャッシュ対応。"""
+    # パターンの正規化
+    effective_pattern = payload.hairPattern if (payload.hairPattern and payload.hairPattern in PATTERN_FOOD_MAP) else None
+
+    # --- キャッシュチェック ---
+    if payload.useCache:
+        cached = _get_cached_recipe(uid, payload.foodName, effective_pattern)
+        if cached:
+            cached_recipes = [RecipeItem(**r) for r in cached.get("recipes", [])]
+            if cached_recipes:
+                return RecipeResponse(recipes=cached_recipes)
+
+    # --- フレッシュ生成 ---
     pattern_context = ""
-    # パターンが有効な場合のみコンテキストに含める
-    if payload.hairPattern and payload.hairPattern in PATTERN_FOOD_MAP:
-        info = PATTERN_FOOD_MAP[payload.hairPattern]
+    if effective_pattern:
+        info = PATTERN_FOOD_MAP[effective_pattern]
         pattern_context = (
-            f"薄毛パターン: {payload.hairPattern}（{info['cause']}）\n"
+            f"薄毛パターン: {effective_pattern}（{info['cause']}）\n"
             f"対策方針: {info['strategy']}"
         )
 
+    recipes = []
     if gemini_enabled():
         try:
             prompt = RECIPE_PROMPT.format(
@@ -992,19 +1083,35 @@ def generate_recipe(
                 )
                 for r in data.get("recipes", [])
             ]
-            if recipes:
-                return RecipeResponse(recipes=recipes)
         except (ValueError, json.JSONDecodeError, RuntimeError) as e:
             logging.warning(f"Gemini recipe generation failed: {e}")
         except Exception as e:
             logging.error(f"Unexpected error in recipe generation: {e}", exc_info=True)
 
-    # フォールバック
-    return RecipeResponse(recipes=[
-        RecipeItem(
-            name=f"{payload.foodName}のシンプル料理",
-            description=f"{payload.foodName}を使った簡単な一品です。お好みの味付けでお召し上がりください。",
-            ingredients=[payload.foodName, "お好みの調味料"],
-            benefit=f"{payload.foodName}の栄養素を手軽に摂取できます",
-        ),
-    ])
+    if not recipes:
+        # フォールバック
+        recipes = [
+            RecipeItem(
+                name=f"{payload.foodName}のシンプル料理",
+                description=f"{payload.foodName}を使った簡単な一品です。お好みの味付けでお召し上がりください。",
+                ingredients=[payload.foodName, "お好みの調味料"],
+                benefit=f"{payload.foodName}の栄養素を手軽に摂取できます",
+            ),
+        ]
+
+    # Firestore にレシピを保存
+    try:
+        db = get_firestore_client()
+        recipe_id = f"recipe_{uuid.uuid4().hex}"
+        db.collection("foodRequests").document(uid).collection("recipes").document(
+            recipe_id
+        ).set({
+            "createdAt": admin_firestore.SERVER_TIMESTAMP,
+            "foodName": payload.foodName,
+            "hairPattern": effective_pattern,
+            "recipes": [r.model_dump() for r in recipes],
+        })
+    except Exception as e:
+        logging.warning(f"Failed to save recipe to Firestore: {e}")
+
+    return RecipeResponse(recipes=recipes)

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils, BookOpen, X, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils, BookOpen, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -57,6 +57,12 @@ interface RecipeModal {
     error: string | null;
 }
 
+const LOADING_STEPS = [
+    '栄養素データを取得中...',
+    'あなたに合った食材を選定中...',
+    'レコメンドを生成中...',
+];
+
 function FoodRecommendContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -67,6 +73,27 @@ function FoodRecommendContent() {
     const [data, setData] = useState<FoodSniperResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [recipeModal, setRecipeModal] = useState<RecipeModal | null>(null);
+
+    // プログレスバー用ステート
+    const [loadingStep, setLoadingStep] = useState(0);
+    const [loadingProgress, setLoadingProgress] = useState(0);
+
+    // プログレスバーアニメーション
+    useEffect(() => {
+        if (!loading) return;
+        setLoadingStep(0);
+        setLoadingProgress(0);
+        const progressTimer = setInterval(() => {
+            setLoadingProgress((prev) => Math.min(prev + 2, 90));
+        }, 200);
+        const stepTimer = setInterval(() => {
+            setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1));
+        }, 3000);
+        return () => {
+            clearInterval(progressTimer);
+            clearInterval(stepTimer);
+        };
+    }, [loading]);
 
     useEffect(() => {
         const fetchRecommendations = async () => {
@@ -88,6 +115,7 @@ function FoodRecommendContent() {
                     body: JSON.stringify({
                         message: '', // Optional message, empty for now
                         hairPattern: decodedPattern,
+                        useCache: true,
                     }),
                 });
 
@@ -113,6 +141,7 @@ function FoodRecommendContent() {
                 body: JSON.stringify({
                     foodName: food.name,
                     hairPattern: data?.hairPattern || null,
+                    useCache: true,
                 }),
             });
             const result = await response.json();
@@ -130,6 +159,39 @@ function FoodRecommendContent() {
         }
     };
 
+    const handleRegenerateRecipe = async () => {
+        if (!recipeModal) return;
+        setRecipeModal((prev) => prev ? {
+            ...prev,
+            loading: true,
+            recipes: [],
+            error: null,
+        } : null);
+        try {
+            const response = await apiFetch('/api/v1/food-sniper/recipe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    foodName: recipeModal.food.name,
+                    hairPattern: data?.hairPattern || null,
+                    useCache: false,
+                }),
+            });
+            const result = await response.json();
+            setRecipeModal((prev) => prev ? {
+                ...prev,
+                loading: false,
+                recipes: result.recipes || [],
+            } : null);
+        } catch {
+            setRecipeModal((prev) => prev ? {
+                ...prev,
+                loading: false,
+                error: 'レシピの再生成に失敗しました',
+            } : null);
+        }
+    };
+
     if (loading) {
         return (
             <Layout>
@@ -138,7 +200,17 @@ function FoodRecommendContent() {
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🥗</div>
                             <h2 style={{ color: '#313131', marginBottom: '8px', fontWeight: 600 }}>分析中...</h2>
-                            <p style={{ color: '#7f786d' }}>あなたのタイプに合わせた最適な食材を選定しています</p>
+                            <p style={{ color: '#7f786d', marginBottom: '4px' }}>あなたのタイプに合わせた最適な食材を選定しています</p>
+                            <div className={styles.progressContainer}>
+                                <motion.div
+                                    className={styles.progressBar}
+                                    animate={{ width: `${loadingProgress}%` }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                />
+                            </div>
+                            <p className={styles.loadingStepText}>
+                                {LOADING_STEPS[loadingStep]}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -152,7 +224,7 @@ function FoodRecommendContent() {
                 <div className={styles.container}>
                     <div className={styles.errorContainer}>
                         <p style={{ color: '#e53e3e', marginBottom: '16px' }}>{error}</p>
-                        <Button variant="secondary" onClick={() => router.back()} size="medium" icon={undefined} style={{}}>
+                        <Button variant="secondary" onClick={() => router.back()} size="md" icon={undefined} style={{}}>
                             戻る
                         </Button>
                     </div>
@@ -360,6 +432,21 @@ function FoodRecommendContent() {
                                                 )}
                                             </div>
                                         ))}
+
+                                    {/* 他のレシピを見る ボタン */}
+                                    {!recipeModal.loading && recipeModal.recipes.length > 0 && (
+                                        <div className={styles.regenerateSection}>
+                                            <motion.button
+                                                className={styles.regenerateBtn}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.97 }}
+                                                onClick={handleRegenerateRecipe}
+                                            >
+                                                <RefreshCw size={14} />
+                                                他のレシピを見る
+                                            </motion.button>
+                                        </div>
+                                    )}
                                 </motion.div>
                             </motion.div>
                         )}
