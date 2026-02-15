@@ -143,7 +143,7 @@ def analyze_image_bytes(image_bytes: bytes, gender: Optional[str] = "prefer-not-
                 score = float(score_value)
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid score value: {score_value}, error: {e}")
-                return VisionResult(score=0.0, notes=f"Invalid score value: {score_value}")
+                return VisionResult(score=0.0, notes="スコアの解析に失敗しました")
 
             notes = data.get("notes", "")
             hair_type = data.get("hairType")
@@ -170,11 +170,11 @@ def analyze_image_bytes(image_bytes: bytes, gender: Optional[str] = "prefer-not-
             )
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON from Gemini: {response.text}, error: {e}")
-            return VisionResult(score=0.0, notes=f"Failed to parse analysis result: {response.text[:100]}")
+            return VisionResult(score=0.0, notes="分析結果の解析に失敗しました")
 
     except Exception as e:
         logger.exception(f"Gemini Vision API Error: {e}")
-        return VisionResult(score=0.0, notes=f"Analysis error: {str(e)}")
+        return VisionResult(score=0.0, notes="画像分析中にエラーが発生しました")
 
 
 def analyze_scan_images(
@@ -262,4 +262,4 @@ def analyze_scan_images(
 
     except Exception as e:
         logger.exception(f"Gemini Scan Analysis Error: {e}")
-        return VisionResult(score=0.0, notes=f"Scan analysis error: {str(e)}")
+        return VisionResult(score=0.0, notes="スキャン分析中にエラーが発生しました")

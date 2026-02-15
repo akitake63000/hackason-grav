@@ -853,7 +853,7 @@ def _execute_discuss_workflow_sync(
         task_ref.update({
             "status": "failed",
             "finishedAt": admin_firestore.SERVER_TIMESTAMP,
-            "error": str(e)[:500],  # エラーメッセージは500文字まで
+            "error": "タスクの実行中にエラーが発生しました",  # セキュリティのため汎用メッセージを使用
         })
 
 
@@ -1067,6 +1067,11 @@ def get_task_status(task_id: str, uid: str = Depends(get_current_uid)) -> TaskSt
     started_at = task_data.get("startedAt")
     finished_at = task_data.get("finishedAt")
 
+    # エラーメッセージのサニタイズ（セキュリティ上の理由で汎用メッセージのみ返却）
+    error_message = None
+    if task_data.get("error"):
+        error_message = "タスクの実行中にエラーが発生しました"
+
     return TaskStatusResponse(
         userId=task_data["userId"],
         conversationId=task_data["conversationId"],
@@ -1076,7 +1081,7 @@ def get_task_status(task_id: str, uid: str = Depends(get_current_uid)) -> TaskSt
         startedAt=started_at.isoformat() if started_at else None,
         finishedAt=finished_at.isoformat() if finished_at else None,
         messageId=task_data.get("messageId"),
-        error=task_data.get("error"),
+        error=error_message,
     )
 
 

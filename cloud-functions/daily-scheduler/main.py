@@ -156,20 +156,24 @@ def auto_confirm_yesterday_logs(db, yesterday: str) -> int:
     - isConfirmed: bool
     - completedActions: list
 
-    TODO (Scalability): For large user bases (>1000 users), consider:
-    - Using Collection Group queries to directly access logs
-    - Implementing pagination with batch processing
-    - Using Cloud Tasks to distribute work across multiple invocations
-    - Adding a user limit per execution (e.g., max 1000 users/run)
+    Performance optimization:
+    - Uses batch writes to reduce API calls
+    - Reduced logging for better performance
+    - Early termination on safety limits
     """
     confirmed_count = 0
     processed_users = 0
     MAX_USERS_PER_RUN = 10000  # Safety limit to prevent timeout
+    BATCH_SIZE = 500  # Firestore batch write limit
 
     try:
         # Get all users
         users_ref = db.collection("users")
         users = users_ref.stream()
+
+        # Batch for write operations
+        batch = db.batch()
+        batch_count = 0
 
         for user_doc in users:
             uid = user_doc.id
@@ -197,27 +201,39 @@ def auto_confirm_yesterday_logs(db, yesterday: str) -> int:
 
                         # Only confirm if not already confirmed
                         if not log_data.get("isConfirmed", False):
-                            log_ref.update({
+                            batch.update(log_ref, {
                                 "isConfirmed": True,
                                 "autoConfirmedAt": datetime.now(JST).isoformat(),
                                 "updatedAt": datetime.now(JST).isoformat()
                             })
+                            batch_count += 1
                             confirmed_count += 1
-                            logger.info(f"Confirmed log for user={uid}, plan={plan_id}, date={yesterday}")
                     else:
                         # Create empty log if doesn't exist (user had no activity yesterday)
-                        log_ref.set({
+                        batch.set(log_ref, {
                             "completedActions": [],
                             "isConfirmed": True,
                             "autoConfirmedAt": datetime.now(JST).isoformat(),
                             "createdAt": datetime.now(JST).isoformat()
                         })
+                        batch_count += 1
                         confirmed_count += 1
-                        logger.info(f"Created and confirmed empty log for user={uid}, plan={plan_id}, date={yesterday}")
+
+                    # Commit batch when reaching limit
+                    if batch_count >= BATCH_SIZE:
+                        batch.commit()
+                        logger.info(f"Committed batch of {batch_count} log confirmations")
+                        batch = db.batch()
+                        batch_count = 0
 
             except Exception as e:
                 logger.error(f"Error confirming logs for user={uid}: {e}")
                 continue
+
+        # Commit remaining batch
+        if batch_count > 0:
+            batch.commit()
+            logger.info(f"Committed final batch of {batch_count} log confirmations")
 
         logger.info(f"Auto-confirmed {confirmed_count} logs")
         return confirmed_count
@@ -235,20 +251,25 @@ def generate_today_actions(db, today: str) -> int:
     users/{uid}/tendencyScores/latest - scores and answers
     users/{uid}/plans/{planId}/dailyActions/{YYYY-MM-DD} - generated actions
 
-    TODO (Scalability): For large user bases (>1000 users), consider:
-    - Using Collection Group queries with filtering (status='active')
-    - Implementing pagination with batch processing
-    - Using Cloud Tasks to distribute work across multiple invocations
-    - Adding a user limit per execution (e.g., max 1000 users/run)
+    Performance optimization:
+    - Uses batch writes to reduce API calls
+    - Reduced logging for better performance
+    - Early termination on safety limits
+    - Skips users without tendency scores early
     """
     generated_count = 0
     processed_users = 0
     MAX_USERS_PER_RUN = 10000  # Safety limit to prevent timeout
+    BATCH_SIZE = 500  # Firestore batch write limit
 
     try:
         # Get all users
         users_ref = db.collection("users")
         users = users_ref.stream()
+
+        # Batch for write operations
+        batch = db.batch()
+        batch_count = 0
 
         for user_doc in users:
             uid = user_doc.id
@@ -265,7 +286,7 @@ def generate_today_actions(db, today: str) -> int:
                 tendency_doc = tendency_ref.get()
 
                 if not tendency_doc.exists:
-                    logger.info(f"No tendency scores found for user={uid}, skipping")
+                    # Skip logging for users without scores to reduce noise
                     continue
 
                 tendency_data = tendency_doc.to_dict()
@@ -282,7 +303,6 @@ def generate_today_actions(db, today: str) -> int:
                 answers = tendency_data.get("answers", {})
 
                 if not scores:
-                    logger.info(f"Empty scores for user={uid}, skipping")
                     continue
 
                 # Get all plans for this user
@@ -305,25 +325,35 @@ def generate_today_actions(db, today: str) -> int:
                     actions_doc = actions_ref.get()
 
                     if actions_doc.exists:
-                        logger.info(f"Actions already exist for user={uid}, plan={plan_id}, date={today}")
                         continue
 
                     # Generate actions using existing logic
                     actions = generate_daily_actions(scores, answers)
 
-                    # Save to Firestore
-                    actions_ref.set({
+                    # Add to batch
+                    batch.set(actions_ref, {
                         "actions": actions,
                         "generatedAt": datetime.now(JST).isoformat(),
                         "autoGenerated": True
                     })
-
+                    batch_count += 1
                     generated_count += 1
-                    logger.info(f"Generated {len(actions)} actions for user={uid}, plan={plan_id}, date={today}")
+
+                    # Commit batch when reaching limit
+                    if batch_count >= BATCH_SIZE:
+                        batch.commit()
+                        logger.info(f"Committed batch of {batch_count} action generations")
+                        batch = db.batch()
+                        batch_count = 0
 
             except Exception as e:
                 logger.error(f"Error generating actions for user={uid}: {e}")
                 continue
+
+        # Commit remaining batch
+        if batch_count > 0:
+            batch.commit()
+            logger.info(f"Committed final batch of {batch_count} action generations")
 
         logger.info(f"Generated actions for {generated_count} plans")
         return generated_count

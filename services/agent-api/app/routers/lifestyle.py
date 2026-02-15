@@ -2511,6 +2511,44 @@ def confirm_day(
 # POST /cleanup-user-data — ユーザーデータクリーンアップ（退会時）
 # ---------------------------------------------------------------------------
 
+def _batch_delete_collection(db, collection_ref, batch_size: int = 500) -> int:
+    """
+    Delete all documents in a collection using batch writes for better performance.
+
+    Args:
+        db: Firestore client
+        collection_ref: Collection reference to delete
+        batch_size: Number of documents to delete per batch (max 500 for Firestore)
+
+    Returns:
+        Number of documents deleted
+    """
+    docs = list(collection_ref.stream())
+    if not docs:
+        return 0
+
+    deleted_count = 0
+    batch = db.batch()
+    batch_count = 0
+
+    for doc in docs:
+        batch.delete(doc.reference)
+        batch_count += 1
+        deleted_count += 1
+
+        # Commit batch when reaching limit
+        if batch_count >= batch_size:
+            batch.commit()
+            batch = db.batch()
+            batch_count = 0
+
+    # Commit remaining batch
+    if batch_count > 0:
+        batch.commit()
+
+    return deleted_count
+
+
 @router.post("/cleanup-user-data")
 @limiter.limit("5/minute")
 async def cleanup_user_data(
@@ -2540,184 +2578,164 @@ async def cleanup_user_data(
     deleted_collections = []
     errors = []
 
-    # Delete dailyMissions collection
+    # Delete dailyMissions collection (using batch delete for better performance)
     try:
         missions_ref = db.collection("users").document(uid).collection("dailyMissions")
-        missions_docs = list(missions_ref.stream())
+        deleted_count = _batch_delete_collection(db, missions_ref)
 
-        if missions_docs:
-            for doc in missions_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"dailyMissions ({len(missions_docs)} docs)")
-            logging.info(f"Deleted {len(missions_docs)} dailyMissions documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"dailyMissions ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} dailyMissions documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete dailyMissions for user {uid}: {e}", exc_info=True)
         errors.append(f"dailyMissions: {str(e)}")
 
-    # Delete chatTasks collection
+    # Delete chatTasks collection (using batch delete for better performance)
     try:
         tasks_ref = db.collection("users").document(uid).collection("chatTasks")
-        tasks_docs = list(tasks_ref.stream())
+        deleted_count = _batch_delete_collection(db, tasks_ref)
 
-        if tasks_docs:
-            for doc in tasks_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"chatTasks ({len(tasks_docs)} docs)")
-            logging.info(f"Deleted {len(tasks_docs)} chatTasks documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"chatTasks ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} chatTasks documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete chatTasks for user {uid}: {e}", exc_info=True)
         errors.append(f"chatTasks: {str(e)}")
 
-    # Delete quickActions collection
+    # Delete quickActions collection (using batch delete for better performance)
     try:
         quick_actions_ref = db.collection("users").document(uid).collection("quickActions")
-        quick_actions_docs = list(quick_actions_ref.stream())
+        deleted_count = _batch_delete_collection(db, quick_actions_ref)
 
-        if quick_actions_docs:
-            for doc in quick_actions_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"quickActions ({len(quick_actions_docs)} docs)")
-            logging.info(f"Deleted {len(quick_actions_docs)} quickActions documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"quickActions ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} quickActions documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete quickActions for user {uid}: {e}", exc_info=True)
         errors.append(f"quickActions: {str(e)}")
 
-    # Delete quickQA collection
+    # Delete quickQA collection (using batch delete for better performance)
     try:
         quick_qa_ref = db.collection("users").document(uid).collection("quickQA")
-        quick_qa_docs = list(quick_qa_ref.stream())
+        deleted_count = _batch_delete_collection(db, quick_qa_ref)
 
-        if quick_qa_docs:
-            for doc in quick_qa_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"quickQA ({len(quick_qa_docs)} docs)")
-            logging.info(f"Deleted {len(quick_qa_docs)} quickQA documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"quickQA ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} quickQA documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete quickQA for user {uid}: {e}", exc_info=True)
         errors.append(f"quickQA: {str(e)}")
 
-    # Delete motivationMessages collection
+    # Delete motivationMessages collection (using batch delete for better performance)
     try:
         motivation_ref = db.collection("users").document(uid).collection("motivationMessages")
-        motivation_docs = list(motivation_ref.stream())
+        deleted_count = _batch_delete_collection(db, motivation_ref)
 
-        if motivation_docs:
-            for doc in motivation_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"motivationMessages ({len(motivation_docs)} docs)")
-            logging.info(f"Deleted {len(motivation_docs)} motivationMessages documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"motivationMessages ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} motivationMessages documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete motivationMessages for user {uid}: {e}", exc_info=True)
         errors.append(f"motivationMessages: {str(e)}")
 
-    # Delete mealAnalysis collection
+    # Delete mealAnalysis collection (using batch delete for better performance)
     try:
         meal_ref = db.collection("users").document(uid).collection("mealAnalysis")
-        meal_docs = list(meal_ref.stream())
+        deleted_count = _batch_delete_collection(db, meal_ref)
 
-        if meal_docs:
-            for doc in meal_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"mealAnalysis ({len(meal_docs)} docs)")
-            logging.info(f"Deleted {len(meal_docs)} mealAnalysis documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"mealAnalysis ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} mealAnalysis documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete mealAnalysis for user {uid}: {e}", exc_info=True)
         errors.append(f"mealAnalysis: {str(e)}")
 
-    # Delete chatSettings collection
+    # Delete chatSettings collection (using batch delete for better performance)
     try:
         settings_ref = db.collection("users").document(uid).collection("chatSettings")
-        settings_docs = list(settings_ref.stream())
+        deleted_count = _batch_delete_collection(db, settings_ref)
 
-        if settings_docs:
-            for doc in settings_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"chatSettings ({len(settings_docs)} docs)")
-            logging.info(f"Deleted {len(settings_docs)} chatSettings documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"chatSettings ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} chatSettings documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete chatSettings for user {uid}: {e}", exc_info=True)
         errors.append(f"chatSettings: {str(e)}")
 
     # Delete food recommendations from new location: users/{uid}/foodRecommendations (current standard)
+    # Using batch delete for better performance
     try:
         new_food_recs_ref = db.collection("users").document(uid).collection("foodRecommendations")
-        new_food_recs_docs = list(new_food_recs_ref.stream())
+        deleted_count = _batch_delete_collection(db, new_food_recs_ref)
 
-        if new_food_recs_docs:
-            for doc in new_food_recs_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"users/{uid}/foodRecommendations ({len(new_food_recs_docs)} docs)")
-            logging.info(f"Deleted {len(new_food_recs_docs)} users/{uid}/foodRecommendations documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"users/{uid}/foodRecommendations ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} users/{uid}/foodRecommendations documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/foodRecommendations for user {uid}: {e}", exc_info=True)
         errors.append(f"users/{uid}/foodRecommendations: {str(e)}")
 
     # Delete food recommendations from old location: foodRequests/{uid}/items (legacy, for backward compatibility)
+    # Using batch delete for better performance
     try:
         old_food_items_ref = db.collection("foodRequests").document(uid).collection("items")
-        old_food_items_docs = list(old_food_items_ref.stream())
+        deleted_count = _batch_delete_collection(db, old_food_items_ref)
 
-        if old_food_items_docs:
-            for doc in old_food_items_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"foodRequests/{uid}/items (legacy) ({len(old_food_items_docs)} docs)")
-            logging.info(f"Deleted {len(old_food_items_docs)} foodRequests/{uid}/items (legacy) documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"foodRequests/{uid}/items (legacy) ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} foodRequests/{uid}/items (legacy) documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete foodRequests/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
         errors.append(f"foodRequests/{uid}/items (legacy): {str(e)}")
 
     # Delete food recipes from new location: users/{uid}/foodRecipes (current standard)
+    # Using batch delete for better performance
     try:
         new_food_recipes_ref = db.collection("users").document(uid).collection("foodRecipes")
-        new_food_recipes_docs = list(new_food_recipes_ref.stream())
+        deleted_count = _batch_delete_collection(db, new_food_recipes_ref)
 
-        if new_food_recipes_docs:
-            for doc in new_food_recipes_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"users/{uid}/foodRecipes ({len(new_food_recipes_docs)} docs)")
-            logging.info(f"Deleted {len(new_food_recipes_docs)} users/{uid}/foodRecipes documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"users/{uid}/foodRecipes ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} users/{uid}/foodRecipes documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/foodRecipes for user {uid}: {e}", exc_info=True)
         errors.append(f"users/{uid}/foodRecipes: {str(e)}")
 
     # Delete food recipes from old location: foodRequests/{uid}/recipes (legacy, for backward compatibility)
+    # Using batch delete for better performance
     try:
         old_food_recipes_ref = db.collection("foodRequests").document(uid).collection("recipes")
-        old_food_recipes_docs = list(old_food_recipes_ref.stream())
+        deleted_count = _batch_delete_collection(db, old_food_recipes_ref)
 
-        if old_food_recipes_docs:
-            for doc in old_food_recipes_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"foodRequests/{uid}/recipes (legacy) ({len(old_food_recipes_docs)} docs)")
-            logging.info(f"Deleted {len(old_food_recipes_docs)} foodRequests/{uid}/recipes (legacy) documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"foodRequests/{uid}/recipes (legacy) ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} foodRequests/{uid}/recipes (legacy) documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete foodRequests/{uid}/recipes (legacy) for user {uid}: {e}", exc_info=True)
         errors.append(f"foodRequests/{uid}/recipes (legacy): {str(e)}")
 
     # Delete reports from new location: users/{uid}/reports (current standard)
+    # Using batch delete for better performance
     try:
         new_reports_ref = db.collection("users").document(uid).collection("reports")
-        new_reports_docs = list(new_reports_ref.stream())
+        deleted_count = _batch_delete_collection(db, new_reports_ref)
 
-        if new_reports_docs:
-            for doc in new_reports_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"users/{uid}/reports ({len(new_reports_docs)} docs)")
-            logging.info(f"Deleted {len(new_reports_docs)} users/{uid}/reports documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"users/{uid}/reports ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} users/{uid}/reports documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/reports for user {uid}: {e}", exc_info=True)
         errors.append(f"users/{uid}/reports: {str(e)}")
 
     # Delete reports from old location: reports/{uid}/items (legacy, for backward compatibility)
+    # Using batch delete for better performance
     try:
         old_reports_ref = db.collection("reports").document(uid).collection("items")
-        old_reports_docs = list(old_reports_ref.stream())
+        deleted_count = _batch_delete_collection(db, old_reports_ref)
 
-        if old_reports_docs:
-            for doc in old_reports_docs:
-                doc.reference.delete()
-            deleted_collections.append(f"reports/{uid}/items (legacy) ({len(old_reports_docs)} docs)")
-            logging.info(f"Deleted {len(old_reports_docs)} reports/{uid}/items (legacy) documents for user {uid}")
+        if deleted_count > 0:
+            deleted_collections.append(f"reports/{uid}/items (legacy) ({deleted_count} docs)")
+            logging.info(f"Deleted {deleted_count} reports/{uid}/items (legacy) documents for user {uid}")
 
         # Delete parent document reports/{uid} (GDPR compliance)
         db.collection("reports").document(uid).delete()
