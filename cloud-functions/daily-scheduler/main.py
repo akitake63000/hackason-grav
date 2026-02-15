@@ -142,7 +142,7 @@ def daily_scheduler(request):
         logger.error(f"Error in daily scheduler: {e}", exc_info=True)
         return {
             "status": "error",
-            "error": str(e),
+            "error": "スケジューラーの実行中にエラーが発生しました",
             "timestamp": datetime.now(JST).isoformat()
         }, 500
 

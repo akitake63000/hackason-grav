@@ -2588,7 +2588,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} dailyMissions documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete dailyMissions for user {uid}: {e}", exc_info=True)
-        errors.append(f"dailyMissions: {str(e)}")
+        errors.append("dailyMissions")
 
     # Delete chatTasks collection (using batch delete for better performance)
     try:
@@ -2600,7 +2600,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} chatTasks documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete chatTasks for user {uid}: {e}", exc_info=True)
-        errors.append(f"chatTasks: {str(e)}")
+        errors.append("chatTasks")
 
     # Delete quickActions collection (using batch delete for better performance)
     try:
@@ -2612,7 +2612,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} quickActions documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete quickActions for user {uid}: {e}", exc_info=True)
-        errors.append(f"quickActions: {str(e)}")
+        errors.append("quickActions")
 
     # Delete quickQA collection (using batch delete for better performance)
     try:
@@ -2624,7 +2624,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} quickQA documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete quickQA for user {uid}: {e}", exc_info=True)
-        errors.append(f"quickQA: {str(e)}")
+        errors.append("quickQA")
 
     # Delete motivationMessages collection (using batch delete for better performance)
     try:
@@ -2636,7 +2636,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} motivationMessages documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete motivationMessages for user {uid}: {e}", exc_info=True)
-        errors.append(f"motivationMessages: {str(e)}")
+        errors.append("motivationMessages")
 
     # Delete mealAnalysis collection (using batch delete for better performance)
     try:
@@ -2648,7 +2648,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} mealAnalysis documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete mealAnalysis for user {uid}: {e}", exc_info=True)
-        errors.append(f"mealAnalysis: {str(e)}")
+        errors.append("mealAnalysis")
 
     # Delete chatSettings collection (using batch delete for better performance)
     try:
@@ -2660,7 +2660,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} chatSettings documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete chatSettings for user {uid}: {e}", exc_info=True)
-        errors.append(f"chatSettings: {str(e)}")
+        errors.append("chatSettings")
 
     # Delete food recommendations from new location: users/{uid}/foodRecommendations (current standard)
     # Using batch delete for better performance
@@ -2673,7 +2673,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} users/{uid}/foodRecommendations documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/foodRecommendations for user {uid}: {e}", exc_info=True)
-        errors.append(f"users/{uid}/foodRecommendations: {str(e)}")
+        errors.append("users/{uid}/foodRecommendations")
 
     # Delete food recommendations from old location: foodRequests/{uid}/items (legacy, for backward compatibility)
     # Using batch delete for better performance
@@ -2686,7 +2686,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} foodRequests/{uid}/items (legacy) documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete foodRequests/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
-        errors.append(f"foodRequests/{uid}/items (legacy): {str(e)}")
+        errors.append("foodRequests/{uid}/items (legacy)")
 
     # Delete food recipes from new location: users/{uid}/foodRecipes (current standard)
     # Using batch delete for better performance
@@ -2699,7 +2699,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} users/{uid}/foodRecipes documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/foodRecipes for user {uid}: {e}", exc_info=True)
-        errors.append(f"users/{uid}/foodRecipes: {str(e)}")
+        errors.append("users/{uid}/foodRecipes")
 
     # Delete food recipes from old location: foodRequests/{uid}/recipes (legacy, for backward compatibility)
     # Using batch delete for better performance
@@ -2712,7 +2712,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} foodRequests/{uid}/recipes (legacy) documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete foodRequests/{uid}/recipes (legacy) for user {uid}: {e}", exc_info=True)
-        errors.append(f"foodRequests/{uid}/recipes (legacy): {str(e)}")
+        errors.append("foodRequests/{uid}/recipes (legacy)")
 
     # Delete reports from new location: users/{uid}/reports (current standard)
     # Using batch delete for better performance
@@ -2725,7 +2725,7 @@ async def cleanup_user_data(
             logging.info(f"Deleted {deleted_count} users/{uid}/reports documents for user {uid}")
     except Exception as e:
         logging.error(f"Failed to delete users/{uid}/reports for user {uid}: {e}", exc_info=True)
-        errors.append(f"users/{uid}/reports: {str(e)}")
+        errors.append("users/{uid}/reports")
 
     # Delete reports from old location: reports/{uid}/items (legacy, for backward compatibility)
     # Using batch delete for better performance
@@ -2743,7 +2743,7 @@ async def cleanup_user_data(
         logging.info(f"Deleted parent document reports/{uid}")
     except Exception as e:
         logging.error(f"Failed to delete reports/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
-        errors.append(f"reports/{uid}/items (legacy): {str(e)}")
+        errors.append("reports/{uid}/items (legacy)")
 
     # Delete parent document foodRequests/{uid} (GDPR compliance)
     try:
@@ -2752,7 +2752,7 @@ async def cleanup_user_data(
         logging.info(f"Deleted parent document foodRequests/{uid}")
     except Exception as e:
         logging.error(f"Failed to delete foodRequests/{uid} parent document: {e}", exc_info=True)
-        errors.append(f"foodRequests/{uid} (parent doc): {str(e)}")
+        errors.append("foodRequests/{uid} (parent doc)")
 
     # Return summary
     return {

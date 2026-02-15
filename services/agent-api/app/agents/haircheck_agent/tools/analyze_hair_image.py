@@ -21,7 +21,11 @@ def analyze_hair_image_tool(storage_path: str) -> Dict[str, Any]:
             "notes": result.notes
         }
     except Exception as e:
+        # Log the error for debugging (server-side only)
+        import logging
+        logging.error(f"analyze_hair_image_tool error: {e}", exc_info=True)
+
         return {
             "success": False,
-            "error": str(e)
+            "error": "画像分析中にエラーが発生しました"
         }
