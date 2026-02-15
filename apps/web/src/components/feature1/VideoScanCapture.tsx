@@ -57,7 +57,7 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
     const [images, setImages] = useState<{ side?: string; front?: string; top?: string }>({});
     const [isModelLoading, setIsModelLoading] = useState(true);
     const [poseDebug, setPoseDebug] = useState<string>("");
-    const [canManualCapture, setCanManualCapture] = useState(false);
+    const [canManualCapture, setCanManualCapture] = useState(true);
 
     // Refs
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -133,7 +133,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
             previousFrameData.current = null;
             setProgress(0);
             setFeedback(null);
-            setCanManualCapture(false);
         }
     }, [phase]);
 
@@ -393,7 +392,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
             setFeedback(poseFeedback);
             goodFrameCount.current = 0;
             setProgress(0);
-            setCanManualCapture(false);
             previousFrameData.current = data;
             requestRef.current = requestAnimationFrame(analyzeFrame);
             return;
@@ -408,7 +406,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
             setFeedback("もう少し明るい場所へ移動してください");
             goodFrameCount.current = 0;
             setProgress(0);
-            setCanManualCapture(false);
             previousFrameData.current = data;
             requestRef.current = requestAnimationFrame(analyzeFrame);
             return;
@@ -425,7 +422,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
             setFeedback("カメラを固定してください");
             goodFrameCount.current = Math.max(0, goodFrameCount.current - 1);
             setProgress((goodFrameCount.current / REQUIRED_GOOD_FRAMES) * 100);
-            setCanManualCapture(false);
             requestRef.current = requestAnimationFrame(analyzeFrame);
             return;
         }
@@ -434,7 +430,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         const sharpness = calculateSharpness(data, roiWidth, roiHeight);
         if (sharpness < thresholds.sharpness) {
             setFeedback("ピントを合わせてください");
-            setCanManualCapture(false);
             requestRef.current = requestAnimationFrame(analyzeFrame);
             return;
         }
@@ -455,8 +450,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
                 score: sharpness,
                 image: captureCanvas.toDataURL('image/jpeg', 0.9)
             };
-
-            setCanManualCapture(true);
         }
 
         if (goodFrameCount.current >= REQUIRED_GOOD_FRAMES) {
@@ -496,7 +489,6 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
     const handleManualCapture = useCallback(() => {
         if (!bestShotBuffer.current || isTransitioning) return;
         handlePhaseComplete();
-        setCanManualCapture(false);
     }, [handlePhaseComplete, isTransitioning]);
 
     const handleBack = () => {
@@ -661,27 +653,19 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
                             onClick={handleManualCapture}
                             variant="primary"
                             size="lg"
-                            disabled={!canManualCapture}
                             icon={<Camera size={24} />}
-                            style={{ marginTop: 16, opacity: canManualCapture ? 1 : 0.5 }}
+                            style={{ marginTop: 16 }}
                         >
-                            {canManualCapture
-                                ? "今すぐ撮影"
-                                : "今すぐ撮影（品質チェック中...）"}
+                            今すぐ撮影
                         </Button>
 
-                        <AnimatePresence>
-                            {canManualCapture && (
-                                <motion.div
-                                    className={styles.manualCaptureHint}
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                >
-                                    またはそのまま待つと自動撮影されます
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <motion.div
+                            className={styles.manualCaptureHint}
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            またはそのまま待つと自動撮影されます
+                        </motion.div>
                     </div>
                 )}
 
