@@ -9,6 +9,12 @@ import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
 import styles from './page.module.css'
 
+const LOADING_STEPS = [
+  'データを収集中...',
+  '進捗を分析中...',
+  'レポートを生成中...',
+]
+
 const inlineStyles = {
   container: {
     flex: 1,
@@ -190,6 +196,25 @@ function Report() {
   const [data, setData] = useState<ReportGenerateResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadingStep, setLoadingStep] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+
+  // プログレスバーアニメーション
+  useEffect(() => {
+    if (!loading) return
+    setLoadingStep(0)
+    setLoadingProgress(0)
+    const progressTimer = setInterval(() => {
+      setLoadingProgress((prev) => Math.min(prev + 2, 90))
+    }, 200)
+    const stepTimer = setInterval(() => {
+      setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1))
+    }, 3000)
+    return () => {
+      clearInterval(progressTimer)
+      clearInterval(stepTimer)
+    }
+  }, [loading])
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -225,13 +250,21 @@ function Report() {
       <Layout>
         <div style={inlineStyles.container}>
           <div className={styles.loadingContainer}>
-            <Card variant="default" padding="lg" onClick={undefined} style={{}}>
-              <div className={styles.loadingCard}>
-                <div className={styles.loadingSpinner}>⏳</div>
-                <h2 className={styles.loadingTitle}>読み込み中...</h2>
-                <p className={styles.loadingMessage}>AIがあなたのデータを分析しています。</p>
+            <div style={{ textAlign: 'center' }}>
+              <div className={styles.loadingSpinner}>📊</div>
+              <h2 className={styles.loadingTitle}>分析中...</h2>
+              <p className={styles.loadingMessage}>過去30日間の進捗を確認しています</p>
+              <div className={styles.progressContainer}>
+                <motion.div
+                  className={styles.progressBar}
+                  animate={{ width: `${loadingProgress}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
               </div>
-            </Card>
+              <p className={styles.loadingStepText}>
+                {LOADING_STEPS[loadingStep]}
+              </p>
+            </div>
           </div>
         </div>
       </Layout>
