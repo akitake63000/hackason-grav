@@ -236,6 +236,13 @@ sequenceDiagram
 - スケルトンローディング（固定レイアウト）
 - アニメーション最適化（初回のみ実行）
 
+### 最新の改善（2026-02-15）
+- **UI/UX**: Dashboard/Reportページにプログレスバー付きローディング実装
+- **AIカメラ**: 手動撮影ボタンを品質チェック不要に変更（ユーザー要望対応）
+- **セキュリティ**: console.error削除で内部エラー情報の外部露出を防止
+- **パフォーマンス**: requestAnimationFrameループ最適化、カメラ権限の遅延要求でCPU使用率削減
+- **コード品質**: photoIdのURLエンコード、撮影指示テキストの統一
+
 ### エラー監視（Sentry統合）
 - **エラートラッキング**: 全例外を自動キャプチャ
 - **パフォーマンス監視**: トランザクション、プロファイリング
@@ -247,6 +254,7 @@ sequenceDiagram
 - **認可**: Firestoreルール（`request.auth.uid == uid` のみ許可）
 - **ストレージパス検証**: 正規表現による厳密な検証
 - **レート制限**: `slowapi`（`/chat/discuss-async`: 10リクエスト/分）
+- **情報漏洩対策**: エラー情報の適切なサニタイズ（2026-02-15実装）
 
 ---
 
@@ -351,9 +359,7 @@ hackason-grab/
 ├─ storage.rules
 ├─ firebase.json
 ├─ docs/
-│  ├─ system_spec.md               # システム仕様書（詳細）
-│  ├─ weekly-plan-implementation-plan.md  # Phase 2 実装計画
-│  └─ chat-async-performance-improvement-proposal.md  # Phase 4 提案
+│  └─ system_spec.md               # システム仕様書（詳細）
 └─ README.md                       # 本ドキュメント
 ```
 
@@ -381,9 +387,11 @@ hackason-grab/
 
 ## 関連ドキュメント
 
-- **[システム仕様書](docs/system_spec.md)** - システム全体の詳細設計、アーキテクチャ、API仕様
-- **[週間プラン実装計画](docs/weekly-plan-implementation-plan.md)** - Phase 2の設計・実装詳細
-- **[チャット性能改善提案](docs/chat-async-performance-improvement-proposal.md)** - Phase 4の改善提案
+- **[システム仕様書](docs/system_spec.md)** - システム全体の詳細設計、アーキテクチャ、API仕様、変更履歴
+  - Phase 2（週間プラン自動化）の実装詳細
+  - Phase 4（チャット性能改善）の提案
+  - セキュリティ、パフォーマンス、エラーハンドリング
+  - デプロイ手順、トラブルシューティング
 - **[Cloud Function運用ガイド](cloud-functions/daily-scheduler/README.md)** - 日次自動処理のデプロイ・運用
 
 ---
@@ -444,4 +452,4 @@ MIT License
 - **Cloud Run**: https://console.cloud.google.com/run?project=hackason-grab
 - **Cloud Tasks**: https://console.cloud.google.com/cloudtasks?project=hackason-grab
 
-**最終更新**: 2026-02-14
+**最終更新**: 2026-02-15
