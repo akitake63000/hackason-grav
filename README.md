@@ -1,278 +1,427 @@
 # HairGuard Agent
 
-薄毛対策の継続を支えるAIエージェント。
-
-写真チェックイン、髪密度分析、週次レポート、メンタルサポート、食材推奨機能を提供します。
-Firebase + Cloud Run + Vertex AI (Gemini) で構築されたフルスタックアプリケーション。
+薄毛対策の継続を支えるAIエージェント
+**写真分析・メンタルサポート・習慣化支援を統合したフルスタックMVP**
 
 **デモ**: https://hackason-grab.web.app
 
 ---
 
-## 技術スタック
+## 1. 解決する課題
+
+薄毛対策は長期的な取り組みが必要だが、**継続が最大の課題**：
+
+- **孤独な戦い**: 誰にも相談できず、モチベーション維持が困難
+- **効果の不可視性**: 変化が緩やかで、進捗が実感しにくい
+- **情報過多**: ネット上の情報が多すぎて、何をすべきか分からない
+- **習慣化の壁**: 良い習慣を定着させるのが難しい
+
+---
+
+## 2. ソリューションアプローチ
+
+HairGuardは**AI×データ×パーソナライゼーション**で継続をサポート：
+
+### 📸 可視化による進捗実感
+- 写真ベースの髪密度分析（性別対応型：Hamilton-Norwood / Ludwig スケール）
+- 時系列グラフで変化を可視化
+- 週次AIレポートで成長を実感
+
+### 🧠 メンタル・シールド
+- 3人格エージェント（❤️サポーター・💪コーチ・🔬ドクター）による多角的サポート
+- 非同期処理（Cloud Tasks統合）で深い議論を実現
+- ユーザーの悩みに寄り添った共感的対話
+
+### 📅 週間プラン自動管理（Phase 2完了）
+- 傾向スコアに基づく週次プラン生成
+- **Cloud Function による完全自動化**: 毎日午前4時にログ確定・アクション生成
+- ユーザーは何もしなくても習慣化をサポート
+
+### 🍽️ 食材スナイパー
+- 位置情報ベースの食材・店舗提案
+- 髪に良い栄養素を考慮した推奨
+
+---
+
+## 3. システムアーキテクチャ
+
+```mermaid
+graph TB
+  U[User Browser] --> FH[Firebase Hosting<br/>Next.js Static Export]
+  FH --> AUTH[Firebase Auth<br/>Google Sign-In]
+  FH --> ST[Firebase Storage<br/>Photos]
+  FH --> FS[Firestore<br/>Analysis/Reports/Chats/Food/Plans]
+  FH -->|/api/* rewrite| CR[Cloud Run<br/>FastAPI agent-api<br/>Timeout: 30min]
+  CR -->|Verify ID Token| AUTH
+  CR -->|Read/Write| FS
+  CR -->|Download Image| ST
+  CR -->|Optional| VAI[Vertex AI<br/>Gemini 2.5 Flash/Pro]
+  CR -->|Enqueue| CT[Cloud Tasks<br/>chat-processing-queue]
+  CT -->|Execute Task<br/>OIDC Auth| CR
+  CR -->|Error Tracking| SENTRY[Sentry<br/>Monitoring]
+  U -->|Realtime Updates| FS
+
+  SCHED[Cloud Scheduler<br/>4 AM JST Daily] -->|Trigger| CF[Cloud Function<br/>daily-scheduler<br/>Python 3.12]
+  CF -->|Read/Write| FS
+  CF -->|Generate Actions| VAI
+```
+
+**特徴**:
+- **フロントエンド**: Next.js 16 (Static Export) → Firebase Hosting
+- **バックエンド**: FastAPI (Cloud Run) → 30分タイムアウト、非同期処理対応
+- **AI基盤**: Vertex AI (Gemini 2.5 Flash / Pro)
+- **タスクキュー**: Cloud Tasks（OIDC認証、最大3回リトライ）
+- **自動化**: Cloud Function + Cloud Scheduler（毎日午前4時JST実行）
+
+---
+
+## 4. 主要機能フロー
+
+### 4.1 非同期チャット処理（Phase 1-3完了）
+
+```mermaid
+sequenceDiagram
+    participant U as User Browser
+    participant API as Cloud Run API
+    participant FS as Firestore
+    participant CT as Cloud Tasks
+    participant LG as LangGraph Workflow
+
+    U->>API: POST /chat/discuss-async
+    API->>FS: Create chatTask (status: queued)
+    API->>CT: Enqueue task
+    API-->>U: Return taskId immediately
+
+    U->>FS: Start Firestore listener on chatTask
+
+    CT->>API: POST /tasks/{taskId}/execute (OIDC)
+    API->>FS: Update status: running
+    API->>LG: Execute 7-step workflow (21-35s)
+    LG-->>API: Return discussion result
+    API->>FS: Save messages (discussion-result)
+    API->>FS: Update status: succeeded
+
+    FS-->>U: Firestore listener detects change
+    U->>FS: Load new messages
+    U->>U: Display results & enable button
+```
+
+**特徴**:
+- 3人格エージェント × 2ラウンド + まとめ役（計7ステップ）
+- LangGraphによる構造化ワークフロー
+- Firestoreリアルタイムリスナーで状態同期
+- リロード時の復旧機能（10分以内自動再開）
+
+### 4.2 週間プラン自動管理（Phase 2完了）
+
+**毎日午前4時JST**:
+1. **前日ログ自動確定**: `users/{uid}/plans/{planId}/logs/{yesterday}` → `isConfirmed: true`
+2. **当日アクション自動生成**: `users/{uid}/plans/{planId}/dailyActions/{today}` → 傾向スコアから3つのアクション生成
+
+**エラーハンドリング**:
+- ユーザー単位・プラン単位で分離
+- 1人のエラーが他のユーザーに影響しない
+- 部分成功レポート
+
+---
+
+## 5. 技術スタック・インフラ
 
 ### フロントエンド
 - **Next.js** 16.1.6 (App Router, Static Export)
 - **React** 19.2
-- **Firebase** 12.8 (Auth/Firestore/Storage)
-- **TypeScript** 5
+- **Firebase SDK** 12.8 (Auth/Firestore/Storage)
+- **Framer Motion** (アニメーション)
+- **lucide-react** (アイコン)
 
 ### バックエンド
-- **FastAPI** (Python 3.12)
-- **Firebase Admin SDK**
-- **Vertex AI** (Gemini 2.5 Flash)
-- **Google Cloud Storage**
+- **FastAPI** 0.128.0 (Python 3.12)
+- **Firebase Admin SDK** 7.1.0
+- **LangGraph** (LLMワークフロー)
+- **Sentry SDK** 2.22.0 (エラー監視)
+- **Pillow** 12.1.0 (画像処理)
+
+### AI・LLM
+- **Vertex AI** (Google Cloud)
+- **Gemini 2.5 Flash** (高速推論、300文字程度)
+- **Gemini 2.5 Pro** (詳細推論、600文字程度)
+- **Gemini Vision** (画像解析 - 性別対応型髪分析)
 
 ### インフラ
-- **Firebase Hosting** (フロントエンド配信)
-- **Cloud Run** (API実行基盤 - asia-northeast1)
-- **Firestore** (データストア)
-- **Cloud Storage** (画像保存)
+| サービス | 用途 | リージョン |
+|---------|------|-----------|
+| **Firebase Hosting** | フロントエンド配信 | Global |
+| **Cloud Run** | API実行基盤（30分タイムアウト、1Gi、CPU1） | asia-northeast1 |
+| **Cloud Functions** | 日次自動処理（512MB、9分タイムアウト） | asia-northeast1 |
+| **Cloud Scheduler** | 定期実行（毎日午前4時JST） | asia-northeast1 |
+| **Cloud Tasks** | 非同期タスクキュー（最大3回リトライ） | asia-northeast1 |
+| **Firestore** | データストア | asia-northeast1 |
+| **Cloud Storage** | 画像保存 | asia-northeast1 |
+| **Sentry** | エラートラッキング、パフォーマンス監視 | - |
 
 ---
 
-## アーキテクチャ
+## 6. 実装例・デモ
 
+### ホーム画面（パーソナライズドダッシュボード）
+
+**並列API取得による高速化**（2050ms → 500ms、**4倍改善**）:
+1. `/api/v1/lifestyle/mission` - 今日のミッション（3つ）
+2. `/api/v1/mental-shield/motivation` - AIモチベーションメッセージ
+3. `/api/v1/lifestyle/quick-action` - 時間帯別5分アクション提案
+4. `/api/v1/lifestyle/quick-qa` - concernArea連動質問（3つ）
+
+**スケルトンローディング**: 固定レイアウトで Cumulative Layout Shift を最小化（0.25+ → <0.1目標）
+
+### AIモチベーションメッセージ生成
+
+**入力**: ユーザーのアクティビティメトリクス（写真撮影頻度、食事記録、プラン実行状況、弱点軸）
+
+**出力例**:
+```json
+{
+  "message": "今週は食事記録を4回も達成しました。小さな継続が大きな変化を生みます",
+  "source": "generated",
+  "generatedAt": "2026-02-14T09:00:00+09:00"
+}
 ```
-User Browser
-    ↓
-Firebase Hosting (Next.js Static Export)
-    ├→ Firebase Auth (Google Sign-In)
-    ├→ Firestore (Analysis/Reports/Chats/Food)
-    ├→ Cloud Storage (Photos)
-    └→ /api/* rewrite → Cloud Run (FastAPI)
-                            ├→ Vertex AI (Gemini)
-                            ├→ Firestore
-                            └→ Cloud Storage
+
+**キャッシュ**: Firestoreに日次キャッシュ（TTL: 翌日4:00AM JST）
+
+### 週間プラン生成
+
+**入力**: 傾向スコア（`stress_management: 65`, `self_care: 45`, `social_connection: 30`）
+
+**Gemini生成例**:
+```json
+{
+  "theme": "生活リズムを整えて、前向きな気持ちで過ごす",
+  "targetActions": [
+    {
+      "id": "action_1",
+      "name": "朝のルーティン",
+      "category": "lifestyle",
+      "description": "毎朝同じ時間に起きて、軽いストレッチをする",
+      "difficultyScore": 3,
+      "impactScore": 8
+    }
+  ]
+}
 ```
+
+**期間**: 月曜日 00:00:00 - 日曜日 23:59:59（JST）
+**自動化**: 午前4時前は前日扱い
 
 ---
 
-## 前提条件
+## 7. 信頼性・パフォーマンス
 
-以下のツールがインストールされていることを確認してください：
+### 非同期処理の信頼性
+- **Cloud Tasks統合**: OIDC認証、最大3回リトライ、5分最大リトライ期間
+- **タイムアウト管理**: Cloud Run 30分、Firestore chatTasks TTL 30分
+- **リカバリー**: リロード時の未完了タスク自動復旧（10分以内）
+- **状態同期**: Firestoreリアルタイムリスナー + ポーリングフォールバック
 
-### 必須ツール
-- **Node.js** 20+ ([https://nodejs.org/](https://nodejs.org/))
-- **Python** 3.12+ ([https://www.python.org/](https://www.python.org/))
-- **Firebase CLI** ([https://firebase.google.com/docs/cli](https://firebase.google.com/docs/cli))
-  ```bash
-  npm install -g firebase-tools
-  firebase login
-  ```
-- **gcloud CLI** ([https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install))
-  ```bash
-  gcloud auth login
-  gcloud config set project hackason-grab
-  ```
+### パフォーマンス最適化実績
+
+| 指標 | Before | After | 改善率 |
+|------|--------|-------|--------|
+| **Time to Interactive** | ~2050ms | ~500ms | **4倍高速化** |
+| **再レンダリング回数** | 5回 | 1回 | **5分の1** |
+| **Cumulative Layout Shift** | 0.25+ | <0.1目標 | **大幅削減** |
+
+**手法**:
+- 並列API呼び出し（`Promise.allSettled()`）
+- 単一状態更新（8つ → 3つの独立state統合）
+- スケルトンローディング（固定レイアウト）
+- アニメーション最適化（初回のみ実行）
+
+### エラー監視（Sentry統合）
+- **エラートラッキング**: 全例外を自動キャプチャ
+- **パフォーマンス監視**: トランザクション、プロファイリング
+- **センシティブ情報のサニタイズ**: パスワード、トークン、APIキーを自動削除
+- **サンプリングレート**: 本番10%、開発100%
+
+### セキュリティ
+- **認証**: Firebase ID Token検証（全APIエンドポイント）
+- **認可**: Firestoreルール（`request.auth.uid == uid` のみ許可）
+- **ストレージパス検証**: 正規表現による厳密な検証
+- **レート制限**: `slowapi`（`/chat/discuss-async`: 10リクエスト/分）
 
 ---
 
-## クイックスタート
+## 8. クイックスタート
 
-### Step 1: リポジトリクローン
-```bash
-git clone https://github.com/your-org/hackason-grab.git
-cd hackason-grab
-```
+### 前提条件
+- **Node.js** 20+
+- **Python** 3.12+
+- **Firebase CLI** (`npm install -g firebase-tools`)
+- **gcloud CLI** ([インストールガイド](https://cloud.google.com/sdk/docs/install))
 
-### Step 2: フロントエンドセットアップ
+### ローカル開発
+
+**1. フロントエンド**
 ```bash
 cd apps/web
 cp .env.example .env.local
-```
-
-`.env.local` に以下を設定：
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-NEXT_PUBLIC_API_BASE=http://localhost:8000
-```
-
-依存関係をインストールして起動：
-```bash
+# .env.local に Firebase設定を記入
 npm install
 npm run dev
+# → http://localhost:3000
 ```
 
-→ ブラウザで http://localhost:3000 を開く
-
-### Step 3: バックエンドセットアップ（別ターミナル）
+**2. バックエンド（別ターミナル）**
 ```bash
 cd services/agent-api
 python3.12 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
+# → http://localhost:8000/api/health
 ```
 
-→ ブラウザで http://localhost:8000/api/health を開いて `{"status":"ok"}` が表示されることを確認
+### デプロイ
 
----
-
-## 開発環境セットアップ
-
-### 5.1 Firebase設定
-
-1. [Firebase Console](https://console.firebase.google.com/) でプロジェクト作成
-2. プロジェクト設定 → Web SDK設定を取得
-3. `apps/web/.env.local` に設定（Step 2参照）
-4. Authentication → Sign-in method → Google を有効化
-
-### 5.2 Cloud Run API設定
-
-Cloud Run環境変数（`gcloud run deploy` 時に設定）:
-```bash
-FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-FIREBASE_PROJECT_ID=your-project
-ALLOWED_ORIGINS=http://localhost:3000,https://your-project.web.app
-GOOGLE_CLOUD_PROJECT=your-project
-GOOGLE_CLOUD_LOCATION=global
-GOOGLE_GENAI_USE_VERTEXAI=true
-GEMINI_MODEL=gemini-2.5-flash
-GEMINI_ENABLED=true
-```
-
-### 5.3 Firestore・Storageルール
-
-ルールをデプロイ：
-```bash
-firebase deploy --only firestore:rules
-firebase deploy --only storage:rules
-```
-
-### 5.4 Firestoreインデックス
-
-インデックスをデプロイ：
-```bash
-firebase deploy --only firestore:indexes
-```
-
----
-
-## デプロイ
-
-### フロントエンド（Firebase Hosting）
-
-手動デプロイ：
+**フロントエンド（Firebase Hosting）**
 ```bash
 firebase deploy --only hosting
 ```
 
-**自動デプロイ**: GitHub Actions で `main` ブランチへのpush時に自動実行
-（`.github/workflows/firebase-hosting-merge.yml`）
-
-### バックエンド（Cloud Run）
-
+**バックエンド（Cloud Run）**
 ```bash
 cd services/agent-api
 gcloud run deploy agent-api \
   --source . \
   --region asia-northeast1 \
-  --allow-unauthenticated \
-  --set-env-vars FIREBASE_STORAGE_BUCKET=hackason-grab.appspot.com,FIREBASE_PROJECT_ID=hackason-grab,GOOGLE_CLOUD_PROJECT=hackason-grab,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=gemini-2.5-flash,GEMINI_ENABLED=true,ALLOWED_ORIGINS=https://hackason-grab.web.app
+  --timeout 1800s \
+  --memory 1Gi \
+  --set-env-vars FIREBASE_PROJECT_ID=hackason-grab,...
 ```
 
-デプロイ後、Cloud Run URLを確認：
+**Cloud Function（週間プラン自動管理）**
 ```bash
-gcloud run services list --project hackason-grab
+cd cloud-functions/daily-scheduler
+./deploy.sh          # Cloud Function デプロイ
+./setup-scheduler.sh # Cloud Scheduler 設定
 ```
+
+---
+
+## 9. プロジェクト構成
+
+```
+hackason-grab/
+├─ apps/
+│  └─ web/                         # Next.js (フロントエンド)
+│     ├─ src/app/                  # 画面実装
+│     │  ├─ feature2/chat/         # 非同期チャット (Phase 1-3)
+│     │  ├─ feature3/weekly-plan/  # 週間プラン (Phase 2)
+│     │  ├─ mental-shield/         # 同期版チャット
+│     │  ├─ dashboard/
+│     │  └─ home/                  # パーソナライズドダッシュボード
+│     ├─ src/lib/                  # Firebase初期化
+│     └─ .env.local                # ローカル環境変数
+├─ services/
+│  └─ agent-api/                   # FastAPI (Cloud Run)
+│     ├─ app/
+│     │  ├─ routers/
+│     │  │  ├─ mental_shield.py   # LangGraphワークフロー、非同期エンドポイント
+│     │  │  ├─ lifestyle.py       # 週間プラン、ミッション、Quick Action/Q&A
+│     │  │  └─ photos.py          # 性別対応型髪分析
+│     │  ├─ agents/lifestyle_agent/tools/
+│     │  │  ├─ generate_plan.py   # 週間プラン・日次アクション生成
+│     │  │  └─ recommend_actions.py  # ACTIONS_CATALOG
+│     │  ├─ monitoring/
+│     │  │  └─ sentry.py          # Sentry統合
+│     │  └─ firebase.py            # Firebase初期化
+│     └─ requirements.txt
+├─ cloud-functions/                # Cloud Functions (Phase 2)
+│  └─ daily-scheduler/             # 毎日午前4時の自動処理
+│     ├─ main.py                   # エントリーポイント
+│     ├─ requirements.txt
+│     ├─ .env.yaml                 # 環境変数
+│     ├─ shared/                   # agent-apiからの再利用コード
+│     ├─ deploy.sh
+│     └─ setup-scheduler.sh
+├─ .github/workflows/
+│  ├─ cloud-run-deploy.yml         # Cloud Run CI/CD
+│  └─ firebase-hosting-merge.yml   # Firebase Hosting CI/CD
+├─ firestore.rules
+├─ firestore.indexes.json
+├─ storage.rules
+├─ firebase.json
+├─ docs/
+│  ├─ system_spec.md               # システム仕様書（詳細）
+│  ├─ weekly-plan-implementation-plan.md  # Phase 2 実装計画
+│  └─ chat-async-performance-improvement-proposal.md  # Phase 4 提案
+└─ README.md                       # 本ドキュメント
+```
+
+---
+
+## 10. 今後の展開
+
+### Phase 4: チャット処理性能改善（提案中）
+- **Phase 4-1**: Round 1 並列化 + 9分強制完了 → 33%削減
+- **Phase 4-2**: Round 2 スキップ + チェックポイント → 43%削減
+- **Phase 4-3**: キャッシング戦略 → 再実行時の負荷軽減
+
+### 機能拡張（検討中）
+- プッシュ通知（タスク完了時、週間プラン更新時）
+- チャット履歴のエクスポート
+- カスタムエージェント設定
+- 多言語対応（英語、中国語）
+
+### インフラ改善
+- Cloud Runのコールドスタート最適化
+- Cloud Functionsのリトライ戦略強化
+- Firestoreインデックス最適化
+
+---
+
+## 関連ドキュメント
+
+- **[システム仕様書](docs/system_spec.md)** - システム全体の詳細設計、アーキテクチャ、API仕様
+- **[週間プラン実装計画](docs/weekly-plan-implementation-plan.md)** - Phase 2の設計・実装詳細
+- **[チャット性能改善提案](docs/chat-async-performance-improvement-proposal.md)** - Phase 4の改善提案
+- **[Cloud Function運用ガイド](cloud-functions/daily-scheduler/README.md)** - 日次自動処理のデプロイ・運用
 
 ---
 
 ## トラブルシューティング
 
 ### ログインできない
-
-**症状**: Googleログインボタンをクリックしても認証画面が表示されない
-
 **原因**: Firebase Authenticationの設定不足
-
-**解決策**:
-1. [Firebase Console](https://console.firebase.google.com/) → Authentication → Sign-in method → Google を有効化
-2. 承認済みドメインに `localhost` が含まれているか確認
-3. OAuth Client IDにドメイン制限が設定されている場合、`http://localhost:3000` を追加
+**解決**: Firebase Console → Authentication → Sign-in method → Google を有効化
 
 ### API接続エラー
+**原因**: 環境変数の設定ミス
+**解決**: `NEXT_PUBLIC_API_BASE` が正しいか確認（ローカル: `http://localhost:8000`、本番: Cloud Run URL）
 
-**症状**: フロントエンドからAPIを呼び出すと404エラーが発生
+### チャットタスクが実行されない
+**原因**: Cloud Tasksの設定ミス
+**解決**:
+```bash
+# タスク詳細確認
+gcloud tasks describe <task-name> --queue=chat-processing-queue --location=asia-northeast1
 
-**原因**: 環境変数の設定ミスまたはCloud Run URLの誤り
-
-**解決策**:
-1. `apps/web/.env.local` の `NEXT_PUBLIC_API_BASE` が正しいか確認
-   - ローカル: `http://localhost:8000`
-   - 本番: Cloud Run URL（例: `https://agent-api-54206639421.asia-northeast1.run.app`）
-2. Cloud Run URLを確認: `gcloud run services list --project hackason-grab`
-3. `firebase.json` の `rewrites` 設定を確認
-
-### 画像アップロードエラー
-
-**症状**: 写真アップロード時にエラーが発生
-
-**原因**: Storage Rulesの設定不足または画像サイズ超過
-
-**解決策**:
-1. `storage.rules` がデプロイされているか確認: `firebase deploy --only storage:rules`
-2. 画像サイズ上限: **10MB**
-3. 対応形式: `image/*` （JPEG, PNG, etc.）
-4. Storage Rulesで `users/{uid}/photos/*` の書き込み権限が設定されているか確認
-
-### デプロイエラー
-
-**症状**: `firebase deploy` または `gcloud run deploy` が失敗する
-
-**原因**: 設定ファイルの誤りまたは権限不足
-
-**解決策**:
-1. **Next.js 16エラー**: `swcMinify` オプションは削除済み（Next.js 13+ではデフォルト）
-2. **Cloud Run環境変数**: すべての必須環境変数が設定されているか確認
-3. **Firebase CLI認証**: `firebase login` で再認証
-4. **gcloud認証**: `gcloud auth login` で再認証
-5. **IAM権限**: デプロイに必要な権限（Cloud Run Admin, Firebase Hosting Admin等）が付与されているか確認
-
----
-
-## プロジェクト構成
-
-```
-hackason-grab/
-├── apps/
-│   └── web/                # Next.js (フロントエンド)
-│       ├── src/app/        # 画面実装（App Router）
-│       ├── src/lib/        # Firebase初期化
-│       └── .env.local      # ローカル環境変数
-├── services/
-│   └── agent-api/          # FastAPI (Cloud Run)
-│       ├── app/            # API実装
-│       │   ├── main.py     # FastAPIアプリケーション
-│       │   └── routers/    # APIルーター
-│       └── requirements.txt
-├── docs/                   # ドキュメント
-│   ├── API.md              # API仕様書（詳細）
-│   ├── system_spec.md      # システム仕様書
-│   └── チーム分担書.md     # チーム体制・役割分担
-├── firestore.rules         # Firestoreセキュリティルール
-├── firestore.indexes.json  # Firestoreインデックス定義
-├── storage.rules           # Storageセキュリティルール
-├── firebase.json           # Firebase設定
-└── README.md               # 本ドキュメント
+# ログ確認
+gcloud logging read 'resource.labels.service_name="agent-api" AND textPayload=~"Task"' --limit 20
 ```
 
----
+### Cloud Functionが実行されない
+**原因**: Cloud Schedulerの設定ミス
+**解決**:
+```bash
+# スケジュール状態確認
+gcloud scheduler jobs describe daily-scheduler-4am-jst --location=asia-northeast1
 
-## 関連ドキュメント
+# 手動実行（テスト）
+gcloud scheduler jobs run daily-scheduler-4am-jst --location=asia-northeast1
 
-- **[API仕様書](docs/API.md)** - 全APIエンドポイントの詳細仕様
-- **[システム仕様書](docs/system_spec.md)** - システム全体の詳細設計
-- **[機能一覧書](docs/機能一覧書.md)** - 全46機能の一覧
-- **[セキュリティ監査レポート](docs/security-audit-report.md)** - セキュリティ対策実施状況
-- **[パフォーマンス最適化ガイド](docs/performance-optimization-guide.md)** - 実施済み最適化の詳細
-- **[エラーハンドリングガイド](docs/error-handling-guide.md)** - エラー処理の実装詳細
+# ログ確認
+gcloud functions logs read daily-scheduler --region=asia-northeast1 --limit=50
+```
 
 ---
 
@@ -285,3 +434,14 @@ MIT License
 ## 貢献
 
 プルリクエストを歓迎します。大きな変更の場合は、まずissueを開いて変更内容を議論してください。
+
+---
+
+## プロジェクト情報
+
+- **デモ**: https://hackason-grab.web.app
+- **Firebase Console**: https://console.firebase.google.com/project/hackason-grab
+- **Cloud Run**: https://console.cloud.google.com/run?project=hackason-grab
+- **Cloud Tasks**: https://console.cloud.google.com/cloudtasks?project=hackason-grab
+
+**最終更新**: 2026-02-14
