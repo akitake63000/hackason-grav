@@ -315,20 +315,19 @@ function Dashboard() {
               transition={{ duration: 0.4 }}
             >
               <div className={styles.emptyStateIcon}>
-                <Camera size={48} color="#0693e3" strokeWidth={1.5} />
+                <Camera size={48} color="#0693e3" />
               </div>
               <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
               <p className={styles.emptyStateDescription}>
                 まずは写真を撮影して、AIによる髪密度の解析を始めましょう。
               </p>
-              <Button
-                variant="primary"
-                size="medium"
-                icon={<Camera size={18} />}
+              <button
+                className={styles.emptyStateButton}
                 onClick={handleCaptureClick}
               >
-                写真を撮影する
-              </Button>
+                <Camera size={24} />
+                スキャン開始
+              </button>
             </motion.div>
           </div>
         </div>
