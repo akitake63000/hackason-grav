@@ -11,6 +11,12 @@ import { apiFetch } from '@/lib/api'
 import { getFirebaseAuth } from '@/lib/firebase'
 import styles from './page.module.css'
 
+const LOADING_STEPS = [
+  'データを収集中...',
+  '進捗を分析中...',
+  'チャートを生成中...',
+]
+
 function Dashboard() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState('1ヶ月')
@@ -19,6 +25,8 @@ function Dashboard() {
   const [chartData, setChartData] = useState([])
   const [thumbnails, setThumbnails] = useState([])
   const [hoveredPoint, setHoveredPoint] = useState(null)
+  const [loadingStep, setLoadingStep] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState(0)
   const filters = ['1ヶ月', '3ヶ月', '6ヶ月']
 
   // Memoize navigation handler
@@ -105,6 +113,23 @@ function Dashboard() {
 
     return () => unsubscribe()
   }, [router])
+
+  // プログレスバーアニメーション
+  useEffect(() => {
+    if (!loading) return
+    setLoadingStep(0)
+    setLoadingProgress(0)
+    const progressTimer = setInterval(() => {
+      setLoadingProgress((prev) => Math.min(prev + 2, 90))
+    }, 200)
+    const stepTimer = setInterval(() => {
+      setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1))
+    }, 3000)
+    return () => {
+      clearInterval(progressTimer)
+      clearInterval(stepTimer)
+    }
+  }, [loading])
 
   // Memoize filtered and transformed data for performance
   const { chartData: memoizedChartData, thumbnails: memoizedThumbnails } = useMemo(() => {
@@ -295,7 +320,21 @@ function Dashboard() {
       <Layout>
         <div className={styles.container}>
           <div className={styles.loadingContainer}>
-            データを読み込んでいます...
+            <div style={{ textAlign: 'center' }}>
+              <div className={styles.loadingSpinner}>📊</div>
+              <h2 className={styles.loadingTitle}>分析中...</h2>
+              <p className={styles.loadingMessage}>過去の進捗を確認しています</p>
+              <div className={styles.progressContainer}>
+                <motion.div
+                  className={styles.progressBar}
+                  animate={{ width: `${loadingProgress}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
+              </div>
+              <p className={styles.loadingStepText}>
+                {LOADING_STEPS[loadingStep]}
+              </p>
+            </div>
           </div>
         </div>
       </Layout>
