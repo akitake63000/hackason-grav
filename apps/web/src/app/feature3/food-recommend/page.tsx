@@ -224,7 +224,7 @@ function FoodRecommendContent() {
                 <div className={styles.container}>
                     <div className={styles.errorContainer}>
                         <p style={{ color: '#e53e3e', marginBottom: '16px' }}>{error}</p>
-                        <Button variant="secondary" onClick={() => router.back()} size="md">
+                        <Button variant="secondary" onClick={() => router.back()} size="md" icon={undefined} style={{}}>
                             戻る
                         </Button>
                     </div>
