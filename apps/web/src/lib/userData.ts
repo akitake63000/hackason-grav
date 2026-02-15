@@ -22,9 +22,8 @@ const SIMPLE_COLLECTIONS: DeletableDataKey[] = [
   "analysisResults",
   "reports",
   "tendencyScores",
-  "foodRecommendations",
-  "foodRecipes",
-  "chatSettings",
+  // Note: foodRecommendations, foodRecipes, and chatSettings are deleted via backend
+  // /cleanup-user-data endpoint because firestore.rules has write: false for these collections
 ];
 
 const deleteDocsInBatch = async (
@@ -158,6 +157,8 @@ export const deleteUserDataByKeys = async (
 
 export const deleteUserData = async (uid: string): Promise<void> => {
   // Delete all user data collections
+  // Note: foodRecommendations, foodRecipes, and chatSettings are deleted via backend
+  // /cleanup-user-data endpoint because firestore.rules has write: false for these collections
   await deleteUserDataByKeys(uid, [
     "profile",
     "photos",
@@ -165,8 +166,6 @@ export const deleteUserData = async (uid: string): Promise<void> => {
     "reports",
     "conversations",
     "tendencyScores",
-    "foodRecommendations",
-    "foodRecipes",
     "plans",
   ]);
 
