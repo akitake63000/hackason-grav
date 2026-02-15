@@ -340,6 +340,9 @@ def analyze_scan_photos(
         front_bytes = get_image_data(payload.frontPhotoId)
         top_bytes = get_image_data(payload.topPhotoId)
         side_bytes = get_image_data(payload.sidePhotoId)
+    except HTTPException:
+        # Re-raise HTTPException to preserve status code (e.g., 403, 404)
+        raise
     except Exception as e:
         logging.error(f"Failed to download scan images: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve images")
