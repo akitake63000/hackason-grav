@@ -2,9 +2,6 @@
 
 薄毛対策の継続を支えるAIエージェント
 **写真分析・メンタルサポート・習慣化支援を統合したフルスタックMVP**
-
-**デモ**: https://hackason-grab.web.app
-
 ---
 
 ## 1. 解決する課題
@@ -366,12 +363,6 @@ hackason-grab/
 ---
 
 ## 10. 今後の展開
-
-### Phase 4: チャット処理性能改善（提案中）
-- **Phase 4-1**: Round 1 並列化 + 9分強制完了 → 33%削減
-- **Phase 4-2**: Round 2 スキップ + チェックポイント → 43%削減
-- **Phase 4-3**: キャッシング戦略 → 再実行時の負荷軽減
-
 ### 機能拡張（検討中）
 - プッシュ通知（タスク完了時、週間プラン更新時）
 - チャット履歴のエクスポート
@@ -432,24 +423,5 @@ gcloud functions logs read daily-scheduler --region=asia-northeast1 --limit=50
 ```
 
 ---
-
-## ライセンス
-
-MIT License
-
----
-
-## 貢献
-
-プルリクエストを歓迎します。大きな変更の場合は、まずissueを開いて変更内容を議論してください。
-
----
-
-## プロジェクト情報
-
-- **デモ**: https://hackason-grab.web.app
-- **Firebase Console**: https://console.firebase.google.com/project/hackason-grab
-- **Cloud Run**: https://console.cloud.google.com/run?project=hackason-grab
-- **Cloud Tasks**: https://console.cloud.google.com/cloudtasks?project=hackason-grab
 
 **最終更新**: 2026-02-15
