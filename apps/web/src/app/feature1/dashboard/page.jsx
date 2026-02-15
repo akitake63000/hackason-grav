@@ -31,7 +31,7 @@ function Dashboard() {
 
   // Memoize navigation handler
   const handleThumbnailClick = useCallback((photoId) => {
-    router.push(`/feature1/result?photoId=${photoId}`)
+    router.push(`/feature1/result?photoId=${encodeURIComponent(photoId)}`)
   }, [router])
 
   const handleCaptureClick = useCallback(() => {
@@ -58,7 +58,6 @@ function Dashboard() {
         })
 
         if (!initialResponse.ok) {
-          console.error('[Dashboard] Response not OK:', initialResponse.status)
           throw new Error('データの取得に失敗しました')
         }
 

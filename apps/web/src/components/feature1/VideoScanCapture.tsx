@@ -496,6 +496,9 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
+        // ビデオメタデータが読み込まれていることを確認
+        if (video.readyState !== 4) return;
+
         // 品質チェックなしで現在のフレームを直接キャプチャ
         const captureCanvas = document.createElement('canvas');
         captureCanvas.width = video.videoWidth;
