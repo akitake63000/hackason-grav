@@ -81,6 +81,8 @@ function FoodRecommendContent() {
     // プログレスバーアニメーション
     useEffect(() => {
         if (!loading) return;
+        setLoadingStep(0);
+        setLoadingProgress(0);
         const progressTimer = setInterval(() => {
             setLoadingProgress((prev) => Math.min(prev + 2, 90));
         }, 200);
@@ -222,7 +224,7 @@ function FoodRecommendContent() {
                 <div className={styles.container}>
                     <div className={styles.errorContainer}>
                         <p style={{ color: '#e53e3e', marginBottom: '16px' }}>{error}</p>
-                        <Button variant="secondary" onClick={() => router.back()} size="medium" icon={undefined} style={{}}>
+                        <Button variant="secondary" onClick={() => router.back()} size="md">
                             戻る
                         </Button>
                     </div>

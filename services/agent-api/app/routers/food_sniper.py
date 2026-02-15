@@ -837,14 +837,13 @@ def _get_cached_recommendation(uid: str, pattern: Optional[str]) -> Optional[dic
             db.collection("foodRequests")
             .document(uid)
             .collection("items")
+            .where("hairPattern", "==", pattern)
             .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
             .limit(1)
             .get()
         )
         for doc in results:
-            data = doc.to_dict()
-            if data.get("hairPattern") == pattern:
-                return data
+            return doc.to_dict()
     except (FirebaseError, GoogleCloudError) as e:
         logging.warning(f"Recommendation cache lookup failed: {e}")
     except Exception as e:
@@ -933,7 +932,6 @@ def recommend_food_sniper(
     payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
 ) -> FoodSniperResponse:
     # パターン取得: リクエスト > Firestore の順で探す
-    # パターン取得: リクエスト > Firestore の順で探す
     pattern = payload.hairPattern
     
     # リクエストされたパターンが有効な定義済みパターンかチェック
@@ -985,7 +983,7 @@ def recommend_food_sniper(
         cause_text = info["cause"]
         strategy_text = info["strategy"]
 
-                # Gemini動的生成（コラム風解説）
+        # Gemini動的生成（コラム風解説）
         if gemini_enabled():
             try:
                 # 食材リストのテキスト生成（プロンプト内で参照するため）
@@ -1005,7 +1003,7 @@ def recommend_food_sniper(
                     cause_text = data_p["cause"]
                     strategy_text = data_p["strategy"]
             except Exception as e:
-                 logging.warning(f"Gemini pattern explanation failed: {e}")
+                logging.warning(f"Gemini pattern explanation failed: {e}")
 
         pattern_info = PatternInfo(
             label=info["label"],
@@ -1015,21 +1013,24 @@ def recommend_food_sniper(
         )
 
     # Firestore に記録（patternInfo も保存）
-    db = get_firestore_client()
-    request_id = f"food_{uuid.uuid4().hex}"
-    save_data = {
-        "createdAt": admin_firestore.SERVER_TIMESTAMP,
-        "query": payload.message,
-        "hairPattern": pattern,
-        "nutrients": [n.model_dump() for n in nutrients],
-        "shoppingList": shopping_list,
-    }
-    if pattern_info:
-        save_data["patternInfo"] = pattern_info.model_dump()
+    try:
+        db = get_firestore_client()
+        request_id = f"food_{uuid.uuid4().hex}"
+        save_data = {
+            "createdAt": admin_firestore.SERVER_TIMESTAMP,
+            "query": payload.message,
+            "hairPattern": pattern,
+            "nutrients": [n.model_dump() for n in nutrients],
+            "shoppingList": shopping_list,
+        }
+        if pattern_info:
+            save_data["patternInfo"] = pattern_info.model_dump()
 
-    db.collection("foodRequests").document(uid).collection("items").document(
-        request_id
-    ).set(save_data)
+        db.collection("foodRequests").document(uid).collection("items").document(
+            request_id
+        ).set(save_data)
+    except Exception as e:
+        logging.warning(f"Failed to save recommendation to Firestore: {e}")
 
     return FoodSniperResponse(
         patternInfo=pattern_info,
