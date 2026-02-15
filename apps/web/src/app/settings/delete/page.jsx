@@ -10,7 +10,7 @@ import Button from '@/components/Button'
 import { useAuth, signOutUser } from '@/lib/auth'
 import { deleteUserData, deleteUserDataByKeys } from '@/lib/userData'
 import { getFirebaseAuth } from '@/lib/firebase'
-import { deleteUser as deleteAuthUser } from 'firebase/auth'
+import { deleteUser as deleteAuthUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
 import { apiFetch } from '@/lib/api'
 
 const styles = {
@@ -129,6 +129,24 @@ const styles = {
     display: 'flex',
     gap: '12px',
   },
+  inputField: {
+    width: '100%',
+    padding: '12px 16px',
+    fontSize: '14px',
+    borderRadius: '8px',
+    border: '1.5px solid rgba(6, 147, 227, 0.2)',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    fontFamily: 'inherit',
+  },
+  inputFieldFocus: {
+    borderColor: '#0693e3',
+  },
+  errorText: {
+    fontSize: '12px',
+    color: '#ef4444',
+    marginTop: '8px',
+  },
 }
 
 const deleteItems = [
@@ -190,6 +208,7 @@ function DeleteSettingsPage() {
   const [selected, setSelected] = useState([])
   const [isWorking, setIsWorking] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState({ show: false, type: null, message: '' })
+  const [passwordDialog, setPasswordDialog] = useState({ show: false, password: '', error: '' })
 
   const hasSelection = selected.length > 0
   const selectedLabels = useMemo(
@@ -245,8 +264,51 @@ function DeleteSettingsPage() {
 
   const handleWithdraw = () => {
     if (!user?.uid || isWorking) return
-    const message = '退会するとアカウントとすべてのデータが完全に削除されます。この操作は取り消せません。'
-    showConfirmDialog('withdraw', message)
+    // Show password dialog for re-authentication
+    setPasswordDialog({ show: true, password: '', error: '' })
+  }
+
+  const handlePasswordSubmit = async () => {
+    if (!passwordDialog.password) {
+      setPasswordDialog(prev => ({ ...prev, error: 'パスワードを入力してください' }))
+      return
+    }
+
+    setIsWorking(true)
+    try {
+      // Re-authenticate user with password
+      const auth = getFirebaseAuth()
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email,
+        passwordDialog.password
+      )
+      await reauthenticateWithCredential(auth.currentUser, credential)
+
+      // Re-authentication successful, close password dialog and show confirm dialog
+      setPasswordDialog({ show: false, password: '', error: '' })
+      const message = '退会するとアカウントとすべてのデータが完全に削除されます。この操作は取り消せません。'
+      showConfirmDialog('withdraw', message)
+    } catch (error) {
+      console.error('Re-authentication error:', error)
+      let errorMessage = 'パスワードが正しくありません'
+
+      if (error?.code === 'auth/wrong-password') {
+        errorMessage = 'パスワードが正しくありません'
+      } else if (error?.code === 'auth/too-many-requests') {
+        errorMessage = 'しばらく時間をおいて再度お試しください'
+      } else if (error?.code === 'auth/network-request-failed') {
+        errorMessage = 'ネットワークエラーが発生しました'
+      }
+
+      setPasswordDialog(prev => ({ ...prev, error: errorMessage }))
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  const hidePasswordDialog = () => {
+    if (isWorking) return
+    setPasswordDialog({ show: false, password: '', error: '' })
   }
 
   const executeWithdraw = async () => {
@@ -295,32 +357,24 @@ function DeleteSettingsPage() {
       router.push('/login')
     } catch (error) {
       console.error('Withdrawal error:', error)
-      const code = error?.code
 
-      if (code === 'auth/requires-recent-login') {
-        window.alert(
-          '安全のため、再ログイン後に退会手続きを行ってください。\n\n' +
-          (dataDeleted ? '※ データは削除されています。' : '')
-        )
+      let message = '退会処理に失敗しました。\n\n'
+
+      if (dataDeleted && backendCleanupCompleted) {
+        message += 'データは削除されましたが、アカウントの削除に失敗しました。\n' +
+                   'サポートにお問い合わせください。\n\n'
+      } else if (dataDeleted && !backendCleanupCompleted) {
+        message += '一部のデータ削除に失敗しました。\n' +
+                   'ホーム画面の「今日のミッション」が残っている可能性があります。\n' +
+                   '再度退会手続きを行ってください。\n\n'
       } else {
-        let message = '退会処理に失敗しました。\n\n'
-
-        if (dataDeleted && backendCleanupCompleted) {
-          message += 'データは削除されましたが、アカウントの削除に失敗しました。\n' +
-                     'サポートにお問い合わせください。\n\n'
-        } else if (dataDeleted && !backendCleanupCompleted) {
-          message += '一部のデータ削除に失敗しました。\n' +
-                     'ホーム画面の「今日のミッション」が残っている可能性があります。\n' +
-                     '再度退会手続きを行ってください。\n\n'
-        } else {
-          message += 'データ削除に失敗しました。\n' +
-                     '再度退会手続きを行ってください。\n\n'
-        }
-
-        message += `エラー: ${error?.message || error}`
-
-        window.alert(message)
+        message += 'データ削除に失敗しました。\n' +
+                   '再度退会手続きを行ってください。\n\n'
       }
+
+      message += `エラー: ${error?.message || error}`
+
+      window.alert(message)
 
       if (dataDeleted && backendCleanupCompleted) {
         // Both data deletions succeeded, so sign out anyway
@@ -412,6 +466,70 @@ function DeleteSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Password Re-authentication Dialog */}
+      <AnimatePresence>
+        {passwordDialog.show && (
+          <motion.div
+            style={styles.modalOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={hidePasswordDialog}
+          >
+            <motion.div
+              style={styles.modalContent}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={styles.modalHeader}>
+                <AlertTriangle size={24} color="#f59e0b" />
+                <h3 style={styles.modalTitle}>本人確認</h3>
+              </div>
+              <p style={styles.modalMessage}>
+                安全のため、パスワードを入力して本人確認を行ってください。
+              </p>
+              <input
+                type="password"
+                placeholder="パスワード"
+                value={passwordDialog.password}
+                onChange={(e) => setPasswordDialog(prev => ({ ...prev, password: e.target.value, error: '' }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isWorking) {
+                    handlePasswordSubmit()
+                  }
+                }}
+                style={styles.inputField}
+                disabled={isWorking}
+                autoFocus
+              />
+              {passwordDialog.error && (
+                <p style={styles.errorText}>{passwordDialog.error}</p>
+              )}
+              <div style={{ ...styles.modalButtons, marginTop: '24px' }}>
+                <Button
+                  variant="outline"
+                  size="full"
+                  onClick={hidePasswordDialog}
+                  disabled={isWorking}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  variant="primary"
+                  size="full"
+                  onClick={handlePasswordSubmit}
+                  disabled={isWorking || !passwordDialog.password}
+                >
+                  確認
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Confirm Dialog */}
       <AnimatePresence>
