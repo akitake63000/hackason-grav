@@ -7,8 +7,9 @@ import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
 import { apiFetch } from '@/lib/api'
+import styles from './page.module.css'
 
-const styles = {
+const inlineStyles = {
   container: {
     flex: 1,
     display: 'flex',
@@ -222,17 +223,15 @@ function Report() {
   if (loading) {
     return (
       <Layout>
-        <div style={styles.container}>
-          <div style={styles.loadingContainer}>
-            <div className="animate-pulse">
-              <Sparkles size={48} color="#38bdf8" />
-            </div>
-            <div style={{ color: '#7f786d', fontSize: '14px', marginTop: '16px' }}>
-              AIがあなたのデータを分析中...
-            </div>
-            <div style={{ color: '#7f786d', fontSize: '12px', opacity: 0.8 }}>
-              過去30日間の進捗を確認しています
-            </div>
+        <div style={inlineStyles.container}>
+          <div className={styles.loadingContainer}>
+            <Card variant="default" padding="lg" onClick={undefined} style={{}}>
+              <div className={styles.loadingCard}>
+                <div className={styles.loadingSpinner}>⏳</div>
+                <h2 className={styles.loadingTitle}>読み込み中...</h2>
+                <p className={styles.loadingMessage}>AIがあなたのデータを分析しています。</p>
+              </div>
+            </Card>
           </div>
         </div>
       </Layout>
@@ -242,9 +241,9 @@ function Report() {
   if (error) {
     return (
       <Layout>
-        <div style={styles.container}>
-          <div style={styles.content}>
-            <div style={styles.errorContainer}>
+        <div style={inlineStyles.container}>
+          <div style={inlineStyles.content}>
+            <div style={inlineStyles.errorContainer}>
               <AlertCircle size={32} color="#b85450" style={{ margin: '0 auto 16px' }} />
               <p style={{ color: '#b85450', marginBottom: '8px' }}>{error}</p>
             </div>
@@ -261,31 +260,31 @@ function Report() {
 
   return (
     <Layout>
-      <div style={styles.container}>
-        <div style={styles.content}>
+      <div style={inlineStyles.container}>
+        <div style={inlineStyles.content}>
           {/* Title Section */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <h1 style={styles.title}>AIレポート</h1>
-            <p style={styles.subtitle}>詳細分析</p>
+            <h1 style={inlineStyles.title}>AIレポート</h1>
+            <p style={inlineStyles.subtitle}>詳細分析</p>
           </motion.div>
 
           {/* Report Header */}
           <motion.div
-            style={styles.reportHeader}
+            style={inlineStyles.reportHeader}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <div style={styles.aiIcon}>
+            <div style={inlineStyles.aiIcon}>
               <Sparkles size={24} color="#313131" />
             </div>
-            <div style={styles.reportHeaderText}>
-              <div style={styles.reportTitle}>月間分析レポート</div>
-              <div style={styles.reportDate}>
+            <div style={inlineStyles.reportHeaderText}>
+              <div style={inlineStyles.reportTitle}>月間分析レポート</div>
+              <div style={inlineStyles.reportDate}>
                 <Calendar size={12} />
                 {reportDate} 生成
               </div>
@@ -293,26 +292,26 @@ function Report() {
           </motion.div>
 
           {/* Grid for Cards */}
-          <div style={styles.gridContainer}>
+          <div style={inlineStyles.gridContainer}>
             {/* Summary/Highlights Section */}
             <Card variant="default" padding="lg" delay={0.2} onClick={undefined} style={{}}>
-              <div style={styles.sectionHeader}>
-                <div style={styles.sectionIconWrapper}>
+              <div style={inlineStyles.sectionHeader}>
+                <div style={inlineStyles.sectionIconWrapper}>
                   <TrendingUp size={16} color="#0693e3" />
                 </div>
-                <span style={styles.sectionTitle}>ハイライト</span>
+                <span style={inlineStyles.sectionTitle}>ハイライト</span>
               </div>
 
               {data?.highlights && data.highlights.length > 0 ? (
-                <ul style={styles.bulletList}>
+                <ul style={inlineStyles.bulletList}>
                   {data.highlights.map((highlight, idx) => (
-                    <li key={idx} style={styles.bulletItem}>
+                    <li key={idx} style={inlineStyles.bulletItem}>
                       {highlight}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p style={styles.reportText}>
+                <p style={inlineStyles.reportText}>
                   特筆すべき変化はまだ検出されていません。継続的な記録をおすすめします。
                 </p>
               )}
@@ -320,23 +319,23 @@ function Report() {
 
             {/* Next Actions / Detail Analysis */}
             <Card variant="default" padding="lg" delay={0.3} onClick={undefined} style={{}}>
-              <div style={styles.sectionHeader}>
-                <div style={styles.sectionIconWrapper}>
+              <div style={inlineStyles.sectionHeader}>
+                <div style={inlineStyles.sectionIconWrapper}>
                   <Lightbulb size={16} color="#0693e3" />
                 </div>
-                <span style={styles.sectionTitle}>次のアクション</span>
+                <span style={inlineStyles.sectionTitle}>次のアクション</span>
               </div>
 
               {data?.nextActions && data.nextActions.length > 0 ? (
-                <ul style={styles.bulletList}>
+                <ul style={inlineStyles.bulletList}>
                   {data.nextActions.map((action, idx) => (
-                    <li key={idx} style={styles.bulletItem}>
+                    <li key={idx} style={inlineStyles.bulletItem}>
                       {action}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p style={styles.reportText}>
+                <p style={inlineStyles.reportText}>
                   同じ条件での撮影を続けることで、より詳細なアドバイスが可能になります。
                 </p>
               )}
@@ -346,17 +345,17 @@ function Report() {
           {/* Raw Text Summary (Optional, if available) */}
           {data?.rawText && (
             <motion.div
-              style={styles.tipCard}
+              style={inlineStyles.tipCard}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.5 }}
             >
-              <div style={styles.tipIcon}>
+              <div style={inlineStyles.tipIcon}>
                 <FileText size={20} color="#313131" />
               </div>
-              <div style={styles.tipContent}>
-                <div style={styles.tipTitle}>AIアドバイス</div>
-                <p style={styles.tipText}>
+              <div style={inlineStyles.tipContent}>
+                <div style={inlineStyles.tipTitle}>AIアドバイス</div>
+                <p style={inlineStyles.tipText}>
                   {data.rawText}
                 </p>
               </div>
@@ -365,12 +364,12 @@ function Report() {
 
           {/* Action Buttons */}
           <motion.div
-            style={styles.buttonRow}
+            style={inlineStyles.buttonRow}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <div style={styles.buttonSecondary}>
+            <div style={inlineStyles.buttonSecondary}>
               <Button
                 variant="secondary"
                 size="full"
@@ -390,7 +389,7 @@ function Report() {
               </Button>
             </div>
             {/* 
-          <div style={styles.buttonPrimary}>
+          <div style={inlineStyles.buttonPrimary}>
             <Button
               variant="primary"
               size="full"

@@ -123,6 +123,28 @@
   padding: var(--spacing-xl);
 }
 
+.loadingCard {
+  text-align: center;
+  padding: clamp(24px, 6vw, 32px);
+}
+
+.loadingSpinner {
+  font-size: clamp(40px, 10vw, 48px);
+  margin-bottom: var(--spacing-md);
+}
+
+.loadingTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: #313131;
+  margin-bottom: var(--spacing-sm);
+}
+
+.loadingMessage {
+  font-size: var(--font-sm);
+  color: #7f786d;
+}
+
 .emptyState {
   text-align: center;
   padding: clamp(32px, 10vw, 48px);
