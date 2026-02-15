@@ -12,7 +12,8 @@ export type DeletableDataKey =
   | "conversations"
   | "tendencyScores"
   | "foodRequests"
-  | "plans";
+  | "plans"
+  | "chatSettings";
 
 const SIMPLE_COLLECTIONS: DeletableDataKey[] = [
   "profile",
@@ -21,6 +22,7 @@ const SIMPLE_COLLECTIONS: DeletableDataKey[] = [
   "reports",
   "tendencyScores",
   "foodRequests",
+  "chatSettings",
 ];
 
 const deleteDocsInBatch = async (

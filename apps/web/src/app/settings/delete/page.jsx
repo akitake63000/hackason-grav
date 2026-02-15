@@ -172,6 +172,11 @@ const deleteItems = [
     title: '食材リクエスト',
     description: '食事・食材の記録',
   },
+  {
+    id: 'chatSettings',
+    title: 'チャット設定',
+    description: 'AIチャットの設定情報',
+  },
 ]
 
 function DeleteSettingsPage() {

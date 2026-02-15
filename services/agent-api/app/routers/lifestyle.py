@@ -2493,6 +2493,14 @@ async def cleanup_user_data(
     Deletes:
     - dailyMissions: Generated missions (allow write: if false)
     - chatTasks: Chat-related tasks (allow write: if false)
+    - quickActions: Quick action cache
+    - quickQA: Quick Q&A cache
+    - motivationMessages: Motivation message cache
+    - mealAnalysis: Meal analysis cache
+    - chatSettings: Chat settings
+    - foodRequests/{uid}/items: Food recommendation items (top-level collection)
+    - foodRequests/{uid}/recipes: Food recommendation recipes (top-level collection)
+    - reports/{uid}/items: Weekly reports (top-level collection)
 
     Returns:
         Dict with deletion summary
@@ -2528,6 +2536,118 @@ async def cleanup_user_data(
     except Exception as e:
         logging.error(f"Failed to delete chatTasks for user {uid}: {e}", exc_info=True)
         errors.append(f"chatTasks: {str(e)}")
+
+    # Delete quickActions collection
+    try:
+        quick_actions_ref = db.collection("users").document(uid).collection("quickActions")
+        quick_actions_docs = list(quick_actions_ref.stream())
+
+        if quick_actions_docs:
+            for doc in quick_actions_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"quickActions ({len(quick_actions_docs)} docs)")
+            logging.info(f"Deleted {len(quick_actions_docs)} quickActions documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete quickActions for user {uid}: {e}", exc_info=True)
+        errors.append(f"quickActions: {str(e)}")
+
+    # Delete quickQA collection
+    try:
+        quick_qa_ref = db.collection("users").document(uid).collection("quickQA")
+        quick_qa_docs = list(quick_qa_ref.stream())
+
+        if quick_qa_docs:
+            for doc in quick_qa_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"quickQA ({len(quick_qa_docs)} docs)")
+            logging.info(f"Deleted {len(quick_qa_docs)} quickQA documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete quickQA for user {uid}: {e}", exc_info=True)
+        errors.append(f"quickQA: {str(e)}")
+
+    # Delete motivationMessages collection
+    try:
+        motivation_ref = db.collection("users").document(uid).collection("motivationMessages")
+        motivation_docs = list(motivation_ref.stream())
+
+        if motivation_docs:
+            for doc in motivation_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"motivationMessages ({len(motivation_docs)} docs)")
+            logging.info(f"Deleted {len(motivation_docs)} motivationMessages documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete motivationMessages for user {uid}: {e}", exc_info=True)
+        errors.append(f"motivationMessages: {str(e)}")
+
+    # Delete mealAnalysis collection
+    try:
+        meal_ref = db.collection("users").document(uid).collection("mealAnalysis")
+        meal_docs = list(meal_ref.stream())
+
+        if meal_docs:
+            for doc in meal_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"mealAnalysis ({len(meal_docs)} docs)")
+            logging.info(f"Deleted {len(meal_docs)} mealAnalysis documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete mealAnalysis for user {uid}: {e}", exc_info=True)
+        errors.append(f"mealAnalysis: {str(e)}")
+
+    # Delete chatSettings collection
+    try:
+        settings_ref = db.collection("users").document(uid).collection("chatSettings")
+        settings_docs = list(settings_ref.stream())
+
+        if settings_docs:
+            for doc in settings_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"chatSettings ({len(settings_docs)} docs)")
+            logging.info(f"Deleted {len(settings_docs)} chatSettings documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete chatSettings for user {uid}: {e}", exc_info=True)
+        errors.append(f"chatSettings: {str(e)}")
+
+    # Delete top-level foodRequests/{uid}/items collection
+    try:
+        food_items_ref = db.collection("foodRequests").document(uid).collection("items")
+        food_items_docs = list(food_items_ref.stream())
+
+        if food_items_docs:
+            for doc in food_items_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"foodRequests/items ({len(food_items_docs)} docs)")
+            logging.info(f"Deleted {len(food_items_docs)} foodRequests/items documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete foodRequests/items for user {uid}: {e}", exc_info=True)
+        errors.append(f"foodRequests/items: {str(e)}")
+
+    # Delete top-level foodRequests/{uid}/recipes collection
+    try:
+        food_recipes_ref = db.collection("foodRequests").document(uid).collection("recipes")
+        food_recipes_docs = list(food_recipes_ref.stream())
+
+        if food_recipes_docs:
+            for doc in food_recipes_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"foodRequests/recipes ({len(food_recipes_docs)} docs)")
+            logging.info(f"Deleted {len(food_recipes_docs)} foodRequests/recipes documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete foodRequests/recipes for user {uid}: {e}", exc_info=True)
+        errors.append(f"foodRequests/recipes: {str(e)}")
+
+    # Delete top-level reports/{uid}/items collection
+    try:
+        reports_ref = db.collection("reports").document(uid).collection("items")
+        reports_docs = list(reports_ref.stream())
+
+        if reports_docs:
+            for doc in reports_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"reports/items ({len(reports_docs)} docs)")
+            logging.info(f"Deleted {len(reports_docs)} reports/items documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete reports/items for user {uid}: {e}", exc_info=True)
+        errors.append(f"reports/items: {str(e)}")
 
     # Return summary
     return {
