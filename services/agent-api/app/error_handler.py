@@ -306,11 +306,12 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         )
     else:
         # Default error response for unknown exceptions
+        # Do not expose exception_type to prevent information leakage
         response = create_error_response(
             ErrorCode.INTERNAL_ERROR,
             "An unexpected error occurred. Please try again later.",
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            {"exception_type": type(exc).__name__},
+            None,  # No details exposed to client
             request_id
         )
 

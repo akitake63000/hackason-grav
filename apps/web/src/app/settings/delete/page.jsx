@@ -168,9 +168,14 @@ const deleteItems = [
     description: 'AI週間プランとミッション履歴',
   },
   {
-    id: 'foodRequests',
-    title: '食材リクエスト',
-    description: '食事・食材の記録',
+    id: 'foodRecommendations',
+    title: '食材レコメンド',
+    description: '食材のおすすめ記録',
+  },
+  {
+    id: 'foodRecipes',
+    title: 'レシピ',
+    description: '食材のレシピ記録',
   },
   {
     id: 'chatSettings',

@@ -2718,9 +2718,23 @@ async def cleanup_user_data(
                 doc.reference.delete()
             deleted_collections.append(f"reports/{uid}/items (legacy) ({len(old_reports_docs)} docs)")
             logging.info(f"Deleted {len(old_reports_docs)} reports/{uid}/items (legacy) documents for user {uid}")
+
+        # Delete parent document reports/{uid} (GDPR compliance)
+        db.collection("reports").document(uid).delete()
+        deleted_collections.append(f"reports/{uid} (parent doc)")
+        logging.info(f"Deleted parent document reports/{uid}")
     except Exception as e:
         logging.error(f"Failed to delete reports/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
         errors.append(f"reports/{uid}/items (legacy): {str(e)}")
+
+    # Delete parent document foodRequests/{uid} (GDPR compliance)
+    try:
+        db.collection("foodRequests").document(uid).delete()
+        deleted_collections.append(f"foodRequests/{uid} (parent doc)")
+        logging.info(f"Deleted parent document foodRequests/{uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete foodRequests/{uid} parent document: {e}", exc_info=True)
+        errors.append(f"foodRequests/{uid} (parent doc): {str(e)}")
 
     # Return summary
     return {

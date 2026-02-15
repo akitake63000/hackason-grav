@@ -89,9 +89,10 @@ def analyze_photo(
     except ValueError as exc:
         # Path validation failed (e.g., path traversal attempt)
         logging.warning(f"Invalid storage path detected: {storage_path}")
+        # Do not expose internal validation details to prevent information leakage
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc)
+            detail="Invalid storage path"
         ) from exc
     except GoogleCloudError as exc:
         logging.error(f"Google Cloud Storage error for path {storage_path}: {exc}")

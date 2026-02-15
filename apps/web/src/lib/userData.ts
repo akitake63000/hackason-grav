@@ -11,7 +11,8 @@ export type DeletableDataKey =
   | "reports"
   | "conversations"
   | "tendencyScores"
-  | "foodRequests"
+  | "foodRecommendations"
+  | "foodRecipes"
   | "plans"
   | "chatSettings";
 
@@ -21,7 +22,8 @@ const SIMPLE_COLLECTIONS: DeletableDataKey[] = [
   "analysisResults",
   "reports",
   "tendencyScores",
-  "foodRequests",
+  "foodRecommendations",
+  "foodRecipes",
   "chatSettings",
 ];
 
@@ -163,7 +165,8 @@ export const deleteUserData = async (uid: string): Promise<void> => {
     "reports",
     "conversations",
     "tendencyScores",
-    "foodRequests",
+    "foodRecommendations",
+    "foodRecipes",
     "plans",
   ]);
 

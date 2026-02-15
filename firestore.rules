@@ -40,7 +40,11 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
-      match /foodRequests/{requestId} {
+      match /foodRecommendations/{recommendationId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /foodRecipes/{recipeId} {
         allow read, write: if isOwner(uid);
       }
 

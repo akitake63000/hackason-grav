@@ -10,6 +10,7 @@ REGION="asia-northeast1"
 SCHEDULE="0 4 * * *"  # 4 AM every day
 TIMEZONE="Asia/Tokyo"
 FUNCTION_URL="https://${REGION}-${PROJECT_ID}.cloudfunctions.net/daily-scheduler"
+SERVICE_ACCOUNT_EMAIL="cloud-scheduler@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "Creating Cloud Scheduler job: $JOB_NAME"
 
@@ -19,7 +20,7 @@ gcloud scheduler jobs delete $JOB_NAME \
   --project=$PROJECT_ID \
   --quiet || true
 
-# Create new job
+# Create new job with OIDC authentication
 gcloud scheduler jobs create http $JOB_NAME \
   --location=$REGION \
   --schedule="$SCHEDULE" \
@@ -27,6 +28,8 @@ gcloud scheduler jobs create http $JOB_NAME \
   --uri="$FUNCTION_URL" \
   --http-method=POST \
   --headers="Content-Type=application/json" \
+  --oidc-service-account-email="$SERVICE_ACCOUNT_EMAIL" \
+  --oidc-token-audience="$FUNCTION_URL" \
   --project=$PROJECT_ID
 
 echo "Cloud Scheduler job created successfully!"
