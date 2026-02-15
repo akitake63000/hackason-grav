@@ -35,16 +35,36 @@ function Tendency() {
   // 永続化データ取得
   useEffect(() => {
     const fetchLatest = async () => {
-      try {
-        const res = await apiFetch('/api/v1/lifestyle/tendency/latest')
-        if (res.ok) {
-          const data = await res.json()
-          setResultData(data)
-          // 既存データがあれば結果表示モードにする
-          setViewState('result')
+      const MAX_RETRIES = 3
+      const RETRY_DELAY = 1000 // 1 second
+
+      let lastError = null
+
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          // Cache buster to prevent 404 caching
+          const cacheBuster = `?t=${Date.now()}`
+          const res = await apiFetch(`/api/v1/lifestyle/tendency/latest${cacheBuster}`)
+
+          if (res.ok) {
+            const data = await res.json()
+            setResultData(data)
+            // 既存データがあれば結果表示モードにする
+            setViewState('result')
+            return
+          }
+        } catch (err) {
+          lastError = err
+          // Retry only on 404 errors
+          if (err.statusCode === 404 && attempt < MAX_RETRIES - 1) {
+            console.log(`Tendency data not found (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`)
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+            continue
+          }
+          // For non-404 errors or last attempt, just log and exit
+          console.log('No previous tendency data found or error fetching.')
+          break
         }
-      } catch (err) {
-        console.log('No previous tendency data found or error fetching.')
       }
     }
     fetchLatest()

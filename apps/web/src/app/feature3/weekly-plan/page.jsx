@@ -44,30 +44,49 @@ export default function WeeklyPlan() {
 
     const fetchData = async () => {
         try {
-            // Check tendency data freshness
+            // Check tendency data freshness with retry logic
             // Note: 404 is expected when user hasn't completed tendency survey
-            try {
-                const tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
-                if (tendencyRes.ok) {
-                    const data = await tendencyRes.json()
-                    setTendencyData(data)
+            const MAX_RETRIES = 3
+            const RETRY_DELAY = 1000 // 1 second
 
-                    // Check if 2+ weeks since last update
-                    if (data.updatedAt) {
-                        const lastUpdate = new Date(data.updatedAt)
-                        const twoWeeksAgo = new Date()
-                        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-                        if (lastUpdate < twoWeeksAgo) {
-                            setShowInactivityWarning(true)
+            let tendencyDataFetched = false
+
+            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                try {
+                    // Cache buster to prevent 404 caching
+                    const cacheBuster = `?t=${Date.now()}`
+                    const tendencyRes = await apiFetch(`/api/v1/lifestyle/tendency/latest${cacheBuster}`)
+
+                    if (tendencyRes.ok) {
+                        const data = await tendencyRes.json()
+                        setTendencyData(data)
+                        tendencyDataFetched = true
+
+                        // Check if 2+ weeks since last update
+                        if (data.updatedAt) {
+                            const lastUpdate = new Date(data.updatedAt)
+                            const twoWeeksAgo = new Date()
+                            twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+                            if (lastUpdate < twoWeeksAgo) {
+                                setShowInactivityWarning(true)
+                            }
                         }
+                        break
                     }
-                }
-            } catch (tendencyError) {
-                // 404 means user hasn't completed tendency survey yet
-                if (tendencyError?.statusCode === 404 || tendencyError?.status === 404) {
-                    setTendencyData(null) // Explicitly set null to trigger "Take Survey" UI
-                } else {
-                    console.error('Failed to fetch tendency data:', tendencyError)
+                } catch (tendencyError) {
+                    // 404 means user hasn't completed tendency survey yet
+                    if (tendencyError?.statusCode === 404 || tendencyError?.status === 404) {
+                        if (attempt < MAX_RETRIES - 1) {
+                            console.log(`Tendency data not found (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`)
+                            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+                            continue
+                        }
+                        // After all retries, set to null
+                        setTendencyData(null) // Explicitly set null to trigger "Take Survey" UI
+                    } else {
+                        console.error('Failed to fetch tendency data:', tendencyError)
+                    }
+                    break
                 }
             }
 
