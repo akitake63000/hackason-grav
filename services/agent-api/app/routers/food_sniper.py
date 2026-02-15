@@ -65,6 +65,7 @@ class FoodSniperResponse(BaseModel):
     shoppingList: List[str]
     hairPattern: Optional[str] = None
     hasAnalysis: bool = False
+    fromCache: bool = False  # キャッシュヒット時にtrue
 
 
 class RecipeRequest(BaseModel):
@@ -88,6 +89,7 @@ class RecipeItem(BaseModel):
 
 class RecipeResponse(BaseModel):
     recipes: List[RecipeItem]
+    fromCache: bool = False  # キャッシュヒット時にtrue
 
 
 # ---------------------------------------------------------------------------
@@ -971,6 +973,7 @@ def recommend_food_sniper(
                     shoppingList=cached.get("shoppingList", []),
                     hairPattern=cached.get("hairPattern"),
                     hasAnalysis=bool(pattern),
+                    fromCache=True,  # キャッシュヒット
                 )
             except Exception as e:
                 logging.warning(f"Failed to reconstruct cached recommendation, falling through to fresh generation: {e}")
@@ -1044,6 +1047,7 @@ def recommend_food_sniper(
         shoppingList=shopping_list,
         hairPattern=pattern,
         hasAnalysis=bool(pattern),
+        fromCache=False,  # 新規生成
     )
 
 
@@ -1062,7 +1066,7 @@ def generate_recipe(
             try:
                 cached_recipes = [RecipeItem(**r) for r in cached.get("recipes", [])]
                 if cached_recipes:
-                    return RecipeResponse(recipes=cached_recipes)
+                    return RecipeResponse(recipes=cached_recipes, fromCache=True)
             except Exception as e:
                 logging.warning(f"Failed to reconstruct cached recipe, falling through to fresh generation: {e}")
 
@@ -1124,4 +1128,4 @@ def generate_recipe(
     except Exception as e:
         logging.warning(f"Failed to save recipe to Firestore: {e}")
 
-    return RecipeResponse(recipes=recipes)
+    return RecipeResponse(recipes=recipes, fromCache=False)

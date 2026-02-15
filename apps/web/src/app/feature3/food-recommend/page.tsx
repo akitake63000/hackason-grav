@@ -42,6 +42,7 @@ interface FoodSniperResponse {
     shoppingList: string[];
     hairPattern?: string;
     hasAnalysis?: boolean;
+    fromCache?: boolean;  // キャッシュヒット時にtrue
 }
 
 interface RecipeItem {
@@ -49,6 +50,11 @@ interface RecipeItem {
     description: string;
     ingredients: string[];
     benefit: string;
+}
+
+interface RecipeResponse {
+    recipes: RecipeItem[];
+    fromCache?: boolean;  // キャッシュヒット時にtrue
 }
 
 interface RecipeModal {
@@ -69,6 +75,8 @@ function FoodRecommendContent() {
     const router = useRouter();
     // ユーザー指示に基づきパラメータ名を hairPattern に変更
     const patternParam = searchParams.get('hairPattern');
+    // デバッグ用: ?useCache=false でキャッシュを無効化
+    const debugUseCache = searchParams.get('useCache') !== 'false';
 
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<FoodSniperResponse | null>(null);
@@ -116,22 +124,32 @@ function FoodRecommendContent() {
                     body: JSON.stringify({
                         message: '', // Optional message, empty for now
                         hairPattern: decodedPattern,
-                        useCache: true,
+                        useCache: debugUseCache, // デバッグ用クエリパラメータから制御
                     }),
                 });
 
                 const response: FoodSniperResponse = await res.json();
+
+                // キャッシュヒット時は即座に表示
+                if (response.fromCache) {
+                    setLoadingProgress(100);
+                    setLoading(false);
+                }
+
                 setData(response);
             } catch (err: any) {
                 console.error('Failed to fetch food recommendations:', err);
                 setError('おすすめ食材の取得に失敗しました。時間をおいて再度お試しください。');
             } finally {
-                setLoading(false);
+                // キャッシュミス時は通常のローディング完了まで待つ
+                if (!data?.fromCache) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchRecommendations();
-    }, [patternParam]);
+    }, [patternParam, debugUseCache]);
 
     const handleRecipeClick = async (food: FoodDetail) => {
         setRecipeModal({ food, loading: true, recipes: [], error: null });
@@ -142,10 +160,12 @@ function FoodRecommendContent() {
                 body: JSON.stringify({
                     foodName: food.name,
                     hairPattern: data?.hairPattern || null,
-                    useCache: true,
+                    useCache: debugUseCache, // デバッグ用クエリパラメータから制御
                 }),
             });
-            const result = await response.json();
+            const result: RecipeResponse = await response.json();
+
+            // キャッシュヒット時は即座に表示（レシピは元々速いので体感差は小さい）
             setRecipeModal((prev) => prev ? {
                 ...prev,
                 loading: false,
@@ -175,10 +195,10 @@ function FoodRecommendContent() {
                 body: JSON.stringify({
                     foodName: recipeModal.food.name,
                     hairPattern: data?.hairPattern || null,
-                    useCache: false,
+                    useCache: false,  // 強制再生成
                 }),
             });
-            const result = await response.json();
+            const result: RecipeResponse = await response.json();
             setRecipeModal((prev) => prev ? {
                 ...prev,
                 loading: false,
@@ -255,7 +275,7 @@ function FoodRecommendContent() {
                     </motion.div>
 
                     {/* AI解析未実施バナー */}
-                    {data && !data.hasAnalysis && !data.patternInfo && (
+                    {!data?.hasAnalysis && (
                         <motion.div
                             className={styles.analysisBanner}
                             initial={{ opacity: 0, y: 20 }}
