@@ -825,19 +825,36 @@ users/{uid}/meals/{mealId}.jpg
 
 **ファイル**: `firestore.indexes.json`
 
+**Note**: 単一フィールドインデックス（例: `messages.createdAt`）はFirestoreが自動作成するため、明示的な定義は不要です。
+
 ```json
 {
   "indexes": [
     {
-      "collectionGroup": "messages",
+      "collectionGroup": "items",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "createdAt", "order": "ASCENDING"}
+        { "fieldPath": "hairPattern", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "recipes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "foodName", "order": "ASCENDING" },
+        { "fieldPath": "hairPattern", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }
 ```
+
+**複合インデックス**:
+- **items**: 髪パターン + 作成日時（食材推奨機能用）
+- **recipes**: 食材名 + 髪パターン + 作成日時（レシピ推奨機能用）
 
 ### 5.7 セキュリティルール
 
