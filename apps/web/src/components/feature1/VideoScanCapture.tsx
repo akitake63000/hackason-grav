@@ -165,7 +165,7 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
             }
         };
 
-        if (phase !== 'complete') {
+        if (phase !== 'complete' && phase !== 'guide') {
             startCamera();
         }
 
@@ -279,7 +279,11 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
 
     // MAIN LOOP
     const analyzeFrame = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current || phase === 'guide' || phase === 'complete' || isTransitioning) {
+        if (phase === 'guide' || phase === 'complete') {
+            return;
+        }
+
+        if (!videoRef.current || !canvasRef.current || isTransitioning) {
             requestRef.current = requestAnimationFrame(analyzeFrame);
             return;
         }
@@ -504,9 +508,9 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
         if (isModelLoading) return "AIモデル準備中...";
         if (isTransitioning) return "次のポジションへ...";
         switch (phase) {
-            case 'front': return deviceType === 'mobile' ? '正面を写してください' : '正面を向いてください';
-            case 'top': return deviceType === 'mobile' ? '頭頂部を写してください' : '頭を下げてください';
-            case 'side': return deviceType === 'mobile' ? '横顔を写してください' : '横を向いてください';
+            case 'front': return '正面を向いてください';
+            case 'top': return '頭を下に向けて頭頂部を見せてください';
+            case 'side': return '横を向いてください';
             default: return '';
         }
     };

@@ -235,7 +235,6 @@ function Report() {
         const reportData: ReportGenerateResponse = await response.json()
         setData(reportData)
       } catch (err) {
-        console.error('Failed to generate report:', err)
         setError('レポートの取得中にエラーが発生しました。しばらく経ってから再度お試しください。')
       } finally {
         setLoading(false)

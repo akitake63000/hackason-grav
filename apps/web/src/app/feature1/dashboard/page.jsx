@@ -91,16 +91,14 @@ function Dashboard() {
           setAllData(fullData.items)
         }
       } catch (err) {
-        console.error('[Dashboard] Error caught:', err)
-        console.error('[Dashboard] Error details - statusCode:', err?.statusCode, 'code:', err?.code)
-        // Handle 404 (no analysis history yet) as empty state without console error
+        // Handle 404 (no analysis history yet) as empty state
         if (err?.statusCode === 404 || err?.code === 'NOT_FOUND') {
           console.log('[Dashboard] 404 error, showing empty state')
           setAllData([])
           setChartData([])
           setThumbnails([])
         } else {
-          console.error('[Dashboard] Other error, showing empty state:', err.message)
+          console.log('[Dashboard] Other error, showing empty state')
           // Treat other errors as empty state too
           setAllData([])
           setChartData([])
