@@ -194,7 +194,8 @@ def generate_report(
 
     report_id = f"report_{uuid.uuid4().hex}"
 
-    db.collection("reports").document(uid).collection("items").document(report_id).set(
+    # Save to users/{uid}/reports/ (consistent with frontend and Firestore rules)
+    db.collection("users").document(uid).collection("reports").document(report_id).set(
         {
             "createdAt": admin_firestore.SERVER_TIMESTAMP,
             "period": {

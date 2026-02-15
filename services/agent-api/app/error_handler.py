@@ -119,24 +119,30 @@ def handle_firebase_error(error: FirebaseError, request_id: Optional[str] = None
 
     Returns:
         JSONResponse with structured error information
+
+    Security: Error details are logged but not exposed to clients to prevent information leakage.
     """
     error_message = str(error)
 
+    # Log the error with full details (server-side only)
+    logger.exception(f"Firebase error: {error_message}", exc_info=error)
+
     # Map Firebase errors to appropriate HTTP status codes
+    # Do NOT include error_message in response details to prevent information leakage
     if "NOT_FOUND" in error_message or "not found" in error_message.lower():
         return create_error_response(
             ErrorCode.RESOURCE_NOT_FOUND,
-            "The requested resource was not found in Firebase",
+            "The requested resource was not found",
             status.HTTP_404_NOT_FOUND,
-            {"firebase_error": error_message},
+            None,  # No details exposed to client
             request_id
         )
     elif "PERMISSION_DENIED" in error_message or "permission denied" in error_message.lower():
         return create_error_response(
             ErrorCode.PERMISSION_DENIED,
-            "Permission denied to access Firebase resource",
+            "Permission denied to access resource",
             status.HTTP_403_FORBIDDEN,
-            {"firebase_error": error_message},
+            None,  # No details exposed to client
             request_id
         )
     else:
@@ -144,7 +150,7 @@ def handle_firebase_error(error: FirebaseError, request_id: Optional[str] = None
             ErrorCode.DATABASE_ERROR,
             "Firebase operation failed",
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            {"firebase_error": error_message},
+            None,  # No details exposed to client
             request_id
         )
 
@@ -159,33 +165,39 @@ def handle_google_cloud_error(error: GoogleCloudError, request_id: Optional[str]
 
     Returns:
         JSONResponse with structured error information
+
+    Security: Error details are logged but not exposed to clients to prevent information leakage.
     """
     error_message = str(error)
 
+    # Log the error with full details (server-side only)
+    logger.exception(f"Google Cloud error: {error_message}", exc_info=error)
+
     # Map GCP errors to appropriate HTTP status codes
+    # Do NOT include error_message in response details to prevent information leakage
     if hasattr(error, 'code'):
         if error.code == 404:
             return create_error_response(
                 ErrorCode.RESOURCE_NOT_FOUND,
-                "The requested resource was not found in Google Cloud",
+                "The requested resource was not found",
                 status.HTTP_404_NOT_FOUND,
-                {"gcp_error": error_message},
+                None,  # No details exposed to client
                 request_id
             )
         elif error.code == 403:
             return create_error_response(
                 ErrorCode.PERMISSION_DENIED,
-                "Permission denied to access Google Cloud resource",
+                "Permission denied to access resource",
                 status.HTTP_403_FORBIDDEN,
-                {"gcp_error": error_message},
+                None,  # No details exposed to client
                 request_id
             )
         elif error.code == 429:
             return create_error_response(
                 ErrorCode.RATE_LIMIT_EXCEEDED,
-                "Google Cloud API rate limit exceeded",
+                "API rate limit exceeded",
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                {"gcp_error": error_message},
+                None,  # No details exposed to client
                 request_id
             )
 
@@ -193,7 +205,7 @@ def handle_google_cloud_error(error: GoogleCloudError, request_id: Optional[str]
         ErrorCode.EXTERNAL_API_ERROR,
         "Google Cloud operation failed",
         status.HTTP_500_INTERNAL_SERVER_ERROR,
-        {"gcp_error": error_message},
+        None,  # No details exposed to client
         request_id
     )
 

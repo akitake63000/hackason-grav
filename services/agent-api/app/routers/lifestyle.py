@@ -21,6 +21,7 @@ from ..firebase import get_firestore_client
 from ..middleware.rate_limit import limiter
 from ..llm.vertex_gemini import _get_client as get_gemini_client, gemini_enabled as _raw_gemini_enabled
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
+from ..storage import validate_storage_path, download_image_bytes
 from ..agents.lifestyle_agent.tools.analyze_tendency import (
     analyze_tendency_scores,
     TendencyScores,
@@ -1614,8 +1615,32 @@ statusは推定摂取量が推奨量の70%未満なら"low"、それ以上なら
 """
 
 
+def _assert_meal_path(uid: str, storage_path: str) -> None:
+    """
+    Validate that the storage path is owned by the user and is for meal images.
+
+    Args:
+        uid: The user ID
+        storage_path: The storage path to validate
+
+    Raises:
+        HTTPException: If the path is invalid or not owned by the user
+    """
+    # Basic validation (path traversal, extension, etc.)
+    validate_storage_path(storage_path)
+
+    # Owner validation: must be under users/{uid}/meals/
+    if not storage_path.startswith(f"users/{uid}/meals/"):
+        raise HTTPException(status_code=403, detail="Invalid storage path: must be under users/{uid}/meals/")
+
+
 def _download_image_from_storage(storage_path: str) -> bytes:
-    """Firebase Storage から画像バイトをダウンロードする。"""
+    """
+    Firebase Storage から画像バイトをダウンロードする。
+
+    DEPRECATED: Use download_image_bytes from storage module instead.
+    This function is kept for backward compatibility but should not be used for user input.
+    """
     client = gcs.Client()
     bucket = client.bucket(FIREBASE_STORAGE_BUCKET)
     blob = bucket.blob(storage_path)
@@ -1681,7 +1706,13 @@ def meal_analyze(
         return _fallback_meal_analysis()
 
     try:
-        image_bytes = _download_image_from_storage(req.storagePath)
+        # Owner validation: ensure the path belongs to the user
+        _assert_meal_path(uid, req.storagePath)
+        # Download image using the secure storage module
+        image_bytes = download_image_bytes(req.storagePath)
+    except HTTPException:
+        # Re-raise HTTPException as-is (403 Forbidden for invalid ownership)
+        raise
     except (GoogleCloudError, ValueError) as e:
         logging.error(f"Failed to download image from Storage ({req.storagePath}): {e}")
         return _fallback_meal_analysis()
@@ -2607,47 +2638,89 @@ async def cleanup_user_data(
         logging.error(f"Failed to delete chatSettings for user {uid}: {e}", exc_info=True)
         errors.append(f"chatSettings: {str(e)}")
 
-    # Delete top-level foodRequests/{uid}/items collection
+    # Delete food recommendations from new location: users/{uid}/foodRecommendations (current standard)
     try:
-        food_items_ref = db.collection("foodRequests").document(uid).collection("items")
-        food_items_docs = list(food_items_ref.stream())
+        new_food_recs_ref = db.collection("users").document(uid).collection("foodRecommendations")
+        new_food_recs_docs = list(new_food_recs_ref.stream())
 
-        if food_items_docs:
-            for doc in food_items_docs:
+        if new_food_recs_docs:
+            for doc in new_food_recs_docs:
                 doc.reference.delete()
-            deleted_collections.append(f"foodRequests/items ({len(food_items_docs)} docs)")
-            logging.info(f"Deleted {len(food_items_docs)} foodRequests/items documents for user {uid}")
+            deleted_collections.append(f"users/{uid}/foodRecommendations ({len(new_food_recs_docs)} docs)")
+            logging.info(f"Deleted {len(new_food_recs_docs)} users/{uid}/foodRecommendations documents for user {uid}")
     except Exception as e:
-        logging.error(f"Failed to delete foodRequests/items for user {uid}: {e}", exc_info=True)
-        errors.append(f"foodRequests/items: {str(e)}")
+        logging.error(f"Failed to delete users/{uid}/foodRecommendations for user {uid}: {e}", exc_info=True)
+        errors.append(f"users/{uid}/foodRecommendations: {str(e)}")
 
-    # Delete top-level foodRequests/{uid}/recipes collection
+    # Delete food recommendations from old location: foodRequests/{uid}/items (legacy, for backward compatibility)
     try:
-        food_recipes_ref = db.collection("foodRequests").document(uid).collection("recipes")
-        food_recipes_docs = list(food_recipes_ref.stream())
+        old_food_items_ref = db.collection("foodRequests").document(uid).collection("items")
+        old_food_items_docs = list(old_food_items_ref.stream())
 
-        if food_recipes_docs:
-            for doc in food_recipes_docs:
+        if old_food_items_docs:
+            for doc in old_food_items_docs:
                 doc.reference.delete()
-            deleted_collections.append(f"foodRequests/recipes ({len(food_recipes_docs)} docs)")
-            logging.info(f"Deleted {len(food_recipes_docs)} foodRequests/recipes documents for user {uid}")
+            deleted_collections.append(f"foodRequests/{uid}/items (legacy) ({len(old_food_items_docs)} docs)")
+            logging.info(f"Deleted {len(old_food_items_docs)} foodRequests/{uid}/items (legacy) documents for user {uid}")
     except Exception as e:
-        logging.error(f"Failed to delete foodRequests/recipes for user {uid}: {e}", exc_info=True)
-        errors.append(f"foodRequests/recipes: {str(e)}")
+        logging.error(f"Failed to delete foodRequests/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
+        errors.append(f"foodRequests/{uid}/items (legacy): {str(e)}")
 
-    # Delete top-level reports/{uid}/items collection
+    # Delete food recipes from new location: users/{uid}/foodRecipes (current standard)
     try:
-        reports_ref = db.collection("reports").document(uid).collection("items")
-        reports_docs = list(reports_ref.stream())
+        new_food_recipes_ref = db.collection("users").document(uid).collection("foodRecipes")
+        new_food_recipes_docs = list(new_food_recipes_ref.stream())
 
-        if reports_docs:
-            for doc in reports_docs:
+        if new_food_recipes_docs:
+            for doc in new_food_recipes_docs:
                 doc.reference.delete()
-            deleted_collections.append(f"reports/items ({len(reports_docs)} docs)")
-            logging.info(f"Deleted {len(reports_docs)} reports/items documents for user {uid}")
+            deleted_collections.append(f"users/{uid}/foodRecipes ({len(new_food_recipes_docs)} docs)")
+            logging.info(f"Deleted {len(new_food_recipes_docs)} users/{uid}/foodRecipes documents for user {uid}")
     except Exception as e:
-        logging.error(f"Failed to delete reports/items for user {uid}: {e}", exc_info=True)
-        errors.append(f"reports/items: {str(e)}")
+        logging.error(f"Failed to delete users/{uid}/foodRecipes for user {uid}: {e}", exc_info=True)
+        errors.append(f"users/{uid}/foodRecipes: {str(e)}")
+
+    # Delete food recipes from old location: foodRequests/{uid}/recipes (legacy, for backward compatibility)
+    try:
+        old_food_recipes_ref = db.collection("foodRequests").document(uid).collection("recipes")
+        old_food_recipes_docs = list(old_food_recipes_ref.stream())
+
+        if old_food_recipes_docs:
+            for doc in old_food_recipes_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"foodRequests/{uid}/recipes (legacy) ({len(old_food_recipes_docs)} docs)")
+            logging.info(f"Deleted {len(old_food_recipes_docs)} foodRequests/{uid}/recipes (legacy) documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete foodRequests/{uid}/recipes (legacy) for user {uid}: {e}", exc_info=True)
+        errors.append(f"foodRequests/{uid}/recipes (legacy): {str(e)}")
+
+    # Delete reports from new location: users/{uid}/reports (current standard)
+    try:
+        new_reports_ref = db.collection("users").document(uid).collection("reports")
+        new_reports_docs = list(new_reports_ref.stream())
+
+        if new_reports_docs:
+            for doc in new_reports_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"users/{uid}/reports ({len(new_reports_docs)} docs)")
+            logging.info(f"Deleted {len(new_reports_docs)} users/{uid}/reports documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete users/{uid}/reports for user {uid}: {e}", exc_info=True)
+        errors.append(f"users/{uid}/reports: {str(e)}")
+
+    # Delete reports from old location: reports/{uid}/items (legacy, for backward compatibility)
+    try:
+        old_reports_ref = db.collection("reports").document(uid).collection("items")
+        old_reports_docs = list(old_reports_ref.stream())
+
+        if old_reports_docs:
+            for doc in old_reports_docs:
+                doc.reference.delete()
+            deleted_collections.append(f"reports/{uid}/items (legacy) ({len(old_reports_docs)} docs)")
+            logging.info(f"Deleted {len(old_reports_docs)} reports/{uid}/items (legacy) documents for user {uid}")
+    except Exception as e:
+        logging.error(f"Failed to delete reports/{uid}/items (legacy) for user {uid}: {e}", exc_info=True)
+        errors.append(f"reports/{uid}/items (legacy): {str(e)}")
 
     # Return summary
     return {
