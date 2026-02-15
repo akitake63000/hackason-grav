@@ -41,3 +41,10 @@ work/
 # Security
 add_key.exp
 .git_askpass
+
+# Repository cleanup plan
+REPOSITORY_CLEANUP_PLAN.md
+
+# OS-specific files
+.DS_Store
+Thumbs.db

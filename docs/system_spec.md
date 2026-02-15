@@ -1,6 +1,6 @@
 # HairGuard Agent システム仕様書
 
-最終更新: 2026-02-14
+最終更新: 2026-02-15
 
 ## 1. 概要
 薄毛対策の継続を支えるMVP。
@@ -1091,6 +1091,35 @@ gcloud scheduler jobs run daily-scheduler-4am-jst \
 ---
 
 ## 9. 主要な変更履歴
+
+### 2026-02-15
+- **UI/UX改善: ローディングインジケーター追加** (commit: TBD)
+  - Dashboard画面にプログレスバー付きローディング実装（report画面と同様のスタイル）
+  - Report画面のローディング処理改善
+  - 3段階のステップ表示（データ収集→分析→チャート生成）
+  - 90%まで自動進行するプログレスバーアニメーション
+  - 対象ファイル: `apps/web/src/app/feature1/dashboard/page.jsx`, `apps/web/src/app/feature1/report/page.tsx`, `apps/web/src/app/feature1/dashboard/page.module.css`
+- **手動撮影ボタンの品質チェック削除** (commit: TBD)
+  - ユーザーからの明示的要望: 「手動撮影ボタンは品質チェックなしで利用できるようにしてください」
+  - `handleManualCapture()` を品質チェック不要に変更（直接フレームキャプチャ方式）
+  - `video.readyState !== 4` チェック追加（メタデータ準備完了を確認）
+  - bestShotBuffer依存を削除し、videoRef から直接キャプチャ
+  - 対象ファイル: `apps/web/src/components/feature1/VideoScanCapture.tsx` (Line 493-518)
+- **セキュリティ修正: 情報漏洩対策** (commit: TBD)
+  - Dashboard画面の `console.error` 削除（内部エラー情報の外部露出防止）
+  - Report画面の `console.error` 削除（同上）
+  - Codexレビューで指摘された高優先度セキュリティ問題を解決
+  - 対象ファイル: `apps/web/src/app/feature1/dashboard/page.jsx` (Line 61), `apps/web/src/app/feature1/report/page.tsx` (Line 238)
+- **パフォーマンス最適化** (commit: TBD)
+  - requestAnimationFrameループの停止処理追加（guide/completeフェーズで早期リターン）
+  - カメラ権限の遅延要求（guideフェーズ後のみ起動）
+  - 不要なループ実行を防止し、CPU使用率を削減
+  - 対象ファイル: `apps/web/src/components/feature1/VideoScanCapture.tsx` (Line 168-170, 282-289)
+- **コード品質向上** (commit: TBD)
+  - photoIdのURL エンコード追加（特殊文字を含むIDの安全な処理）
+  - 撮影指示テキストの統一（デバイス別の重複表示を解消）
+  - Codexレビューで指摘された全問題を解決
+  - 対象ファイル: `apps/web/src/app/feature1/dashboard/page.jsx` (Line 34), `apps/web/src/components/feature1/VideoScanCapture.tsx` (Line 507-516)
 
 ### 2026-02-14
 - **Phase 2完了: 週間プラン Cloud Function による完全自動化** (commit: `cd3642f`)
