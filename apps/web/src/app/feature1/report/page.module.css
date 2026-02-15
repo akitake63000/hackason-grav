@@ -120,7 +120,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xl);
+  padding: 48px;
 }
 
 .loadingCard {
@@ -129,20 +129,42 @@
 }
 
 .loadingSpinner {
-  font-size: clamp(40px, 10vw, 48px);
-  margin-bottom: var(--spacing-md);
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
 .loadingTitle {
   font-size: var(--font-lg);
   font-weight: 600;
   color: #313131;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 8px;
 }
 
 .loadingMessage {
   font-size: var(--font-sm);
   color: #7f786d;
+  margin-bottom: 4px;
+}
+
+.progressContainer {
+  width: 200px;
+  height: 4px;
+  background: rgba(6, 147, 227, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 16px auto;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #0693e3 0%, #0570b8 100%);
+  border-radius: 2px;
+}
+
+.loadingStepText {
+  font-size: 13px;
+  color: #7f786d;
+  margin-top: 8px;
 }
 
 .emptyState {
