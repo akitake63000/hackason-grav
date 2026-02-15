@@ -170,7 +170,7 @@ function Chat() {
   const hasSetQuestionRef = useRef(false) // フラグ: 質問を設定済みか
   const pollingIntervalIdRef = useRef(null) // ポーリングInterval ID（メモリリーク防止のためuseRefで管理）
   const prefillQuestionRef = useRef(null) // プレフィル質問（auto-submit用）
-  const handleSendRef = useRef(null) // handleSend の最新参照（auto-submit用）
+  const handleSendAsyncRef = useRef(null) // handleSendAsync の最新参照（auto-submit用）
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false) // Auto-submit flag for Quick Q&A
 
   useEffect(() => {
@@ -538,7 +538,7 @@ function Chat() {
   }
 
   // 非同期チャット送信
-  const handleSendAsync = async () => {
+  const handleSendAsync = useCallback(async () => {
     if (!inputValue.trim() || isLoading || isRevealing || pendingTaskId) return
 
     const now = new Date()
@@ -558,6 +558,23 @@ function Chat() {
     setError(null)
 
     try {
+      // ユーザーメッセージをFirestoreに即座に保存（UI更新時の消失を防ぐ）
+      if (user && isFirebaseConfigured()) {
+        try {
+          const db = getFirestoreDb()
+          const messagesRef = collection(db, 'users', user.uid, 'conversations', threadId, 'messages')
+          await setDoc(doc(messagesRef), {
+            role: 'user',
+            content: userMessageText,
+            timestamp: serverTimestamp(),
+          })
+          console.log('User message saved to Firestore')
+        } catch (firestoreError) {
+          console.warn('Failed to save user message to Firestore:', firestoreError)
+          // Continue anyway - バックエンドも保存するため
+        }
+      }
+
       // タスク作成API呼び出し
       const DIRECT_API_URL = process.env.NEXT_PUBLIC_DIRECT_API_URL || DEFAULT_DIRECT_API_URL
       const validatedDirectUrl = validateDirectApiUrl(DIRECT_API_URL)
@@ -600,7 +617,7 @@ function Chat() {
       setError('メッセージの送信に失敗しました。もう一度お試しください。')
       setIsLoading(false)
     }
-  }
+  }, [inputValue, isLoading, isRevealing, pendingTaskId, user, threadId, chatStyle, chatDetail])
 
   const handleSend = useCallback(async () => {
     if (!inputValue.trim() || isLoading || isRevealing || pendingTaskId) return
@@ -762,13 +779,13 @@ function Chat() {
     }
   }, [inputValue, isLoading, isRevealing, pendingTaskId, user, threadId, chatStyle, chatDetail])
 
-  // handleSendの最新参照をrefに保存（auto-submit用）
+  // handleSendAsyncの最新参照をrefに保存（auto-submit用）
   useEffect(() => {
-    handleSendRef.current = handleSend
-  }, [handleSend])
+    handleSendAsyncRef.current = handleSendAsync
+  }, [handleSendAsync])
 
   // Auto-submit when inputValue is set and shouldAutoSubmit flag is true
-  // handleSendRef を最新化した後に実行（古い inputValue 参照を回避）
+  // handleSendAsyncRef を最新化した後に実行（古い inputValue 参照を回避）
   useEffect(() => {
     // ユーザーが編集していないか、かつ処理中でない場合のみ自動送信
     if (
@@ -782,9 +799,9 @@ function Chat() {
     ) {
       setShouldAutoSubmit(false) // Reset flag to prevent re-triggering
       prefillQuestionRef.current = null // Reset after use
-      // handleSendRef経由で最新のhandleSendを呼び出し
-      if (handleSendRef.current) {
-        handleSendRef.current()
+      // handleSendAsyncRef経由で最新のhandleSendAsyncを呼び出し
+      if (handleSendAsyncRef.current) {
+        handleSendAsyncRef.current()
       }
     }
   }, [inputValue, shouldAutoSubmit, isLoading, isRevealing, pendingTaskId, loadingHistory])
@@ -793,7 +810,7 @@ function Chat() {
     // IME変換中（日本語入力中）はEnterで送信しない
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
-      handleSend()
+      handleSendAsync()
     }
   }
 
@@ -1115,7 +1132,7 @@ function Chat() {
               opacity: isBusy ? 0.6 : 1,
               cursor: isBusy ? 'not-allowed' : 'pointer',
             }}
-            onClick={handleSend}
+            onClick={handleSendAsync}
             disabled={isBusy}
             whileHover={isBusy ? {} : { scale: 1.05 }}
             whileTap={isBusy ? {} : { scale: 0.95 }}

@@ -113,6 +113,10 @@ function Tendency() {
 
       if (!res.ok) throw new Error('分析に失敗しました')
       const data = await res.json()
+
+      // Firestore書き込み完了待機（500ms）
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       setResultData(data)
       setViewState('result')
     } catch (err) {

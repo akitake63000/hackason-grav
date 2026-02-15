@@ -98,9 +98,19 @@ export const deleteUserDataByKeys = async (
 ): Promise<void> => {
   const errors: Error[] = [];
 
+  // Filter out collections that can only be deleted via backend
+  const backendOnlyCollections: DeletableDataKey[] = [
+    "foodRecommendations",
+    "foodRecipes",
+    "chatSettings",
+  ];
+  const clientDeletableKeys = keys.filter(
+    (key) => !backendOnlyCollections.includes(key)
+  );
+
   // Delete simple collections
   for (const name of SIMPLE_COLLECTIONS) {
-    if (!keys.includes(name)) continue;
+    if (!clientDeletableKeys.includes(name)) continue;
     try {
       await deleteCollection(["users", uid, name]);
     } catch (error) {
@@ -110,7 +120,7 @@ export const deleteUserDataByKeys = async (
   }
 
   // Delete conversations (including messages subcollection)
-  if (keys.includes("conversations")) {
+  if (clientDeletableKeys.includes("conversations")) {
     try {
       await deleteConversations(uid);
     } catch (error) {
@@ -120,7 +130,7 @@ export const deleteUserDataByKeys = async (
   }
 
   // Delete plans (including dailyActions and logs subcollections)
-  if (keys.includes("plans")) {
+  if (clientDeletableKeys.includes("plans")) {
     try {
       await deletePlans(uid);
     } catch (error) {
@@ -130,7 +140,7 @@ export const deleteUserDataByKeys = async (
   }
 
   // Delete photos from Storage
-  if (keys.includes("photos")) {
+  if (clientDeletableKeys.includes("photos")) {
     try {
       await deleteStoragePrefix(`users/${uid}/photos`);
     } catch (error) {

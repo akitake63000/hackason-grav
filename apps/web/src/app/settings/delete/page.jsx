@@ -10,7 +10,7 @@ import Button from '@/components/Button'
 import { useAuth, signOutUser } from '@/lib/auth'
 import { deleteUserData, deleteUserDataByKeys } from '@/lib/userData'
 import { getFirebaseAuth } from '@/lib/firebase'
-import { deleteUser as deleteAuthUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
+import { deleteUser as deleteAuthUser, EmailAuthProvider, GoogleAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth'
 import { apiFetch } from '@/lib/api'
 
 const styles = {
@@ -185,21 +185,8 @@ const deleteItems = [
     title: '週間プラン',
     description: 'AI週間プランとミッション履歴',
   },
-  {
-    id: 'foodRecommendations',
-    title: '食材レコメンド',
-    description: '食材のおすすめ記録',
-  },
-  {
-    id: 'foodRecipes',
-    title: 'レシピ',
-    description: '食材のレシピ記録',
-  },
-  {
-    id: 'chatSettings',
-    title: 'チャット設定',
-    description: 'AIチャットの設定情報',
-  },
+  // Note: foodRecommendations, foodRecipes, chatSettings are not deletable from client
+  // They are deleted only via backend /cleanup-user-data endpoint during withdrawal
 ]
 
 function DeleteSettingsPage() {
@@ -262,10 +249,44 @@ function DeleteSettingsPage() {
     }
   }
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!user?.uid || isWorking) return
-    // Show password dialog for re-authentication
-    setPasswordDialog({ show: true, password: '', error: '' })
+
+    const auth = getFirebaseAuth()
+    const currentUser = auth.currentUser
+    if (!currentUser) return
+
+    // Check which provider the user is using
+    const providerId = currentUser.providerData[0]?.providerId
+
+    if (providerId === 'google.com') {
+      // Google authentication: re-authenticate with popup
+      setIsWorking(true)
+      try {
+        const provider = new GoogleAuthProvider()
+        await reauthenticateWithPopup(currentUser, provider)
+
+        // Re-authentication successful, show confirm dialog
+        const message = '退会するとアカウントとすべてのデータが完全に削除されます。この操作は取り消せません。'
+        showConfirmDialog('withdraw', message)
+      } catch (error) {
+        console.error('Re-authentication error:', error)
+        let errorMessage = '本人確認に失敗しました'
+
+        if (error?.code === 'auth/popup-closed-by-user') {
+          errorMessage = '本人確認がキャンセルされました'
+        } else if (error?.code === 'auth/network-request-failed') {
+          errorMessage = 'ネットワークエラーが発生しました'
+        }
+
+        window.alert(errorMessage)
+      } finally {
+        setIsWorking(false)
+      }
+    } else {
+      // Email/Password authentication: show password dialog
+      setPasswordDialog({ show: true, password: '', error: '' })
+    }
   }
 
   const handlePasswordSubmit = async () => {

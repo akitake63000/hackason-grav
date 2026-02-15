@@ -61,11 +61,38 @@ function LifestyleRecommendContent() {
 
       // Get tendency data if no query params
       if (!query) {
-        const tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
+        // 再試行ロジック追加（Firestore書き込み遅延対策）
+        const MAX_RETRIES = 3
+        const RETRY_DELAY = 1000 // 1秒
+
+        let tendencyRes = null
+        let lastError = null
+
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
+
+          if (tendencyRes.ok) {
+            // 成功した場合はループを抜ける
+            break
+          }
+
+          lastError = tendencyRes
+
+          // 404の場合は短く待機して再試行（最後の試行を除く）
+          if (tendencyRes.status === 404 && attempt < MAX_RETRIES - 1) {
+            console.log(`Tendency data not found (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`)
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+            continue
+          }
+
+          break
+        }
+
         if (!tendencyRes.ok) {
           if (tendencyRes.status === 404) throw new Error('NO_DATA')
           throw new Error('Failed to fetch tendency')
         }
+
         const tendencyData = await tendencyRes.json()
         fetchedScores = tendencyData.scores
         if (tendencyData.updatedAt) {
