@@ -315,7 +315,7 @@ function Dashboard() {
               transition={{ duration: 0.4 }}
             >
               <div className={styles.emptyStateIcon}>
-                <Camera size={40} color="#0693e3" />
+                <Camera size={48} color="#0693e3" strokeWidth={1.5} />
               </div>
               <h2 className={styles.emptyStateTitle}>まだ解析結果がありません</h2>
               <p className={styles.emptyStateDescription}>

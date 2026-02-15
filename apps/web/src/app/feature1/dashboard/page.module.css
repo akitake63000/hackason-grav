@@ -257,13 +257,47 @@
 }
 
 .emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: clamp(32px, 10vw, 48px);
+  padding: clamp(32px, 10vw, 48px) var(--spacing-lg);
+  gap: var(--spacing-md);
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.08) 0%, rgba(6, 147, 227, 0.02) 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(6, 147, 227, 0.2);
+  box-shadow: 0 4px 20px rgba(6, 147, 227, 0.06);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Progressive enhancement: backdrop-filter */
+@supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
+  .emptyState {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+@media (max-width: 767px) {
+  .emptyState {
+    border-radius: 16px;
+    padding: clamp(24px, 8vw, 32px) var(--spacing-md);
+  }
 }
 
 .emptyStateIcon {
-  font-size: clamp(40px, 12vw, 56px);
-  margin-bottom: var(--spacing-md);
+  width: clamp(64px, 18vw, 80px);
+  height: clamp(64px, 18vw, 80px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(6, 147, 227, 0.15) 0%, rgba(6, 147, 227, 0.08) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(32px, 10vw, 40px);
+  box-shadow: 0 2px 8px rgba(6, 147, 227, 0.15);
+  margin-bottom: 0;
 }
 
 .emptyStateTitle {
@@ -271,19 +305,19 @@
   font-size: var(--font-xl);
   font-weight: 600;
   color: #313131;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: 0;
 }
 
 .emptyStateText {
   font-size: var(--font-sm);
-  color: #7f786d;
+  color: #4a6356;
   line-height: 1.6;
 }
 
 .emptyStateDescription {
   font-size: var(--font-sm);
-  color: #7f786d;
+  color: #4a6356;
   line-height: 1.6;
   max-width: 400px;
-  margin: 0 auto var(--spacing-md);
+  margin: 0;
 }
