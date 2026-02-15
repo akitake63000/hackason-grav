@@ -293,31 +293,29 @@
 }
 
 .emptyStateDescription {
-  font-size: var(--font-sm);
   color: #4a6356;
   line-height: 1.6;
-  max-width: 400px;
   margin-bottom: var(--spacing-xl);
 }
 
 .emptyStateButton {
   width: 100%;
   max-width: 400px;
-  padding: var(--spacing-md);
+  padding: 16px 32px;
   border-radius: 16px;
   border: none;
-  background: linear-gradient(135deg, #7c9a7c 0%, #5a7a5a 100%);
+  background: linear-gradient(135deg, #313131 0%, #275c45 100%);
   color: #ffffff;
-  font-size: var(--font-base);
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  box-shadow: 0 4px 16px rgba(124, 154, 124, 0.3);
-  min-height: var(--touch-target-min);
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(6, 147, 227, 0.25), 0 2px 6px rgba(6, 147, 227, 0.15);
+  min-height: 56px;
 }
 
 @media (hover: hover) {
