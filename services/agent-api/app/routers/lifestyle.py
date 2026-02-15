@@ -1192,10 +1192,9 @@ async def quick_qa(request: Request, uid: str = Depends(get_current_uid)) -> Qui
     # 3. パーソナライズされた質問生成
     questions, source = _get_personalized_questions(concern_areas, gender, birth_date)
 
-    # 4. キャッシュ保存（TTL: 翌日4:00AM JST）
+    # 4. キャッシュ保存（TTL: 6時間）
     try:
-        tomorrow = now.date() + timedelta(days=1)
-        ttl_time = datetime.combine(tomorrow, time(4, 0), tzinfo=ZoneInfo("Asia/Tokyo"))
+        ttl_time = now + timedelta(hours=6)
 
         qa_ref.set({
             "questions": questions,

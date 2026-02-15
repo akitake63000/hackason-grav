@@ -162,10 +162,21 @@ function Home() {
         newStreakDays = 1
         newTotalDays = 1
       } else {
-        // 前回訪問日から連続性をチェック
-        const lastVisit = new Date(lastVisitDate)
-        const today = new Date(todayDate)
-        const daysDiff = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24))
+        // 前回訪問日から連続性をチェック（YYYY-MM-DD形式の文字列で直接比較）
+        const lastVisitParts = lastVisitDate.split('-').map(Number) // [2026, 02, 14]
+        const todayParts = todayDate.split('-').map(Number)         // [2026, 02, 15]
+
+        const lastVisitMs = new Date(lastVisitParts[0], lastVisitParts[1] - 1, lastVisitParts[2]).getTime()
+        const todayMs = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]).getTime()
+        const daysDiff = Math.floor((todayMs - lastVisitMs) / (1000 * 60 * 60 * 24))
+
+        console.log('Visit date comparison:', {
+          lastVisitDate,
+          todayDate,
+          daysDiff,
+          cachedStreakDays,
+          cachedTotalDays
+        })
 
         if (daysDiff === 1) {
           // 連続訪問（昨日も訪問していた）
@@ -174,9 +185,15 @@ function Home() {
           // 同日（念のため）
           newStreakDays = cachedStreakDays
           newTotalDays = cachedTotalDays // 通算日数は増やさない
-        } else {
-          // 途切れた → リセット
+        } else if (daysDiff > 1) {
+          // 途切れた → 連続日数のみリセット、通算日数は継続
           newStreakDays = 1
+          // newTotalDays は既に cachedTotalDays + 1 で正しい
+        } else {
+          // daysDiff < 0（未来の日付、ありえない）
+          console.warn('Invalid date comparison: future date detected')
+          newStreakDays = cachedStreakDays
+          newTotalDays = cachedTotalDays
         }
       }
 
