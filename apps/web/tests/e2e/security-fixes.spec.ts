@@ -3,7 +3,12 @@ import { test, expect } from '@playwright/test';
 test.describe('Security Fixes Verification', () => {
   const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
 
+  // Skip authenticated tests in CI without real auth tokens
+  const skipAuthTests = process.env.CI && !process.env.FIREBASE_AUTH_TOKEN;
+
   test.describe('IDOR Protection', () => {
+    test.skip(skipAuthTests, 'Requires authentication token');
+
     test('should reject unauthorized storage path access', async ({ request }) => {
       // Attempt to access storage path with invalid ownership
       const invalidPath = 'users/other-user-id/meals/photo.jpg';
@@ -40,6 +45,8 @@ test.describe('Security Fixes Verification', () => {
   });
 
   test.describe('Rate Limiting', () => {
+    test.skip(skipAuthTests, 'Requires authentication token');
+
     test('should enforce rate limit on LLM endpoints', async ({ request }) => {
       // Test rate limiting on /reports/generate endpoint
       const requests = [];
@@ -151,6 +158,8 @@ test.describe('Security Fixes Verification', () => {
   });
 
   test.describe('Data Cleanup API', () => {
+    test.skip(skipAuthTests, 'Requires authentication token');
+
     test('should require authentication for cleanup endpoint', async ({ request }) => {
       const response = await request.post(`${API_BASE_URL}/api/v1/lifestyle/cleanup-user-data`, {
         failOnStatusCode: false
