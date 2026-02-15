@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Leaf, Loader2, AlertCircle, MapPin, X, BookOpen, Info } from 'lucide-react'
+import { Leaf, Loader2, AlertCircle, MapPin, X, BookOpen, Info, RefreshCw } from 'lucide-react'
 import Button from '@/components/Button'
 import Card from '@/components/Card'
 import Layout from '@/components/Layout'
@@ -333,6 +333,48 @@ const styles = {
     color: '#419873',
     fontStyle: 'italic',
   },
+  // Progress Bar (loading)
+  progressContainer: {
+    width: '200px',
+    height: '4px',
+    background: 'rgba(26, 61, 46, 0.1)',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    margin: '16px auto',
+  },
+  progressBar: {
+    height: '100%',
+    background: 'linear-gradient(90deg, #419873 0%, #347a5c 100%)',
+    borderRadius: '2px',
+    transition: 'width 0.3s ease-out',
+  },
+  loadingStepText: {
+    fontSize: '13px',
+    color: '#7f786d',
+    marginTop: '8px',
+  },
+  // Recipe Regenerate Button
+  regenerateSection: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: '20px',
+    paddingTop: '16px',
+    borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+  },
+  regenerateBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 20px',
+    background: 'rgba(65, 152, 115, 0.05)',
+    border: '1px solid rgba(65, 152, 115, 0.25)',
+    borderRadius: '12px',
+    color: '#419873',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+  },
 }
 
 // フォールバック用デフォルトデータ（M字パターン）
@@ -378,6 +420,12 @@ function getBarColor(value) {
   return 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)'
 }
 
+const LOADING_STEPS = [
+  '栄養素データを取得中...',
+  'あなたに合った食材を選定中...',
+  'レコメンドを生成中...',
+]
+
 function FoodRecommendContent() {
   const searchParams = useSearchParams()
 
@@ -386,7 +434,26 @@ function FoodRecommendContent() {
   const [error, setError] = useState(null)
   const [recipeModal, setRecipeModal] = useState(null)
 
+  // プログレスバー用ステート
+  const [loadingStep, setLoadingStep] = useState(0)
+  const [loadingProgress, setLoadingProgress] = useState(0)
+
   const hairPattern = searchParams.get('hairPattern') || ''
+
+  // プログレスバーアニメーション
+  useEffect(() => {
+    if (!isLoading) return
+    const progressTimer = setInterval(() => {
+      setLoadingProgress((prev) => Math.min(prev + 2, 90))
+    }, 200)
+    const stepTimer = setInterval(() => {
+      setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1))
+    }, 3000)
+    return () => {
+      clearInterval(progressTimer)
+      clearInterval(stepTimer)
+    }
+  }, [isLoading])
 
   const fetchRecommendations = useCallback(async () => {
     setIsLoading(true)
@@ -401,6 +468,7 @@ function FoodRecommendContent() {
         body: JSON.stringify({
           message: deficiencies,
           hairPattern: hairPattern || null,
+          useCache: true,
         }),
       })
 
@@ -428,6 +496,7 @@ function FoodRecommendContent() {
         body: JSON.stringify({
           foodName: food.name,
           hairPattern: data?.hairPattern || null,
+          useCache: true,
         }),
       })
       const result = await response.json()
@@ -442,6 +511,39 @@ function FoodRecommendContent() {
         loading: false,
         error: 'レシピの取得に失敗しました',
       }))
+    }
+  }
+
+  const handleRegenerateRecipe = async () => {
+    if (!recipeModal) return
+    setRecipeModal((prev) => prev ? {
+      ...prev,
+      loading: true,
+      recipes: [],
+      error: null,
+    } : null)
+    try {
+      const response = await apiFetch('/api/v1/food-sniper/recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          foodName: recipeModal.food.name,
+          hairPattern: data?.hairPattern || null,
+          useCache: false,
+        }),
+      })
+      const result = await response.json()
+      setRecipeModal((prev) => prev ? {
+        ...prev,
+        loading: false,
+        recipes: result.recipes || [],
+      } : null)
+    } catch {
+      setRecipeModal((prev) => prev ? {
+        ...prev,
+        loading: false,
+        error: 'レシピの再生成に失敗しました',
+      } : null)
     }
   }
 
@@ -470,15 +572,19 @@ function FoodRecommendContent() {
 
           {isLoading && (
             <div style={styles.loadingContainer}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              >
-                <Loader2 size={36} color="#1a3d2e" />
-              </motion.div>
-              <span style={styles.loadingText}>
-                あなたに最適な食材を分析中...
-              </span>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🥗</div>
+              <h2 style={{ color: '#1a3d2e', marginBottom: '8px', fontWeight: 600 }}>分析中...</h2>
+              <p style={{ color: '#7f786d', marginBottom: '4px' }}>あなたのタイプに合わせた最適な食材を選定しています</p>
+              <div style={styles.progressContainer}>
+                <motion.div
+                  style={{ ...styles.progressBar, width: `${loadingProgress}%` }}
+                  animate={{ width: `${loadingProgress}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                />
+              </div>
+              <p style={styles.loadingStepText}>
+                {LOADING_STEPS[loadingStep]}
+              </p>
             </div>
           )}
 
@@ -784,6 +890,21 @@ function FoodRecommendContent() {
                         )}
                       </div>
                     ))}
+
+                  {/* 他のレシピを見る ボタン */}
+                  {!recipeModal.loading && recipeModal.recipes.length > 0 && (
+                    <div style={styles.regenerateSection}>
+                      <motion.button
+                        style={styles.regenerateBtn}
+                        whileHover={{ scale: 1.02, background: 'rgba(65, 152, 115, 0.12)' }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleRegenerateRecipe}
+                      >
+                        <RefreshCw size={14} />
+                        他のレシピを見る
+                      </motion.button>
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             )}
