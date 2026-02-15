@@ -48,8 +48,10 @@ def get_current_uid(
     except Exception as exc:  # noqa: BLE001
         logging.exception("Failed to verify Firebase ID token")
         if DEBUG_AUTH:
-            logging.warning("DEBUG_AUTH is enabled - exposing exception details in error response. This should ONLY be enabled in development!")
-            detail = f"Invalid token: {exc}"
+            logging.warning("DEBUG_AUTH is enabled - logging exception details. This should ONLY be enabled in development!")
+            # Log detailed error for debugging, but don't expose to client
+            logging.error(f"Token verification error details: {exc}")
+            detail = "Invalid token (詳細はログを参照してください)"
         else:
             detail = "Invalid token"
         raise HTTPException(status_code=401, detail=detail) from exc
