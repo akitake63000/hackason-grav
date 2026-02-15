@@ -114,8 +114,8 @@ function Tendency() {
       if (!res.ok) throw new Error('分析に失敗しました')
       const data = await res.json()
 
-      // Firestore書き込み完了待機（500ms）
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Firestore .set()は同期処理のため、APIレスポンス時点で書き込み完了済み
+      // 500ms待機は不要（Codex分析により確認）
 
       setResultData(data)
       setViewState('result')

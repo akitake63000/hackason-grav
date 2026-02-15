@@ -61,39 +61,42 @@ function LifestyleRecommendContent() {
 
       // Get tendency data if no query params
       if (!query) {
-        // 再試行ロジック追加（Firestore書き込み遅延対策）
+        // 再試行ロジック（apiFetchが例外を投げる前提で修正）
         const MAX_RETRIES = 3
         const RETRY_DELAY = 1000 // 1秒
 
-        let tendencyRes = null
+        let tendencyData = null
         let lastError = null
 
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-          tendencyRes = await apiFetch('/api/v1/lifestyle/tendency/latest')
+          try {
+            // キャッシュバスター追加（404キャッシュ対策）
+            const cacheBuster = `?t=${Date.now()}`
+            const tendencyRes = await apiFetch(`/api/v1/lifestyle/tendency/latest${cacheBuster}`)
 
-          if (tendencyRes.ok) {
-            // 成功した場合はループを抜ける
-            break
+            // 成功した場合
+            if (tendencyRes.ok) {
+              tendencyData = await tendencyRes.json()
+              break
+            }
+          } catch (err) {
+            lastError = err
+
+            // 404の場合は再試行（最後の試行を除く）
+            if (err.statusCode === 404 && attempt < MAX_RETRIES - 1) {
+              console.log(`Tendency data not found (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`)
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+              continue
+            }
+
+            // 404以外のエラー、または最終試行の場合は例外を投げる
+            throw err
           }
-
-          lastError = tendencyRes
-
-          // 404の場合は短く待機して再試行（最後の試行を除く）
-          if (tendencyRes.status === 404 && attempt < MAX_RETRIES - 1) {
-            console.log(`Tendency data not found (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`)
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
-            continue
-          }
-
-          break
         }
 
-        if (!tendencyRes.ok) {
-          if (tendencyRes.status === 404) throw new Error('NO_DATA')
-          throw new Error('Failed to fetch tendency')
+        if (!tendencyData) {
+          throw new Error('NO_DATA')
         }
-
-        const tendencyData = await tendencyRes.json()
         fetchedScores = tendencyData.scores
         if (tendencyData.updatedAt) {
           setDiagnosisDate(tendencyData.updatedAt)
