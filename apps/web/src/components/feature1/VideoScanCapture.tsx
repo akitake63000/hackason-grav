@@ -491,7 +491,27 @@ export default function VideoScanCapture({ onComplete, onError }: VideoScanCaptu
     };
 
     const handleManualCapture = useCallback(() => {
-        if (!bestShotBuffer.current || isTransitioning) return;
+        if (!videoRef.current || !canvasRef.current || isTransitioning) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        // 品質チェックなしで現在のフレームを直接キャプチャ
+        const captureCanvas = document.createElement('canvas');
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        const ctx = captureCanvas.getContext('2d');
+
+        if (!ctx) return;
+
+        ctx.drawImage(video, 0, 0);
+
+        // bestShotBufferに保存（スコアは0 = 品質チェックなし）
+        bestShotBuffer.current = {
+            score: 0,
+            image: captureCanvas.toDataURL('image/jpeg', 0.9)
+        };
+
         handlePhaseComplete();
     }, [handlePhaseComplete, isTransitioning]);
 
