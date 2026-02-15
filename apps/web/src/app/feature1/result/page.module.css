@@ -203,8 +203,7 @@
 }
 
 .emptyStateButton {
-  width: 100%;
-  max-width: 400px;
+  display: inline-flex;
   padding: 16px 32px;
   border-radius: 16px;
   border: none;
@@ -214,7 +213,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
