@@ -94,7 +94,14 @@ gcloud functions logs read daily-scheduler \
 FIREBASE_PROJECT_ID: hackason-grab
 GOOGLE_CLOUD_PROJECT: hackason-grab
 FIREBASE_STORAGE_BUCKET: hackason-grab.firebasestorage.app
+# Security: OIDC authentication (required for production)
+SCHEDULER_SA_EMAIL: "cloud-scheduler@hackason-grab.iam.gserviceaccount.com"
+SCHEDULER_AUDIENCE: "https://asia-northeast1-hackason-grab.cloudfunctions.net/daily-scheduler"
 ```
+
+**重要**: セキュリティのため、Cloud Scheduler からの呼び出しには OIDC 認証が必須です：
+- `SCHEDULER_SA_EMAIL`: Cloud Scheduler のサービスアカウントのメールアドレス（複数の場合はカンマ区切り）
+- `SCHEDULER_AUDIENCE`: Cloud Function の URL（IAM で認証を有効にする場合）
 
 ## エラーハンドリング
 

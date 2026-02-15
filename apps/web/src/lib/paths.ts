@@ -11,8 +11,10 @@ export const firestorePaths = {
     `users/${uid}/conversations/${threadId}/messages/${messageId}`,
   tendencyScore: (uid: string, scoreId: string) =>
     `users/${uid}/tendencyScores/${scoreId}`,
-  foodRequest: (uid: string, requestId: string) =>
-    `users/${uid}/foodRequests/${requestId}`,
+  foodRecommendation: (uid: string, recommendationId: string) =>
+    `users/${uid}/foodRecommendations/${recommendationId}`,
+  foodRecipe: (uid: string, recipeId: string) =>
+    `users/${uid}/foodRecipes/${recipeId}`,
 };
 
 export const storagePaths = {

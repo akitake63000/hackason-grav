@@ -3,7 +3,7 @@ import uuid
 import json
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from firebase_admin import firestore as admin_firestore
 from firebase_admin.exceptions import FirebaseError
 from google.cloud.exceptions import GoogleCloudError
@@ -13,6 +13,7 @@ from ..auth import get_current_uid
 from ..firebase import get_firestore_client
 from ..services.gemini_chat import gemini_enabled, generate_text, safe_json_load
 from ..config import GEMINI_MODEL
+from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/food-sniper", tags=["food-sniper"])
 
@@ -838,9 +839,9 @@ def _get_cached_recommendation(uid: str, pattern: Optional[str]) -> Optional[dic
     try:
         db = get_firestore_client()
         results = (
-            db.collection("foodRequests")
+            db.collection("users")
             .document(uid)
-            .collection("items")
+            .collection("foodRecommendations")
             .where("hairPattern", "==", pattern)
             .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
             .limit(1)
@@ -860,9 +861,9 @@ def _get_cached_recipe(uid: str, food_name: str, pattern: Optional[str]) -> Opti
     try:
         db = get_firestore_client()
         results = (
-            db.collection("foodRequests")
+            db.collection("users")
             .document(uid)
-            .collection("recipes")
+            .collection("foodRecipes")
             .where("foodName", "==", food_name)
             .where("hairPattern", "==", pattern)
             .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
@@ -932,8 +933,11 @@ def _extract_food_recommendations(
 
 
 @router.post("/recommend", response_model=FoodSniperResponse)
+@limiter.limit("10/minute")
 def recommend_food_sniper(
-    payload: FoodSniperRequest, uid: str = Depends(get_current_uid)
+    request: Request,
+    payload: FoodSniperRequest,
+    uid: str = Depends(get_current_uid)
 ) -> FoodSniperResponse:
     # パターン取得: リクエスト > Firestore の順で探す
     pattern = payload.hairPattern
@@ -1035,7 +1039,8 @@ def recommend_food_sniper(
         if pattern_info:
             save_data["patternInfo"] = pattern_info.model_dump()
 
-        db.collection("foodRequests").document(uid).collection("items").document(
+        # Save to users/{uid}/foodRecommendations/ (consistent with frontend and Firestore rules)
+        db.collection("users").document(uid).collection("foodRecommendations").document(
             request_id
         ).set(save_data)
     except Exception as e:
@@ -1052,8 +1057,11 @@ def recommend_food_sniper(
 
 
 @router.post("/recipe", response_model=RecipeResponse)
+@limiter.limit("10/minute")
 def generate_recipe(
-    payload: RecipeRequest, uid: str = Depends(get_current_uid)
+    request: Request,
+    payload: RecipeRequest,
+    uid: str = Depends(get_current_uid)
 ) -> RecipeResponse:
     """食材名からレシピを生成。キャッシュ対応。"""
     # パターンの正規化
@@ -1117,7 +1125,8 @@ def generate_recipe(
     try:
         db = get_firestore_client()
         recipe_id = f"recipe_{uuid.uuid4().hex}"
-        db.collection("foodRequests").document(uid).collection("recipes").document(
+        # Save to users/{uid}/foodRecipes/ (consistent with frontend and Firestore rules)
+        db.collection("users").document(uid).collection("foodRecipes").document(
             recipe_id
         ).set({
             "createdAt": admin_firestore.SERVER_TIMESTAMP,

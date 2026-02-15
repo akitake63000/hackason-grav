@@ -11,11 +11,16 @@ import functions_framework
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import logging
+import os
 from typing import Dict, Any
 
 # Import shared modules (copied from agent-api)
 from shared.generate_plan import generate_daily_actions
 from shared.firebase_client import init_firebase, get_firestore_client
+
+# Import for OIDC verification
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,13 +28,85 @@ logger = logging.getLogger(__name__)
 
 JST = ZoneInfo("Asia/Tokyo")
 
+# Allowed service accounts (from environment variable)
+# Format: comma-separated list of service account emails
+ALLOWED_SA_EMAILS = set(
+    email.strip()
+    for email in os.getenv("SCHEDULER_SA_EMAIL", "").split(",")
+    if email.strip()
+)
+
+
+def _verify_scheduler_auth(request) -> bool:
+    """
+    Verify that the request is from an allowed Cloud Scheduler service account.
+
+    Args:
+        request: The HTTP request object
+
+    Returns:
+        True if authorized, False otherwise
+    """
+    # Skip auth check if no allowed service accounts are configured
+    # (for development/testing environments)
+    if not ALLOWED_SA_EMAILS:
+        logger.warning("No SCHEDULER_SA_EMAIL configured, skipping auth check")
+        return True
+
+    # Extract Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        logger.warning("Missing or invalid Authorization header")
+        return False
+
+    # Extract token
+    token = auth_header.split(" ", 1)[1]
+
+    try:
+        # Verify OIDC token
+        # The audience should be the Cloud Function URL
+        audience = os.getenv("SCHEDULER_AUDIENCE")
+        if not audience:
+            logger.error("SCHEDULER_AUDIENCE environment variable not set")
+            return False
+
+        # Verify token and get claims
+        claims = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+        )
+
+        # Check if the email is in the allowed list
+        email = claims.get("email", "")
+        if email in ALLOWED_SA_EMAILS:
+            logger.info(f"Authorized request from service account: {email}")
+            return True
+        else:
+            logger.warning(f"Unauthorized service account: {email}")
+            return False
+
+    except ValueError as e:
+        logger.error(f"Token verification failed: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error during auth verification: {e}", exc_info=True)
+        return False
+
 
 @functions_framework.http
 def daily_scheduler(request):
     """
     HTTP Cloud Function entry point
     Called by Cloud Scheduler at 4 AM JST daily
+
+    Security: Requires OIDC authentication from Cloud Scheduler service account
     """
+    # Verify authentication
+    if not _verify_scheduler_auth(request):
+        logger.error("Unauthorized request to daily scheduler")
+        return {"status": "error", "error": "Unauthorized"}, 401
+
     try:
         # Initialize Firebase
         init_firebase()
@@ -78,8 +155,16 @@ def auto_confirm_yesterday_logs(db, yesterday: str) -> int:
     users/{uid}/plans/{planId}/logs/{YYYY-MM-DD}
     - isConfirmed: bool
     - completedActions: list
+
+    TODO (Scalability): For large user bases (>1000 users), consider:
+    - Using Collection Group queries to directly access logs
+    - Implementing pagination with batch processing
+    - Using Cloud Tasks to distribute work across multiple invocations
+    - Adding a user limit per execution (e.g., max 1000 users/run)
     """
     confirmed_count = 0
+    processed_users = 0
+    MAX_USERS_PER_RUN = 10000  # Safety limit to prevent timeout
 
     try:
         # Get all users
@@ -88,6 +173,12 @@ def auto_confirm_yesterday_logs(db, yesterday: str) -> int:
 
         for user_doc in users:
             uid = user_doc.id
+            processed_users += 1
+
+            # Safety limit to prevent Cloud Function timeout
+            if processed_users > MAX_USERS_PER_RUN:
+                logger.warning(f"Reached max users limit ({MAX_USERS_PER_RUN}), stopping processing")
+                break
 
             try:
                 # Get all plans for this user (not filtering by status to handle edge cases)
@@ -143,8 +234,16 @@ def generate_today_actions(db, today: str) -> int:
     Firestore structure:
     users/{uid}/tendencyScores/latest - scores and answers
     users/{uid}/plans/{planId}/dailyActions/{YYYY-MM-DD} - generated actions
+
+    TODO (Scalability): For large user bases (>1000 users), consider:
+    - Using Collection Group queries with filtering (status='active')
+    - Implementing pagination with batch processing
+    - Using Cloud Tasks to distribute work across multiple invocations
+    - Adding a user limit per execution (e.g., max 1000 users/run)
     """
     generated_count = 0
+    processed_users = 0
+    MAX_USERS_PER_RUN = 10000  # Safety limit to prevent timeout
 
     try:
         # Get all users
@@ -153,6 +252,12 @@ def generate_today_actions(db, today: str) -> int:
 
         for user_doc in users:
             uid = user_doc.id
+            processed_users += 1
+
+            # Safety limit to prevent Cloud Function timeout
+            if processed_users > MAX_USERS_PER_RUN:
+                logger.warning(f"Reached max users limit ({MAX_USERS_PER_RUN}), stopping processing")
+                break
 
             try:
                 # Get user's latest tendency scores
