@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils, BookOpen, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Info, CheckCircle, ShoppingBag, Utensils, BookOpen, X, Loader2, AlertCircle, RefreshCw, Camera } from 'lucide-react';
 import Layout from '@/components/Layout';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -41,6 +41,7 @@ interface FoodSniperResponse {
     nutrients: NutrientInfo[];
     shoppingList: string[];
     hairPattern?: string;
+    hasAnalysis?: boolean;
 }
 
 interface RecipeItem {
@@ -252,6 +253,36 @@ function FoodRecommendContent() {
                             {data?.patternInfo?.label ? `${data.patternInfo.label}向け` : 'あなたに最適'}の栄養アプローチ
                         </p>
                     </motion.div>
+
+                    {/* AI解析未実施バナー */}
+                    {data && !data.hasAnalysis && !data.patternInfo && (
+                        <motion.div
+                            className={styles.analysisBanner}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1, duration: 0.5 }}
+                        >
+                            <div className={styles.analysisBannerContent}>
+                                <div className={styles.analysisBannerText}>
+                                    <span className={styles.analysisBannerTitle}>
+                                        あなた専用の食事プランを作成できます
+                                    </span>
+                                    <p className={styles.analysisBannerDesc}>
+                                        AIカメラで頭髪状況を分析すると、あなたのタイプに合わせた栄養アプローチを提案します
+                                    </p>
+                                </div>
+                                <motion.button
+                                    className={styles.analysisBtn}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => router.push('/feature1/capture')}
+                                >
+                                    <Camera size={16} />
+                                    AIで頭髪状況を確かめる
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Pattern Info Section - "WHY" */}
                     {data?.patternInfo && (

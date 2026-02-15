@@ -64,6 +64,7 @@ class FoodSniperResponse(BaseModel):
     nutrients: List[NutrientInfo]
     shoppingList: List[str]
     hairPattern: Optional[str] = None
+    hasAnalysis: bool = False
 
 
 class RecipeRequest(BaseModel):
@@ -752,11 +753,12 @@ def _get_user_hair_pattern(uid: str) -> Optional[str]:
     """Firestore から最新の解析結果の薄毛パターンを取得する。"""
     try:
         db = get_firestore_client()
+        # photos.py の保存先: users/{uid}/analysisResults/{photoId}
         results = (
-            db.collection("analysisResults")
+            db.collection("users")
             .document(uid)
-            .collection("items")
-            .order_by("createdAt", direction=admin_firestore.Query.DESCENDING)
+            .collection("analysisResults")
+            .order_by("analyzedAt", direction=admin_firestore.Query.DESCENDING)
             .limit(1)
             .get()
         )
@@ -946,28 +948,32 @@ def recommend_food_sniper(
     if payload.useCache:
         cached = _get_cached_recommendation(uid, pattern)
         if cached:
-            cached_nutrients = [
-                NutrientInfo(**n) for n in cached.get("nutrients", [])
-            ]
-            # patternInfo の復元（キャッシュにない場合は静的データでフォールバック）
-            cached_pattern_info = None
-            if cached.get("patternInfo"):
-                cached_pattern_info = PatternInfo(**cached["patternInfo"])
-            elif pattern and pattern in PATTERN_FOOD_MAP:
-                info = PATTERN_FOOD_MAP[pattern]
-                cached_pattern_info = PatternInfo(
-                    label=info["label"],
-                    description=info["description"],
-                    cause=info["cause"],
-                    strategy=info["strategy"],
-                )
+            try:
+                cached_nutrients = [
+                    NutrientInfo(**n) for n in cached.get("nutrients", [])
+                ]
+                # patternInfo の復元（キャッシュにない場合は静的データでフォールバック）
+                cached_pattern_info = None
+                if cached.get("patternInfo"):
+                    cached_pattern_info = PatternInfo(**cached["patternInfo"])
+                elif pattern and pattern in PATTERN_FOOD_MAP:
+                    info = PATTERN_FOOD_MAP[pattern]
+                    cached_pattern_info = PatternInfo(
+                        label=info["label"],
+                        description=info["description"],
+                        cause=info["cause"],
+                        strategy=info["strategy"],
+                    )
 
-            return FoodSniperResponse(
-                patternInfo=cached_pattern_info,
-                nutrients=cached_nutrients,
-                shoppingList=cached.get("shoppingList", []),
-                hairPattern=cached.get("hairPattern"),
-            )
+                return FoodSniperResponse(
+                    patternInfo=cached_pattern_info,
+                    nutrients=cached_nutrients,
+                    shoppingList=cached.get("shoppingList", []),
+                    hairPattern=cached.get("hairPattern"),
+                    hasAnalysis=bool(pattern),
+                )
+            except Exception as e:
+                logging.warning(f"Failed to reconstruct cached recommendation, falling through to fresh generation: {e}")
 
     # --- フレッシュ生成 ---
     nutrients, shopping_list = _extract_food_recommendations(
@@ -1037,6 +1043,7 @@ def recommend_food_sniper(
         nutrients=nutrients,
         shoppingList=shopping_list,
         hairPattern=pattern,
+        hasAnalysis=bool(pattern),
     )
 
 
@@ -1052,9 +1059,12 @@ def generate_recipe(
     if payload.useCache:
         cached = _get_cached_recipe(uid, payload.foodName, effective_pattern)
         if cached:
-            cached_recipes = [RecipeItem(**r) for r in cached.get("recipes", [])]
-            if cached_recipes:
-                return RecipeResponse(recipes=cached_recipes)
+            try:
+                cached_recipes = [RecipeItem(**r) for r in cached.get("recipes", [])]
+                if cached_recipes:
+                    return RecipeResponse(recipes=cached_recipes)
+            except Exception as e:
+                logging.warning(f"Failed to reconstruct cached recipe, falling through to fresh generation: {e}")
 
     # --- フレッシュ生成 ---
     pattern_context = ""

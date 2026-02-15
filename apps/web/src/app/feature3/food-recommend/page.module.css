@@ -464,3 +464,58 @@
     background: rgba(6, 147, 227, 0.12);
     border-color: rgba(6, 147, 227, 0.4);
 }
+
+/* AI解析未実施バナー */
+.analysisBanner {
+    background: linear-gradient(135deg, rgba(6, 147, 227, 0.06) 0%, rgba(6, 147, 227, 0.02) 100%);
+    border: 1px solid rgba(6, 147, 227, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.analysisBannerContent {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.analysisBannerText {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.analysisBannerTitle {
+    font-size: 15px;
+    font-weight: 600;
+    color: #313131;
+}
+
+.analysisBannerDesc {
+    font-size: 13px;
+    color: #7f786d;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.analysisBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #0693e3;
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.analysisBtn:hover {
+    background: #0570b8;
+    box-shadow: 0 4px 12px rgba(6, 147, 227, 0.3);
+}
