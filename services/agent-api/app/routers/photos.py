@@ -11,10 +11,32 @@ from google.cloud.exceptions import GoogleCloudError
 from ..services.gemini_vision import analyze_image_bytes
 from ..auth import get_current_uid
 from ..firebase import get_firestore_client
-from ..storage import download_image_bytes
+from ..storage import download_image_bytes, validate_storage_path
 from ..middleware.rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/photos", tags=["photos"])
+
+
+def _assert_photo_path(uid: str, storage_path: str) -> None:
+    """
+    Validate that the storage path is owned by the user and is for photo images.
+
+    Args:
+        uid: The user ID
+        storage_path: The storage path to validate
+
+    Raises:
+        HTTPException: If the path is invalid or not owned by the user
+    """
+    # Basic validation (path traversal, extension, etc.)
+    validate_storage_path(storage_path)
+
+    # Owner validation: must be under users/{uid}/photos/
+    if not storage_path.startswith(f"users/{uid}/photos/"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid storage path: must be under users/{uid}/photos/"
+        )
 
 
 class AnalyzePhotoRequest(BaseModel):
@@ -76,12 +98,15 @@ def analyze_photo(
         
     photo_data = photo_snap.to_dict()
     storage_path = photo_data.get("storagePath")
-    
+
     if not storage_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Photo metadata missing storagePath"
         )
+
+    # Validate storage path ownership (IDOR protection)
+    _assert_photo_path(uid, storage_path)
 
     # 2. Download Image
     try:
@@ -306,6 +331,8 @@ def analyze_scan_photos(
         path = data.get("storagePath")
         if not path:
             raise HTTPException(status_code=400, detail=f"Photo {photo_id} missing storagePath")
+        # Validate storage path ownership (IDOR protection)
+        _assert_photo_path(uid, path)
         return download_image_bytes(path)
 
     try:

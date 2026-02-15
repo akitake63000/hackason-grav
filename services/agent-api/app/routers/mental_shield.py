@@ -11,6 +11,8 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Request
 from firebase_admin import firestore as admin_firestore
 from pydantic import BaseModel, Field, field_validator
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 try:
     from google.cloud import tasks_v2
@@ -28,6 +30,70 @@ from ..agents.lifestyle_agent.tools.analyze_user_activity import analyze_user_ac
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/mental-shield", tags=["mental-shield"])
+
+# Allowed service accounts for Cloud Tasks (from environment variable)
+# Format: comma-separated list of service account emails
+ALLOWED_TASKS_SA_EMAILS = set(
+    email.strip()
+    for email in os.getenv("CLOUD_TASKS_SA_EMAIL", "").split(",")
+    if email.strip()
+)
+
+
+def _verify_cloud_tasks_auth(request: Request) -> None:
+    """
+    Verify that the request is from an allowed Cloud Tasks service account using OIDC token.
+
+    Args:
+        request: The FastAPI request object
+
+    Raises:
+        HTTPException: If authorization fails
+    """
+    # Skip auth check if no allowed service accounts are configured
+    # (for development/testing environments)
+    if not ALLOWED_TASKS_SA_EMAILS:
+        logger.warning("No CLOUD_TASKS_SA_EMAIL configured, skipping OIDC auth check")
+        return
+
+    # Extract Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        logger.warning("Missing or invalid Authorization header for Cloud Tasks endpoint")
+        raise HTTPException(status_code=401, detail="Unauthorized: Missing or invalid token")
+
+    # Extract token
+    token = auth_header.split(" ", 1)[1]
+
+    try:
+        # Verify OIDC token
+        # The audience should be the Cloud Run service URL
+        audience = os.getenv("CLOUD_TASKS_AUDIENCE")
+        if not audience:
+            logger.error("CLOUD_TASKS_AUDIENCE environment variable not set")
+            raise HTTPException(status_code=500, detail="Server configuration error")
+
+        # Verify token and get claims
+        claims = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            audience=audience,
+        )
+
+        # Check if the email is in the allowed list
+        email = claims.get("email", "")
+        if email not in ALLOWED_TASKS_SA_EMAILS:
+            logger.warning(f"Unauthorized service account: {email}")
+            raise HTTPException(status_code=403, detail="Forbidden: Unauthorized service account")
+
+        logger.info(f"OIDC verification successful for Cloud Tasks: {email}")
+
+    except ValueError as e:
+        logger.error(f"OIDC token verification failed: {e}")
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid token") from e
+    except Exception as e:
+        logger.error(f"Unexpected error during OIDC verification: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 class MentalShieldRequest(BaseModel):
@@ -629,8 +695,9 @@ def mental_shield_discuss(
 # ---------------------------------------------------------------------------
 
 @router.get("/debug/test-models")
-def debug_test_models():
-    """各モデルで短いテキスト生成を試み、成功/失敗を返す。"""
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute for debug endpoint
+def debug_test_models(request: Request, uid: str = Depends(get_current_uid)):
+    """各モデルで短いテキスト生成を試み、成功/失敗を返す。認証必須。"""
     results = {}
     test_prompt = "「こんにちは」と一言だけ返してください。"
 
@@ -639,14 +706,16 @@ def debug_test_models():
             text = generate_text(test_prompt, model=model_name, max_output_tokens=50)
             results[label] = {"model": model_name, "ok": True, "response": text[:100]}
         except Exception as e:
-            results[label] = {"model": model_name, "ok": False, "error": f"{type(e).__name__}: {e}"}
+            logger.error(f"Model test failed for {label}: {e}", exc_info=True)
+            results[label] = {"model": model_name, "ok": False, "error": "Model test failed"}
 
     # max_output_tokens なしでも試す
     try:
         text = generate_text(test_prompt, model=GEMINI_MODEL)
         results["flash_no_token_limit"] = {"model": GEMINI_MODEL, "ok": True, "response": text[:100]}
     except Exception as e:
-        results["flash_no_token_limit"] = {"model": GEMINI_MODEL, "ok": False, "error": f"{type(e).__name__}: {e}"}
+        logger.error(f"Model test failed for flash_no_token_limit: {e}", exc_info=True)
+        results["flash_no_token_limit"] = {"model": GEMINI_MODEL, "ok": False, "error": "Model test failed"}
 
     results["config"] = {
         "GEMINI_MODEL": GEMINI_MODEL,
@@ -929,13 +998,16 @@ class ExecuteTaskRequest(BaseModel):
 
 
 @router.post("/tasks/{task_id}/execute")
-async def execute_task(task_id: str, request_body: ExecuteTaskRequest):
+@limiter.limit("30/minute")  # Rate limit: 30 requests per minute for internal task execution
+async def execute_task(task_id: str, request_body: ExecuteTaskRequest, request: Request):
     """
     Cloud Tasksから呼ばれる実際の処理エンドポイント（内部用）
 
-    このエンドポイントはCloud TasksのOIDCトークンで保護されているため、
-    Firebase認証は不要です。
+    このエンドポイントはCloud TasksのOIDCトークンで保護されています。
     """
+    # Verify OIDC token from Cloud Tasks
+    _verify_cloud_tasks_auth(request)
+
     uid = request_body.user_id
     db = get_firestore_client()
 
